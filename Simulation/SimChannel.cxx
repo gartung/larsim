@@ -160,8 +160,8 @@ namespace sim{
     }
 
     std::map<unsigned short, std::vector<sim::IDE> >::const_iterator mitr;
-    std::map<unsigned short, std::vector<sim::IDE> >::const_iterator start = fTDCIDEs.lower_bound(startTDC);
-    std::map<unsigned short, std::vector<sim::IDE> >::const_iterator end   = fTDCIDEs.upper_bound(endTDC);
+    std::map<unsigned short, std::vector<sim::IDE> >::const_iterator start = fTDCIDEs.begin();
+    std::map<unsigned short, std::vector<sim::IDE> >::const_iterator end   = fTDCIDEs.end();
 
     for(mitr = start; mitr != end; mitr++){
 
@@ -170,6 +170,8 @@ namespace sim{
       std::vector<sim::IDE>::const_iterator itr = idelist.begin();
       // now loop over them and add their content to the map
       while( itr != idelist.end() ){
+	
+	std::cout<<"IDE at " << mitr->first << ", limits at " << startTDC << ", " << endTDC<<std::endl;
 	
 	if( idToIDE.find((*itr).trackID) != idToIDE.end() ){
 	  double nel1   = idToIDE[(*itr).trackID].numElectrons;
