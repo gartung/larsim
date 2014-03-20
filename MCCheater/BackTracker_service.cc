@@ -569,7 +569,7 @@ namespace cheat{
       // loop over the electrons in the channel and grab those that are in time 
       // with the identified hit start and stop times
      
-      std::vector<sim::IDE> simides = schannel->TrackIDsAndEnergies(start_tdc, end_tdc);
+      std::vector<sim::IDE> simides = schannel->TrackIDsAndEnergies(startTime, endTime);
       
       // first get the total energy represented by all track ids for 
       // this channel and range of tdc values
