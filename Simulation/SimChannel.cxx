@@ -171,7 +171,6 @@ namespace sim{
       // now loop over them and add their content to the map
       while( itr != idelist.end() ){
 	
-	std::cout<<"IDE at " << mitr->first << ", limits at " << startTDC << ", " << endTDC<<std::endl;
 	
 	if( idToIDE.find((*itr).trackID) != idToIDE.end() ){
 	  double nel1   = idToIDE[(*itr).trackID].numElectrons;
