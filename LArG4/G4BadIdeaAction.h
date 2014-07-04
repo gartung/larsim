@@ -29,7 +29,9 @@
 class G4Step;
 
 namespace larg4 {
-
+double energy_deposit_step;
+//double phot_refl_ev;
+int eventnumber_fast;
   class G4BadIdeaAction : public g4b::UserAction
   {
   public:
