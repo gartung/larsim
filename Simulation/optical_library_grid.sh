@@ -102,7 +102,7 @@ unset LD_LIBRARY_PATH
 export GROUP=lariat
 export EXPERIMENT=lariat
 export EXTRA_PATH=lar
-export HOME=/lariat/app/users/kryczynski/LArSoft_light_new/build_slf5.x86_64/Run_Lariat
+export HOME=#your/home/dir
 
 ## This sets all the needed FW and SRT and LD_LIBRARY_PATH envt variables. 
 ## Then we cd back to our TMP area. EC, 23-Nov-2010.
