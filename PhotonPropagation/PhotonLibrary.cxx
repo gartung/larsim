@@ -105,6 +105,7 @@ namespace phot{
       {
 	f  =  TFile::Open(LibraryFile.c_str());
 	tt =  (TTree*)f->Get("PhotonLibraryData");
+	if(tt==NULL) tt =  (TTree*)f->Get("pmtresponse/PhotonLibraryData");
       }
     catch(...)
       {
