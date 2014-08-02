@@ -65,9 +65,11 @@ namespace phot{
     bool fUseCryoBoundary;
     
     bool                 fLibraryBuildJob;
+    bool                 fExtendedLibraryInfo;
     bool                 fDoNotLoadLibrary;
     bool                 fParameterization;
-    std::string          fLibraryFile;      
+    std::string          fLibraryFile; 
+    std::string          geo_file;      
     PhotonLibrary *      fTheLibrary;
     sim::PhotonVoxelDef  fVoxelDef;
     

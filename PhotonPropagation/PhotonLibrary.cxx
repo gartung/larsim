@@ -12,7 +12,8 @@
 #include "TFile.h"
 #include "TTree.h"
 
-
+#include <stdio.h>
+#include <string.h>
 namespace phot{
   
   std::vector<float> PhotonLibrary::EmptyChannelsList; // used for invalid return value
@@ -46,11 +47,13 @@ namespace phot{
     Int_t     Voxel;
     Int_t     OpChannel;
     Float_t   Visibility;
+   // std::string gdmlFileName;
 
 
     tt->Branch("Voxel",      &Voxel,      "Voxel/I");
     tt->Branch("OpChannel",  &OpChannel,  "OpChannel/I");
     tt->Branch("Visibility", &Visibility, "Visibility/F");
+ //   tt->Branch("", &gdmlFileName, "gdmlFileName");
  
 
     for(size_t ivox=0; ivox!=fLookupTable.size(); ++ivox)
@@ -68,6 +71,59 @@ namespace phot{
       }
   }
 
+  //------------------------------------------------------------
+  
+  void PhotonLibrary::StoreLibraryToFile2(std::string LibraryFile, int Nx, int Ny, int Nz, int Nv, std::string gdmlfile)
+  {
+    mf::LogInfo("PhotonLibrary") << "Writing extended photon library to input file: " << LibraryFile.c_str()<<std::endl;
+
+    art::ServiceHandle<art::TFileService> tfs;
+
+    TTree *tt = tfs->make<TTree>("PhotonLibraryData","PhotonLibraryData");
+ 
+    
+    Int_t     Voxel;
+    Int_t     OpChannel;
+    Float_t   Visibility;
+    Int_t     nx;
+    Int_t     ny;
+    Int_t     nz;
+    Int_t     nv;
+    //const char* gdmlfilepath=gdmlfile.c_str();
+   Char_t filepath[100];
+    //const char* gdmlfilepath="file";
+   //std::string gdmlFileName;
+	strcpy(filepath,gdmlfile.c_str());
+//filepath="path";
+    tt->Branch("Voxel",      &Voxel,      "Voxel/I");
+    tt->Branch("OpChannel",  &OpChannel,  "OpChannel/I");
+    tt->Branch("Visibility", &Visibility, "Visibility/F");
+    tt->Branch("Voxels_x",      &nx,      "nx/I");
+    tt->Branch("Voxels_y",  &ny,"ny/I");
+    tt->Branch("Voxels_z",      &nz,"nz/I");
+    tt->Branch("Voxels_total",  &nv,"nv/I");
+    tt->Branch("file_path", filepath, "filepath/C");
+ 
+
+    for(size_t ivox=0; ivox!=fLookupTable.size(); ++ivox)
+      {
+	for(size_t ichan=0; ichan!=fLookupTable.at(ivox).size(); ++ichan)
+	  {
+	    if(fLookupTable[ivox].at(ichan) > 0)
+	      {
+		Voxel      = ivox;
+		OpChannel  = ichan;
+		Visibility = fLookupTable[ivox][ichan];
+		nx=Nx;
+		ny=Ny;
+		nz=Nz;
+		nv=Nx*Ny*Nz;
+		// gdmlfilepath=const Char_t("file");
+		tt->Fill();
+	      }
+	  }	
+      }
+  }
 
   //------------------------------------------------------------
 
@@ -171,8 +227,11 @@ namespace phot{
   { 
     if(/*(Voxel<0)||*/(Voxel>=fNVoxels))
       mf::LogError("PhotonLibrary")<<"Error - attempting to set count in voxel " << Voxel<<" which is out of range"; 
-    else
+    else{
+          mf::LogInfo("PhotonLibrary")<<" flookup table size " << fLookupTable.size()<<" "<<OpChannel<<std::endl;
       fLookupTable[Voxel].at(OpChannel) = Count; 
+      
+      }
   }
 
   //----------------------------------------------------
