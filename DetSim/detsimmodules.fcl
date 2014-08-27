@@ -48,6 +48,13 @@ standard_wienerfilterana:
 {
  module_type:        "WienerFilterAna"
  DetSimModuleLabel:  "daq"
+ SmoothingHalfwidthBins: 100
+ IndUNoiseWireRange:  [50,450]
+ IndUSignalWireRange: [700,1100]
+ IndVNoiseWireRange:  [50,450]
+ IndVSignalWireRange: [700,1100]
+ CathNoiseWireRange:  [50,450]
+ CathSignalWireRange: [700,1100]
 }
 
 bo_wienerfilterana:         @local::standard_wienerfilterana
