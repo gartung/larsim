@@ -96,6 +96,7 @@
 #include "Geant4/G4Cerenkov.hh"
 #include "Geant4/G4Scintillation.hh"
 #include "Geant4/G4OpAbsorption.hh"
+
 #include "Geant4/G4OpWLS.hh"
 #include "Geant4/G4OpRayleigh.hh"
 
@@ -160,14 +161,20 @@ namespace larg4 {
   //-----------------------------------------------------------  
   void OpticalPhysics::ConstructProcess()
   {
+    art::ServiceHandle<util::LArProperties> larp;
     // Add standard EM Processes
     LOG_DEBUG("OpticalPhysics") << "PROCESSES BEING CONSTRUCTED IN OPTICAL PHYSICS";
-    
+    bool simpleopticalphysics=false;
+    //bool simplesc=false;
+simpleopticalphysics=larp->SimpleBoundary();
+//simplesc=larp->SimpleScint();
+//simpleopticalphysics=false;
     fTheCerenkovProcess            = new G4Cerenkov("Cerenkov");
     fTheScintillationProcess       = new G4Scintillation("Scintillation");
     fTheAbsorptionProcess          = new G4OpAbsorption();
     fTheRayleighScatteringProcess  = new G4OpRayleigh();
-    fTheBoundaryProcess            = new OpBoundaryProcessSimple();
+    if(simpleopticalphysics==false) fTheBoundaryProcess = new G4OpBoundaryProcess();
+   if(simpleopticalphysics==true) fTheBoundaryProcessSimple = new OpBoundaryProcessSimple();
     fTheWLSProcess                 = new G4OpWLS();
     
     
@@ -185,7 +192,7 @@ namespace larg4 {
     fTheScintillationProcess->AddSaturation(emSaturation);
     
     
-    art::ServiceHandle<util::LArProperties> larp;
+    
     bool CerenkovLightEnabled = larp->CerenkovLightEnabled();
     
     mf::LogInfo("OpticalPhysics")<<"Cerenkov light enabled : " << CerenkovLightEnabled;
@@ -211,8 +218,17 @@ namespace larg4 {
        mf::LogInfo("OpticalPhysics") << " AddDiscreteProcess to OpticalPhoton ";
 	pmanager->AddDiscreteProcess(fTheAbsorptionProcess);
 	pmanager->AddDiscreteProcess(fTheRayleighScatteringProcess);
-	pmanager->AddDiscreteProcess(fTheBoundaryProcess);
+	   if(simpleopticalphysics==true){
+ pmanager->AddDiscreteProcess(fTheBoundaryProcessSimple);
+std::cout<<" simple  boundary proces !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "<<std::endl;
+	}
+	   if(simpleopticalphysics==false){
+ pmanager->AddDiscreteProcess(fTheBoundaryProcess);
+std::cout<<" standard G4 boundary proces !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "<<std::endl;
+}
 	pmanager->AddDiscreteProcess(fTheWLSProcess);
+//std::cout << " AddDiscreteProcess to OpticalPhoton "<<std::endl;
+
       }
     }
     
