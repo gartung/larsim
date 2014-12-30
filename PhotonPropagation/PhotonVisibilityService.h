@@ -70,7 +70,7 @@ namespace phot{
     bool                 fParameterization;
     std::string          fLibraryFile;      
     mutable PhotonLibrary* fTheLibrary;
-    std::string          geo_file;      
+mutable    std::string          geo_file;      
 
     sim::PhotonVoxelDef  fVoxelDef;
     

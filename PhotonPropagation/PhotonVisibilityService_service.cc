@@ -55,9 +55,15 @@ namespace phot{
   {
     this->reconfigure(pset);
     mf::LogInfo("PhotonVisibilityService")<<"PhotonVisbilityService initializing"<<std::endl;
+        
+    fNx        = pset.get< int          >("NX"       );
+    fNy        = pset.get< int          >("NY"       );
+    fNz        = pset.get< int          >("NZ"       );
+    
+
   }
 
-<<<<<<< HEAD
+
   //--------------------------------------------------------------------
   void PhotonVisibilityService::LoadLibrary() const
   {
@@ -70,13 +76,9 @@ namespace phot{
 
       size_t NVoxels = GetVoxelDef().GetNVoxels();
       size_t NOpChannels = geom->NOpChannels();
-	    if(fNx!=0&&fNy!=0&&fNz!=0) mf::LogInfo("PhotonVisibilityService")<<"number of voxels "<<fNx<<"    "<<fNy<$
-    else{
-    fNx        = pset.get< int          >("NX"       );
-    fNy        = pset.get< int          >("NY"       );
-    fNz        = pset.get< int          >("NZ"       );
-    geo_file=std::string(geom->GetGDMLPath());
-    }
+
+    geo_file=std::string(geom->GDMLFile());
+
 
       if((!fLibraryBuildJob)&&(!fDoNotLoadLibrary)) {
 	std::string LibraryFileWithPath;
@@ -130,7 +132,7 @@ namespace phot{
 
     art::ServiceHandle<geo::Geometry> geom;
     	mf::LogInfo("PhotonVisibilityService") <<" reconfiguring PVS " <<std::endl;
-	geo_file=geom->GetGDMLPath();
+	geo_file=geom->GDMLFile();
  mf::LogInfo("PhotonVisibilityService") << "gdml file path "<<geo_file<<std::endl;
     // Library details
     fLibraryBuildJob      = p.get< bool        >("LibraryBuildJob"     );
