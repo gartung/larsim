@@ -23,7 +23,7 @@
 #include "art/Persistency/Common/Ptr.h"
 #include "art/Persistency/Common/PtrVector.h"
 #include "cetlib/exception.h"
-#include "G4BadIdeaAction.h"
+#include "LaRLightEnergyAction.h"
 
 #include "Geant4/G4SystemOfUnits.hh"
 #include "Geant4/G4ios.hh"

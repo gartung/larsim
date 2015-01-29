@@ -47,7 +47,7 @@
 #include "LArG4/LArVoxelReadoutGeometry.h"
 #include "LArG4/PhysicsList.h"
 #include "LArG4/ParticleListAction.h"
-#include "LArG4/G4BadIdeaAction.h"
+#include "LArG4/LaRLightEnergyAction.h"
 #include "LArG4/IonizationAndScintillationAction.h"
 #include "LArG4/OpDetSensitiveDetector.h"
 #include "LArG4/OpDetReadoutGeometry.h"
@@ -229,8 +229,8 @@ namespace larg4 {
     // The techniques used in this UserAction are not to be repeated
     // as in general they are a very bad idea, ie they take a const
     // pointer and jump through hoops to change it
-    larg4::G4BadIdeaAction *bia = new larg4::G4BadIdeaAction(fSmartStacking);
-    uaManager->AddAndAdoptAction(bia);
+    larg4::LaRLightEnergyAction *llea = new larg4::LaRLightEnergyAction(fSmartStacking);
+    uaManager->AddAndAdoptAction(llea);
 
     // remove IonizationAndScintillationAction for now as we are ensuring
     // the Reset for each G4Step within the G4SensitiveVolumes
