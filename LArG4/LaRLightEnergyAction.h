@@ -15,8 +15,8 @@
 /// It uses multiple inheritance: it inherits from G4Base::UserAction,
 /// in order to take advantage of Geant4's user hooks
 
-#ifndef LArG4_G4BADIDEAACTION_H
-#define LArG4_G4BADIDEAACTION_H
+#ifndef LArG4_LARLIGHTENERGYACTION_H
+#define LArG4_LARLIGHTENERGYACTION_H
 
 #include "G4Base/UserAction.h"
 
@@ -29,13 +29,15 @@
 class G4Step;
 
 namespace larg4 {
-
-  class G4BadIdeaAction : public g4b::UserAction
+double energy_deposit_step;
+//double phot_refl_ev;
+int eventnumber_fast;
+  class LaRLightEnergyAction : public g4b::UserAction
   {
   public:
     // Standard constructors and destructors;
-    G4BadIdeaAction(int );
-    virtual ~G4BadIdeaAction();
+    LaRLightEnergyAction(int );
+    virtual ~LaRLightEnergyAction();
 
     // UserActions method that we'll override, to obtain access to
     // Geant4's steps
@@ -50,4 +52,4 @@ namespace larg4 {
 
 } // namespace LArG4
 
-#endif // LArG4_G4BADIDEAACTION_H
+#endif // LArG4_LARLIGHTENERGYACTION_H

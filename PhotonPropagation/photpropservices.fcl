@@ -12,7 +12,7 @@ standard_photonvisibilityservice:
   DoNotLoadLibrary: false
 	
   LibraryBuildJob: false
- 		
+  ExtendedLibraryInfo: false	
   LibraryFile: "PhotonPropagation/LibraryData/lib8984855.root"	 
 
  #These are not used when usecryoboundary=true	

@@ -183,15 +183,16 @@ namespace larg4 {
     
     TransformSoFar.push_back(NextTransform);
 
-
+//G4cout<<"searching for optical detector !!!!!! "<<VolumeName<<" "<<OpDetName <<G4endl;
     // Check if this volume is a OpDet
     G4String OpDetNameUnderscore = OpDetName+"_";
-    G4String VolumeName = PhysicalVolume->GetName();   
+    G4String VolumeName = PhysicalVolume->GetName(); 
+G4cout<<"searching for optical detector !!!!!! "<<VolumeName<<" "<<OpDetName <<G4endl;  
     if( ( VolumeName == OpDetName ) ||
 	( VolumeName.find( OpDetNameUnderscore,0,OpDetNameUnderscore.length() )==0 )
 	)
       {
-
+G4cout<<"optical detector !!!!!! "<<VolumeName<<" "<<OpDetName <<G4endl;
 	// We found a OpDet! Store its volume and global transformation
 	G4ThreeVector     Trans(0,0,0);
 	G4RotationMatrix  Rot(0,0,0);
