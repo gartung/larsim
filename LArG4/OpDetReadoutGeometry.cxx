@@ -63,8 +63,6 @@ namespace larg4 {
     if(OpDetVolumes.size()>0)
       {
 
-	
-	
 	// Make placements
 	for(unsigned int i=0; i!=OpDetVolumes.size(); i++)
 	{

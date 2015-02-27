@@ -34,6 +34,7 @@
 
 #include "Geant4/G4PhysicalVolumeStore.hh"
 #include "Geant4/G4VPhysicalVolume.hh"
+#include "Geant4/G4ThreeVector.hh"
 #include <map>
 
 #ifndef OpDetLOOKUP_h
@@ -52,6 +53,7 @@ namespace larg4 {
       int GetChannel(std::string);
       int GetN();
       int FindClosestOpDet(G4VPhysicalVolume* vol,  double& Distance);
+      int FindClosestOpDet(G4ThreeVector& pos,  double& Distance, int& icryostat);
       
     protected:
       OpDetLookup();

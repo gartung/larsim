@@ -93,6 +93,49 @@ namespace larg4 {
     return ClosestChannel;
   }
 
+  int OpDetLookup::FindClosestOpDet(G4ThreeVector& pos, double& distance, int& ClosestCryo)
+  {
+    art::ServiceHandle<geo::Geometry> geom;
+    int    ChannelCount = 0;
+    
+    double MinDistance = UINT_MAX;
+    int    ClosestChannel   = -1;
+    ClosestCryo      = -1;
+    
+    for(size_t c=0; c!=geom->Ncryostats(); c++)
+      {
+	for(size_t o=0; o!=geom->NOpDet(c); o++)
+	  {
+	    double xyz[3];
+	    geom->Cryostat(c).OpDet(o).GetCenter(xyz);
+	    
+	    CLHEP::Hep3Vector DetPos(xyz[0],xyz[1],xyz[2]);
+	    CLHEP::Hep3Vector ThisVolPos = pos;
+	    
+	    ThisVolPos/=cm;
+	    
+	    //	    std::cout<<"Det: " << xyz[0]<< " " <<xyz[1]<< " " << xyz[2]<<std::endl;
+	    //    std::cout<<"Vol: " << ThisVolPos.x()<< " " <<ThisVolPos.y() << " " <<ThisVolPos.z()<<std::endl;
+    
+	    double Distance = (DetPos-ThisVolPos).mag();
+	    if(Distance < MinDistance)
+	      {
+		MinDistance = Distance;
+		ClosestChannel  = geom->OpDetCryoToOpChannel(o, c);
+		ClosestCryo     = c;
+	      }
+	    ChannelCount++;
+	  }
+      }
+    if(ClosestChannel<0) 
+      {
+	throw cet::exception("OpDetLookup Error") << "No nearby OpDet found!\n"; 
+      }
+    
+    distance = MinDistance;
+    return ClosestChannel;
+  }
+
 
   //--------------------------------------------------
   void OpDetLookup::AddPhysicalVolume(G4VPhysicalVolume * volume)
