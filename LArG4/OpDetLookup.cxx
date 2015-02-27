@@ -99,9 +99,12 @@ namespace larg4 {
     int    ChannelCount = 0;
     
     double MinDistance = UINT_MAX;
-    int    ClosestChannel   = -1;
+    int    ClosestOptDet   = -1;
     ClosestCryo      = -1;
-    
+    CLHEP::Hep3Vector ThisVolPos = pos/cm;
+    //std::cout << "=================================================================================" << std::endl;
+    //std::cout << "Matching to Vol: " << ThisVolPos.x()<< " " <<ThisVolPos.y() << " " <<ThisVolPos.z()<<std::endl;
+
     for(size_t c=0; c!=geom->Ncryostats(); c++)
       {
 	for(size_t o=0; o!=geom->NOpDet(c); o++)
@@ -110,30 +113,26 @@ namespace larg4 {
 	    geom->Cryostat(c).OpDet(o).GetCenter(xyz);
 	    
 	    CLHEP::Hep3Vector DetPos(xyz[0],xyz[1],xyz[2]);
-	    CLHEP::Hep3Vector ThisVolPos = pos;
 	    
-	    ThisVolPos/=cm;
-	    
-	    //	    std::cout<<"Det: " << xyz[0]<< " " <<xyz[1]<< " " << xyz[2]<<std::endl;
-	    //    std::cout<<"Vol: " << ThisVolPos.x()<< " " <<ThisVolPos.y() << " " <<ThisVolPos.z()<<std::endl;
+	    //std::cout<<"Det: " << xyz[0]<< " " <<xyz[1]<< " " << xyz[2]<<std::endl;
     
 	    double Distance = (DetPos-ThisVolPos).mag();
 	    if(Distance < MinDistance)
 	      {
 		MinDistance = Distance;
-		ClosestChannel  = geom->OpDetCryoToOpChannel(o, c);
+		ClosestOptDet  = o;
 		ClosestCryo     = c;
 	      }
 	    ChannelCount++;
 	  }
       }
-    if(ClosestChannel<0) 
+    if(ClosestOptDet<0) 
       {
 	throw cet::exception("OpDetLookup Error") << "No nearby OpDet found!\n"; 
       }
-    
+    //std::cout << "=================================================================================" << std::endl;
     distance = MinDistance;
-    return ClosestChannel;
+    return ClosestOptDet;
   }
 
 
