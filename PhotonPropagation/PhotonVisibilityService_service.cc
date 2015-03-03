@@ -30,7 +30,8 @@
 #include "Geometry/Geometry.h"
 #include "Geometry/CryostatGeo.h"
 #include "Geometry/OpDetGeo.h"
-
+#include <string>
+#include <iostream>
 namespace phot{
 
   //--------------------------------------------------------------------
@@ -54,7 +55,14 @@ namespace phot{
   {
     this->reconfigure(pset);
     mf::LogInfo("PhotonVisibilityService")<<"PhotonVisbilityService initializing"<<std::endl;
+        
+    fNx        = pset.get< int          >("NX"       );
+    fNy        = pset.get< int          >("NY"       );
+    fNz        = pset.get< int          >("NZ"       );
+    
+
   }
+
 
   //--------------------------------------------------------------------
   void PhotonVisibilityService::LoadLibrary() const
@@ -68,6 +76,9 @@ namespace phot{
 
       size_t NVoxels = GetVoxelDef().GetNVoxels();
       size_t NOpChannels = geom->NOpChannels();
+
+    geo_file=std::string(geom->GDMLFile());
+
 
       if((!fLibraryBuildJob)&&(!fDoNotLoadLibrary)) {
 	std::string LibraryFileWithPath;
@@ -86,7 +97,11 @@ namespace phot{
       else {
 	mf::LogInfo("PhotonVisibilityService") << " Vis service running library build job.  Please ensure " 
 					       << " job contains LightSource, LArG4, SimPhotonCounter"<<std::endl;
-	fTheLibrary->CreateEmptyLibrary(NVoxels, NOpChannels);
+					       	mf::LogInfo("PhotonVisibilityService")<<"extended library info "<<fExtendedLibraryInfo<<std::endl;
+
+	 fTheLibrary->CreateEmptyLibrary(NVoxels, NOpChannels);
+       	 mf::LogInfo("PhotonVisibilityService")<<"writing standard library -> extended library info val is "<<fExtendedLibraryInfo<<std::endl;
+	 	
       }
     }
   }
@@ -101,7 +116,12 @@ namespace phot{
       {
 	mf::LogInfo("PhotonVisibilityService") << " Vis service "
 					       << " Storing Library entries to file..." <<std::endl;
-	fTheLibrary->StoreLibraryToFile(fLibraryFile);
+	
+		if( fExtendedLibraryInfo==true) fTheLibrary->StoreLibraryToFile2(fLibraryFile,fNx,fNy,fNz,fNx*fNy*fNz,geo_file);
+	else{
+	 fTheLibrary->StoreLibraryToFile(fLibraryFile);
+       	 mf::LogInfo("PhotonVisibilityService")<<"writing standard library -> extended library info val is "<<fExtendedLibraryInfo<<std::endl;
+	 	}
       }
   }
   
@@ -111,7 +131,9 @@ namespace phot{
   {
 
     art::ServiceHandle<geo::Geometry> geom;
-    
+    	mf::LogInfo("PhotonVisibilityService") <<" reconfiguring PVS " <<std::endl;
+	geo_file=geom->GDMLFile();
+ mf::LogInfo("PhotonVisibilityService") << "gdml file path "<<geo_file<<std::endl;
     // Library details
     fLibraryBuildJob      = p.get< bool        >("LibraryBuildJob"     );
     fParameterization     = p.get< bool        >("LBNE10ktParameterization", false);
@@ -120,7 +142,7 @@ namespace phot{
 
     // Voxel parameters
     fUseCryoBoundary      = p.get< bool        >("UseCryoBoundary"     );
-  	
+    fExtendedLibraryInfo     = p.get< bool        >("ExtendedLibraryInfo"    );
     
     if(fUseCryoBoundary)
       {
@@ -135,7 +157,7 @@ namespace phot{
       }
     else
       {
-	fXmin      = p.get< double       >("XMin"     );
+	fXmin      = p.get< double >("XMin"     );
 	fXmax      = p.get< double       >("XMax"     );
 	fYmin      = p.get< double       >("YMin"     );
 	fYmax      = p.get< double       >("YMax"     );
@@ -244,11 +266,14 @@ namespace phot{
 
   void PhotonVisibilityService::SetLibraryEntry(int VoxID, int OpChannel, float N)
   {
+
     if(fTheLibrary == 0)
       LoadLibrary();
 
+      mf::LogInfo("PhotonVisibilityService") << " PVS logging at voxel " << VoxID << " " << OpChannel<<std::endl;
     fTheLibrary->SetCount(VoxID,OpChannel, N);
-    mf::LogDebug("PhotonVisibilityService") << " PVS logging " << VoxID << " " << OpChannel<<std::endl;
+    mf::LogInfo("PhotonVisibilityService") << " PVS logging - entry set " << VoxID << " " << OpChannel<<std::endl;
+
   }
 
   //------------------------------------------------------

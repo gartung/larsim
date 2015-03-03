@@ -64,9 +64,9 @@
 
 #include "Geant4/G4VPhysicsConstructor.hh"
 #include "Geant4/globals.hh"
+#include "Geant4/G4OpBoundaryProcess.hh"
 
-
-
+class G4Scintillation;
 class G4Cerenkov;
 class G4OpAbsorption;
 class G4OpWLS;
@@ -89,10 +89,12 @@ namespace larg4 {
   private:
     G4int  verbose;
     G4Cerenkov*              fTheCerenkovProcess;
-    OpFastScintillation*     fTheScintillationProcess;
+    OpFastScintillation*     fTheScintillationProcessFast;
+    G4Scintillation*     fTheScintillationProcess;
     G4OpAbsorption*          fTheAbsorptionProcess;
     G4OpRayleigh*            fTheRayleighScatteringProcess;
-    OpBoundaryProcessSimple* fTheBoundaryProcess;
+    G4OpBoundaryProcess* fTheBoundaryProcess;
+    OpBoundaryProcessSimple* fTheBoundaryProcessSimple;
     G4OpWLS *                fTheWLSProcess;
   };
   

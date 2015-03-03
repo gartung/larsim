@@ -23,7 +23,9 @@ namespace phot{
     const std::vector<float>* GetCounts(size_t Voxel) const;
 
     
-    void StoreLibraryToFile(std::string LibraryFile);
+   void StoreLibraryToFile(std::string LibraryFile);
+      void StoreLibraryToFile2(std::string LibraryFile, int Nx, int Ny, int Nz, int Nv, std::string
+    gdmlfile);
     void LoadLibraryFromFile(std::string LibraryFile, size_t NVoxels, size_t NChannels);
     void CreateEmptyLibrary(size_t NVoxels, size_t NChannels);
     

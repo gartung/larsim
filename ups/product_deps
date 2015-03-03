@@ -7,14 +7,18 @@ fcldir  product_dir job
 fwdir   product_dir G4
 #
 product         version
+
 larevt		v04_00_02
+
 gcc		v4_9_1
 genie_xsec      R-2_8_0 
 genie_phyopt    R-2_8_0 
 larsoft_data    v0_03_03
+
 artextensions   v1_01_01
 
-cetbuildtools	v4_05_00	-	only_for_build
+
+cetbuildtools	v4_04_03	-	only_for_build
 end_product_list
 
   
