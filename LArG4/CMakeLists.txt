@@ -1,3 +1,6 @@
+IF(ALT_CMAKE)
+INCLUDE(altCMakeLists.cmake)
+ELSE()
 
 include_directories ( $ENV{GENIE_INC}/GENIE )
 include_directories ( $ENV{LIBXML2_FQ_DIR}/include/libxml2 )
@@ -75,3 +78,4 @@ install_source()
 # install macro files in lib
 file(GLOB g4_macros *.mac )
 install_fw( LIST ${g4_macros} )
+ENDIF()

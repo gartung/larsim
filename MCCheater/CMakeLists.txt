@@ -1,3 +1,6 @@
+IF(ALT_CMAKE)
+INCLUDE(altCMakeLists.cmake)
+ELSE()
 
 simple_plugin(BackTracker "service"
 			Utilities
@@ -69,3 +72,4 @@ simple_plugin(RecoCheckAna "module"
 install_headers()
 install_fhicl()
 install_source()
+ENDIF()

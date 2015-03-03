@@ -1,4 +1,7 @@
-	
+IF(ALT_CMAKE)
+INCLUDE(altCMakeLists.cmake)
+ELSE()
+
 art_make( NO_PLUGINS
           LIBRARY_NAME  DetSim
           LIB_LIBRARIES Filters
@@ -129,3 +132,4 @@ simple_plugin(DumpRawDigits "module"
 install_headers()
 install_fhicl()
 install_source()
+ENDIF()

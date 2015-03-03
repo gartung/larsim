@@ -1,3 +1,6 @@
+IF(ALT_CMAKE)
+INCLUDE(altCMakeLists.cmake)
+ELSE()
 
 art_make( BASENAME_ONLY
           LIB_LIBRARIES
@@ -51,3 +54,4 @@ add_subdirectory(GENIE)
 # See ubooneoffline repository for a functioning NuWro implementation. 
 # Leave it commented out here, as below.
 ##add_subdirectory(NuWro)
+ENDIF()

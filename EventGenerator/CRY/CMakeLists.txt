@@ -1,3 +1,6 @@
+IF(ALT_CMAKE)
+INCLUDE(altCMakeLists.cmake)
+ELSE()
 
 include_directories ( $ENV{CRYHOME}/src )
 
@@ -31,3 +34,4 @@ install_headers()
 install_fhicl()
 install_source()
 
+ENDIF()

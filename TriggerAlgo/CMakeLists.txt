@@ -1,3 +1,6 @@
+IF(ALT_CMAKE)
+INCLUDE(altCMakeLists.cmake)
+ELSE()
 
 simple_plugin( TriggerAlgoBase service
                         ${ART_FRAMEWORK_CORE}
@@ -36,3 +39,4 @@ install_headers()
 install_fhicl()
 install_source()
 
+ENDIF()
