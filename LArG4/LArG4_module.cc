@@ -347,7 +347,6 @@ namespace larg4 {
           simb::MCParticle p(*(*pitr).second);
 
           partCol->push_back(p);
-
           util::CreateAssn(*this, evt, *(partCol.get()), mct, *(tpassn.get()));
 
         }
