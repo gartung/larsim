@@ -117,6 +117,12 @@
 
 #include "art/Framework/Services/Optional/RandomNumberGenerator.h"
 
+#include "TH1.h"
+#include "TF1.h"
+#include "TROOT.h"
+#include "TStyle.h"
+#include "TMath.h"
+
 namespace larg4{
 
 /////////////////////////
@@ -960,4 +966,56 @@ G4double OpFastScintillation::sample_time(G4double tau1, G4double tau2)
         return -1.0;
 }
 
+// Get random number based on parametrization
+// ---------------
+//
+double OpFastScintillation::TimingParam(const double & distance){
+
+   TF1* fit4 = new TF1("testParams",mixLaga,0,80,6);
+   fit4->SetParameters(exp(11.6763-1.5758*distance),
+                       0.731986-0.0151244*distance,
+                       0.248778+1.63419*distance,
+                       exp(-.997122*distance +10.4835),
+                       exp(0.461917-1.62817*distance),
+                       -6.8566+3.98607*distance);
+
+   if(distance< 6){
+       fit4->FixParameter(0, exp(11.6763-1.5758*distance));
+       fit4->FixParameter(3,exp(-.997122*distance +10.4835));
+       fit4->FixParameter(5,-3.57247+3.53948*distance);
+       fit4->FixParameter(4,-1.7589+1.03429*distance);
+   	}
+
+   else{
+       fit4->FixParameter(0, exp(8.8-0.958812*distance));
+       fit4->FixParameter(3,exp(9.4-.77646*distance));
+       fit4->FixParameter(4,-7.55718+1.72823*distance);
+       fit4->FixParameter(5,-6.8566+3.98607*distance);
+   	}
+
+   fit4->FixParameter(1,0.731986-0.0151244*distance);
+   fit4->FixParameter(2,0.248778+1.63419*distance);
+
+   double paramRand = fit4->GetRandom() ;
+
+
+return paramRand ; 
+ }
+
+double mixLaga(double *x, double *par) {
+
+ double fmixGaus;
+ double sum = 0.0;
+
+ if(x[0] >= par[2] - 3*par[1])
+    fmixGaus = par[0]*TMath::Gaus( x[0],par[2], par[1]) + par[3]*TMath::Landau(x[0],par[5],par[4]) ; 
+ else 
+    fmixGaus= 0;
+
+ sum+=fmixGaus ;
+
+ return sum; 
 }
+
+
+} //namespace larg4
