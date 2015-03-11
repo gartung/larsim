@@ -971,33 +971,55 @@ G4double OpFastScintillation::sample_time(G4double tau1, G4double tau2)
 //
 double OpFastScintillation::TimingParam(const double & distance){
 
-   TF1* fit4 = new TF1("testParams",mixLaga,0,80,6);
-   fit4->SetParameters(exp(11.6763-1.5758*distance),
-                       0.731986-0.0151244*distance,
-                       0.248778+1.63419*distance,
-                       exp(-.997122*distance +10.4835),
-                       exp(0.461917-1.62817*distance),
-                       -6.8566+3.98607*distance);
+       TF1* fit4 = new TF1("testParams",mixLaga,0,80,6);
+        fit4->SetParameters(exp(11.288-1.34131*gausPar[1]),
+                            0.301818 + 0.0109287*gausPar[1],
+                            0.427641 +1.6214*gausPar[1],
+                            exp(9.27407-0.73157*gausPar[1]),
+                            exp(-1.10106 +0.41167*gausPar[1]),  
+                            -8.87049 +4.29312*gausPar[1]);
 
-   if(distance< 6){
-       fit4->FixParameter(0, exp(11.6763-1.5758*distance));
-       fit4->FixParameter(3,exp(-.997122*distance +10.4835));
-       fit4->FixParameter(5,-3.57247+3.53948*distance);
-       fit4->FixParameter(4,-1.7589+1.03429*distance);
-   	}
+        fit4->FixParameter(0,exp(11.288-1.34131*gausPar[1]));
+        fit4->FixParameter(1,0.301818 + 0.0109287*gausPar[1]);
+        fit4->FixParameter(2,0.427641 +1.6214*gausPar[1]);
 
-   else{
-       fit4->FixParameter(0, exp(8.8-0.958812*distance));
-       fit4->FixParameter(3,exp(9.4-.77646*distance));
-       fit4->FixParameter(4,-7.55718+1.72823*distance);
-       fit4->FixParameter(5,-6.8566+3.98607*distance);
-   	}
+        if(gausPar[1]<5.5){
+            fit4->FixParameter(3,exp(12.2459-1.35122*gausPar[1]));
+            fit4->FixParameter(5,-7.5 +4.29312*gausPar[1]);
+        }   
+        else{
+            fit4->FixParameter(3,exp(9.27407-0.73157*gausPar[1]));
+            fit4->FixParameter(5,-8.87049 +4.29312*gausPar[1]);
+            }   
+    
+        fit4->FixParameter(4,exp(-1.10106 +0.41167*gausPar[1]));    
+   	
+		double paramRand = fit4->GetRandom() ;
 
-   fit4->FixParameter(1,0.731986-0.0151244*distance);
-   fit4->FixParameter(2,0.248778+1.63419*distance);
+//For 8x8x8 voxel division
+ //  fit4->SetParameters(exp(11.6763-1.5758*distance),
+ //                      0.731986-0.0151244*distance,
+ //                      0.248778+1.63419*distance,
+ //                      exp(-.997122*distance +10.4835),
+ //                      exp(0.461917-1.62817*distance),
+ //                      -6.8566+3.98607*distance);
 
-   double paramRand = fit4->GetRandom() ;
+ //  if(distance< 6){
+ //      fit4->FixParameter(0, exp(11.6763-1.5758*distance));
+ //      fit4->FixParameter(3,exp(-.997122*distance +10.4835));
+ //      fit4->FixParameter(5,-3.57247+3.53948*distance);
+ //      fit4->FixParameter(4,-1.7589+1.03429*distance);
+ //  	}
 
+ //  else{
+ //      fit4->FixParameter(0, exp(8.8-0.958812*distance));
+ //      fit4->FixParameter(3,exp(9.4-.77646*distance));
+ //      fit4->FixParameter(4,-7.55718+1.72823*distance);
+ //      fit4->FixParameter(5,-6.8566+3.98607*distance);
+ //  	}
+
+ //  fit4->FixParameter(1,0.731986-0.0151244*distance);
+ //  fit4->FixParameter(2,0.248778+1.63419*distance);
 
 return paramRand ; 
  }
