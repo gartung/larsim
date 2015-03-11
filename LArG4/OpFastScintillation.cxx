@@ -972,27 +972,31 @@ G4double OpFastScintillation::sample_time(G4double tau1, G4double tau2)
 double OpFastScintillation::TimingParam(const double & distance){
 
        TF1* fit4 = new TF1("testParams",mixLaga,0,80,6);
-        fit4->SetParameters(exp(11.288-1.34131*gausPar[1]),
-                            0.301818 + 0.0109287*gausPar[1],
-                            0.427641 +1.6214*gausPar[1],
-                            exp(9.27407-0.73157*gausPar[1]),
-                            exp(-1.10106 +0.41167*gausPar[1]),  
-                            -8.87049 +4.29312*gausPar[1]);
+        fit4->SetParameters(exp(11.288-1.34131*distance),
+                            0.301818 + 0.0109287*distance,
+                            0.427641 +1.6214*distance,
+                            exp(9.27407-0.73157*distance),
+                            exp(-1.10106 +0.41167*distance),  
+                            -8.87049 +4.29312*distance);
 
-        fit4->FixParameter(0,exp(11.288-1.34131*gausPar[1]));
-        fit4->FixParameter(1,0.301818 + 0.0109287*gausPar[1]);
-        fit4->FixParameter(2,0.427641 +1.6214*gausPar[1]);
+        fit4->FixParameter(0,exp(11.288-1.34131*distance));
+        fit4->FixParameter(1,0.301818 + 0.0109287*distance);
+        fit4->FixParameter(2,0.427641 +1.6214*distance);
+        fit4->FixParameter(4,exp(-1.10106 +0.41167*distance));    
 
-        if(gausPar[1]<5.5){
-            fit4->FixParameter(3,exp(12.2459-1.35122*gausPar[1]));
-            fit4->FixParameter(5,-7.5 +4.29312*gausPar[1]);
-        }   
+        if(distance<5.3){
+           fit4->FixParameter(3,exp(12.2459-1.35122*distance));
+           fit4->FixParameter(5,-7.5 +4.29312*distance);
+          }   
+        else if(distance>=5.3 && distance < 9){ 
+           fit4->FixParameter(3,exp(9.78835-0.828446 *distance));
+           fit4->FixParameter(5,-8.87049 +4.29312*distance);
+          }   
         else{
-            fit4->FixParameter(3,exp(9.27407-0.73157*gausPar[1]));
-            fit4->FixParameter(5,-8.87049 +4.29312*gausPar[1]);
-            }   
-    
-        fit4->FixParameter(4,exp(-1.10106 +0.41167*gausPar[1]));    
+           fit4->FixParameter(3,711.937 -172.824*distance +14.0902*distance*distance-0.382049*distance*distance*distance);
+           fit4->FixParameter(5,-8.87049 +4.29312*distance);
+           }   
+
    	
 		double paramRand = fit4->GetRandom() ;
 
