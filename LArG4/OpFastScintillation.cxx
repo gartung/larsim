@@ -996,7 +996,6 @@ double OpFastScintillation::TimingParam(const double & distance){
            fit4->FixParameter(3,711.937 -172.824*distance +14.0902*distance*distance-0.382049*distance*distance*distance);
            fit4->FixParameter(5,-8.87049 +4.29312*distance);
            }   
-   	
 		double paramRand = fit4->GetRandom() ;
 
 //For 8x8x8 voxel division
