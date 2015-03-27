@@ -34,7 +34,8 @@ namespace sim {
     fDrawNeutrals           = pset.get< bool   			 >("VisualizeNeutrals"       );	     
     fVisualizationEnergyCut = pset.get< double 			 >("VisualizationEnergyCut"  );  
     fUseCustomPhysics       = pset.get< bool   			 >("UseCustomPhysics"        );	     
-    fKeepEMShowerDaughters  = pset.get< bool                     >("KeepEMShowerDaughters"   );
+    //fKeepEMShowerDaughters  = pset.get< bool                     >("KeepEMShowerDaughters"   );
+    fNotStoredPhysics       = pset.get< std::vector<std::string> >("NotStoredPhysics"        ); //Replace KeepEMShowerDaughters
     fLongitudinalDiffusion  = pset.get< double 			 >("LongitudinalDiffusion"   );   
     fTransverseDiffusion    = pset.get< double 			 >("TransverseDiffusion"     );     
     fElectronClusterSize    = pset.get< double 			 >("ElectronClusterSize"     );     

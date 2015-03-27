@@ -53,7 +53,8 @@ namespace sim {
     int    K0Bias()                                           const { return fK0Bias;                 }
     int    MNXBias()                                          const { return fXBias;                  }
     int    MNXSBias()                                         const { return fXSBias;                 }
-    bool   KeepEMShowerDaughters()                            const { return fKeepEMShowerDaughters;  }
+    //bool   KeepEMShowerDaughters()                            const { return fKeepEMShowerDaughters;  }
+    const std::vector<std::string>& NotStoredPhysics()        const { return fNotStoredPhysics;}
     bool   DisableWireplanes()                                const { return fDisableWireplanes;      }
     const std::string IonAndScintCalculator()                 const { return fIonAndScintCalculator;  }
     const std::vector<std::string> OpticalParamVolumes()      const { return fOpticalParamVolumes;    }
@@ -83,8 +84,9 @@ namespace sim {
     int                      fXSBias;                ///< Turns on cross-section bian in MuNuclear
     int                      fXBias;                 ///< Enhancement factor for cross-section bian in MuNuclear, 
                                                      ///< should be <= 100
-    bool                     fKeepEMShowerDaughters; ///< Whether to keep the secondary, tertiary, etc. 
+    //bool                     fKeepEMShowerDaughters; ///< Whether to keep the secondary, tertiary, etc. 
                                                      ///< particles from an EM shower in the output
+    std::vector<std::string> fNotStoredPhysics;      ///< List of processes that are not stored in the event, this replaces fKeepEMShowerDaughters
     bool                     fDisableWireplanes;     ///< Turn of LAr sensitivity and remove charge 
                                                      ///< drift simulation - use for running pure optical sims 
     bool                     fUseModBoxRecomb;       ///< Use Modified Box model recombination instead of Birks

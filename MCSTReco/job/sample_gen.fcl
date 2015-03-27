@@ -88,7 +88,8 @@ outputs:
 
 # disable cerenkov light
 services.user.LArProperties.EnableCerenkovLight: false
-services.user.LArG4Parameters.KeepEMShowerDaughters: true
+#services.user.LArG4Parameters.KeepEMShowerDaughters: true
+services.user.LArG4Parameters.NotStoredPhysics: ["Ion"]
 services.user.LArG4Parameters.StoreTrajectories: true
 
 physics.producers.generator.PDG: [ 13 ]

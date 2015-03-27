@@ -254,7 +254,7 @@ namespace larg4 {
     // produced in the detector.
     fparticleListAction = new larg4::ParticleListAction(lgp->ParticleKineticEnergyCut(),
                                                         lgp->StoreTrajectories(),
-                                                        lgp->KeepEMShowerDaughters());
+                                                        lgp->NotStoredPhysics());
     uaManager->AddAndAdoptAction(fparticleListAction);
 
     // UserActionManager is now configured so continue G4 initialization

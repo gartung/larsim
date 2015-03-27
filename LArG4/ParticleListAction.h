@@ -22,6 +22,8 @@
 
 #include "Geant4/globals.hh"
 #include <map>
+#include <vector>
+#include <string>
 
 // Forward declarations.
 class G4Event;
@@ -38,7 +40,7 @@ namespace larg4 {
   {
   public:
     // Standard constructors and destructors;
-    ParticleListAction(double energyCut, bool storeTrajectories=false, bool keepEMShowerDaughters=false);
+    ParticleListAction(double energyCut, bool storeTrajectories=false, const std::vector<std::string> &NotStoredPhysics = std::vector<std::string>());
     virtual ~ParticleListAction();
 
     // UserActions method that we'll override, to obtain access to
@@ -75,7 +77,8 @@ namespace larg4 {
                                                      ///< for EM shower particles		
     static int               fTrackIDOffset;         ///< offset added to track ids when running over		  
                                                      ///< multiple MCTruth objects.				  
-    bool                     fKeepEMShowerDaughters; ///< whether to keep EM shower secondaries, tertiaries, etc     
+    //bool                     fKeepEMShowerDaughters; ///< whether to keep EM shower secondaries, tertiaries, etc  
+    const std::vector<std::string> & fNotStoredPhysics;
   };
 
 } // namespace LArG4

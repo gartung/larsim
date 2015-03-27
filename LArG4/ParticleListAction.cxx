@@ -44,11 +44,12 @@ namespace larg4 {
   // Constructor.
   ParticleListAction::ParticleListAction(double energyCut, 
 					 bool   storeTrajectories,
-					 bool   keepEMShowerDaughters)
+					 const std::vector<std::string> & NotStoredPhysics)
     : fenergyCut(energyCut * GeV)
     , fparticleList(0)
     , fstoreTrajectories(storeTrajectories)
-    , fKeepEMShowerDaughters(keepEMShowerDaughters)
+    , fNotStoredPhysics(NotStoredPhysics)
+      //, fKeepEMShowerDaughters(keepEMShowerDaughters)
   {
     // Create the particle list that we'll (re-)use during the course
     // of the Geant4 simulation.
@@ -144,18 +145,23 @@ namespace larg4 {
       // bremstrahlung, annihilation, any ionization - who wants to save
       // a buttload of electrons that arent from a CC interaction?
       process_name = track->GetCreatorProcess()->GetProcessName();
-      if( !fKeepEMShowerDaughters
-	  && (process_name.find("conv")               != std::string::npos
-	      || process_name.find("LowEnConversion") != std::string::npos
-	      || process_name.find("Pair")            != std::string::npos
-	      || process_name.find("compt")           != std::string::npos
-	      || process_name.find("Compt")           != std::string::npos
-	      || process_name.find("Brem")            != std::string::npos
-	      || process_name.find("phot")            != std::string::npos
-	      || process_name.find("Photo")           != std::string::npos
-	      || process_name.find("Ion")             != std::string::npos
-	      || process_name.find("annihil")         != std::string::npos)
-	  ){
+//      if( !fKeepEMShowerDaughters
+//	  && (process_name.find("conv")               != std::string::npos
+//	      || process_name.find("LowEnConversion") != std::string::npos
+//	      || process_name.find("Pair")            != std::string::npos
+//	      || process_name.find("compt")           != std::string::npos
+//	      || process_name.find("Compt")           != std::string::npos
+//	      || process_name.find("Brem")            != std::string::npos
+//	      || process_name.find("phot")            != std::string::npos
+//	      || process_name.find("Photo")           != std::string::npos
+//	      || process_name.find("Ion")             != std::string::npos
+//	      || process_name.find("annihil")         != std::string::npos)
+//	  ){
+      bool notstore = false;
+      for (auto i : fNotStoredPhysics){
+	if (process_name.find(i) != std::string::npos) notstore = true;
+      }
+      if (notstore){
 	
 	// figure out the ultimate parentage of this particle
 	// first add this track id and its parent to the fParentIDMap

@@ -10,7 +10,9 @@ standard_largeantparameters:
  VisualizationEnergyCut:   10.e-3  #depricated, in GeV
  VisualizeNeutrals:        false   #depricated
  UseCustomPhysics:         false   #Whether to use a custom list of physics processes or the default
- KeepEMShowerDaughters:    false   #save secondary, tertiary, etc particles in EM showers
+ #KeepEMShowerDaughters:    false   #save secondary, tertiary, etc particles in EM showers
+ NotStoredPhysics:         ["conv", "LowEnConversion", "Pair", "compt", "Compt", "Brem", "phot", "Photo", "Ion", "annihil"] #By default do not store EM shower daughters
+ #NotStoredPhysics:         ["Ion"]
  LongitudinalDiffusion:    6.2e-9  #in cm^2/ns
  TransverseDiffusion:      16.3e-9 #in cm^2/ns
  ElectronClusterSize:      600.0   #number of ionization electrons to drift in a unit
