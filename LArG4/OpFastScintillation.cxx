@@ -998,33 +998,15 @@ double OpFastScintillation::TimingParam(const double & distance){
            }   
 		double paramRand = fit4->GetRandom() ;
 
-//For 8x8x8 voxel division
- //  fit4->SetParameters(exp(11.6763-1.5758*distance),
- //                      0.731986-0.0151244*distance,
- //                      0.248778+1.63419*distance,
- //                      exp(-.997122*distance +10.4835),
- //                      exp(0.461917-1.62817*distance),
- //                      -6.8566+3.98607*distance);
+        return paramRand ; 
+    }
 
- //  if(distance< 6){
- //      fit4->FixParameter(0, exp(11.6763-1.5758*distance));
- //      fit4->FixParameter(3,exp(-.997122*distance +10.4835));
- //      fit4->FixParameter(5,-3.57247+3.53948*distance);
- //      fit4->FixParameter(4,-1.7589+1.03429*distance);
- //  	}
-
- //  else{
- //      fit4->FixParameter(0, exp(8.8-0.958812*distance));
- //      fit4->FixParameter(3,exp(9.4-.77646*distance));
- //      fit4->FixParameter(4,-7.55718+1.72823*distance);
- //      fit4->FixParameter(5,-6.8566+3.98607*distance);
- //  	}
-
- //  fit4->FixParameter(1,0.731986-0.0151244*distance);
- //  fit4->FixParameter(2,0.248778+1.63419*distance);
-
-return paramRand ; 
- }
+// Get random number from a parametrized approximation to the reflected
+// light distribution (as obtained in a toy MC using Rayleigh scattering
+// length of 60cm)
+double OpFastScintillation::TimingParamReflected(){
+  return 1;
+}
 
 double mixLaga(double *x, double *par) {
 
