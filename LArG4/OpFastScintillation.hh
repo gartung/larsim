@@ -229,6 +229,10 @@ public: // With description
         void DumpPhysicsTable() const;
         // Prints the fast and slow scintillation integral tables.
 
+		double TimingParam(const double &) ;
+		// Given a distance, calculates a random number according to the distance based parametrization
+
+
 protected:
 
         void BuildThePhysicsTable();
@@ -270,6 +274,10 @@ private:
   //double fGlobalTimeOffset;
   
 };
+
+double mixLaga(double*, double*) ;
+//Define function for fitting 
+        
 
 ////////////////////
 // Inline methods

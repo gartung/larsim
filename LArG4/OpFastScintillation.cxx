@@ -116,7 +116,13 @@
 #include "Utilities/DetectorProperties.h" 
 
 #include "art/Framework/Services/Optional/RandomNumberGenerator.h"
-int counter_photons=0;
+
+#include "TH1.h"
+#include "TF1.h"
+#include "TROOT.h"
+#include "TStyle.h"
+#include "TMath.h"
+
 namespace larg4{
 
 /////////////////////////
@@ -161,7 +167,7 @@ namespace larg4{
 
         BuildThePhysicsTable();
         art::ServiceHandle<util::DetectorProperties> det;                 
-      //  fGlobalTimeOffset = det->ConvertTicksToTDC(0) * det->SamplingRate();
+        //fGlobalTimeOffset = det->ConvertTicksToTDC(0) * det->SamplingRate();
 
         emSaturation = NULL;
 }
@@ -180,7 +186,7 @@ namespace larg4{
     emSaturation                = rhs.GetSaturation();
 
     art::ServiceHandle<util::DetectorProperties> det;                 
-   // fGlobalTimeOffset = det->ConvertTicksToTDC(0) * det->SamplingRate();
+    //fGlobalTimeOffset = det->ConvertTicksToTDC(0) * det->SamplingRate();
 
     BuildThePhysicsTable();
   }
@@ -234,14 +240,13 @@ OpFastScintillation::PostStepDoIt(const G4Track& aTrack, const G4Step& aStep)
 	// Check that we are in a material with a properties table, if not
 	// just return
         const G4Material* aMaterial = aTrack.GetMaterial();
-	//if (aMaterial->GetName()!="LAr" && aMaterial->GetName()!="Glass") std::cout<<" MATERIAL NAME (excl LAr, Glass) FROM SCINTILLATION FAST "<<aMaterial->GetName()<<" "<<aTrack.GetParticleDefinition().GetParticleName()<<std::endl;
         G4MaterialPropertiesTable* aMaterialPropertiesTable =
                                aMaterial->GetMaterialPropertiesTable();
         if (!aMaterialPropertiesTable)
              return G4VRestDiscreteProcess::PostStepDoIt(aTrack, aStep);
 
         G4StepPoint* pPreStepPoint  = aStep.GetPreStepPoint();
-      	
+      
         G4ThreeVector x0 = pPreStepPoint->GetPosition();
         G4ThreeVector p0 = aStep.GetDeltaPosition().unit();
       
@@ -320,7 +325,7 @@ OpFastScintillation::PostStepDoIt(const G4Track& aTrack, const G4Step& aStep)
 	double MeanNumberOfPhotons = larg4::IonizationAndScintillation::Instance()->NumberScintillationPhotons();
         RecordPhotonsProduced(aStep, MeanNumberOfPhotons);
 
-	//std::cout<<"mean number of photons "<<MeanNumberOfPhotons<<std::endl;
+	
 	if (verboseLevel>0) {
 	  G4cout << "\n Exiting from OpFastScintillation::DoIt -- NumberOfSecondaries = " 
 		 << aParticleChange.GetNumberOfSecondaries() << G4endl;
@@ -353,41 +358,16 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
   const G4Material* aMaterial = aTrack->GetMaterial();
 
   G4int materialIndex = aMaterial->GetIndex();
- // G4double ener1 = pPreStepPoint->GetKineticEnergy();
+	
+
   G4ThreeVector x0 = pPreStepPoint->GetPosition();
   G4ThreeVector p0 = aStep.GetDeltaPosition().unit();
   //G4double      t0 = pPreStepPoint->GetGlobalTime() - fGlobalTimeOffset;
   G4double      t0 = pPreStepPoint->GetGlobalTime();
   
+  
   G4MaterialPropertiesTable* aMaterialPropertiesTable =
     aMaterial->GetMaterialPropertiesTable();
-//VISIBILITY TEST - REMOVE /COMMENT OUT WHEN CONCLUDED!!!!!!!!!!!!!!!!!!!!!!
- /*double xyz2[3];
-int Num2=10;
-double c0x=-11.5;
-double c0y=-11.5;
-double c0z=-15.5;
-  std::vector<float>* Visibilities0 = nullptr;
-
-for(int ix=0;ix<10;ix++){
-	for(int iy=0;iy<10;iy++){
-		for(int iz=0;iz<10;iz++){
-			  xyz2[0]=c0x+ix;
-  			  xyz2[1]=c0y+iy;
-  			  xyz2[2]=c0z+iz;
-			Visibilities0 = pvs->GetAllVisibilities(xyz2);
- 			for(size_t OpChan2=0; OpChan2!=Visibilities0->size(); OpChan2++)
-      			{
-			 std::cout<<"channel "<<OpChan2<<" "<<xyz2[0]<<" "<<xyz2[1]<<" "<<xyz2[2]<<" photons number "<<Num2<<" 			"<<Visibilities0->at(OpChan2)<<" poisson dist "<<G4Poisson(Visibilities0->at(OpChan2) * Num2)<<std::endl;
-//std::cout<<"no visibilities "<<std::endl;
-			}
-		}
-	}
-}
-*/
-
-//END OF VISIBILITY TEST!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 
   double xyz[3];
   xyz[0]=x0[0]/cm;
@@ -396,8 +376,6 @@ for(int ix=0;ix<10;ix++){
 
   // Get the visibility vector for this point
   const std::vector<float>* Visibilities = nullptr;
-
-
   if(!pvs->UseParameterization())Visibilities = pvs->GetAllVisibilities(xyz);
 
 
@@ -577,12 +555,9 @@ for(int ix=0;ix<10;ix++){
 	// if null pointer, this means no data for this voxel - in 
 	// this case do nothing.
 	//mf::LogInfo("OpFastScintillation")<<"Warning : null vis vector"<<std::endl;
-std::cout<<"551 Warning : null vis vector"<<std::endl;
       }
     else
     {
-
-//was here
 	 if(pvs->UseParameterization())
 	  {
         art::ServiceHandle<geo::Geometry> geo;
@@ -648,7 +623,7 @@ std::cout<<"551 Warning : null vis vector"<<std::endl;
               DetectedNum[OpChan] = DetThisPMT;
             }
           }
-       }//op chan loop
+       }
 
     std::map<int, std::map<int, int>> StepPhotonTable;
     // And then add these to the total collection for the event	    
@@ -681,16 +656,9 @@ std::cout<<"551 Warning : null vis vector"<<std::endl;
 	  }
 	else
     {
-//was here - CALCULATING number of detected photons
-
-
 	  for(size_t OpChan=0; OpChan!=Visibilities->size(); OpChan++)
       {
 		G4int DetThisPMT = G4int(G4Poisson(Visibilities->at(OpChan) * Num));
-std::cout<<xyz[0]<<" "<<xyz[1]<<" "<<xyz[2]<<" photons number "<<Num<<" "<<Visibilities->at(OpChan)<<" "<<G4Poisson(Visibilities->at(OpChan) * Num)<<std::endl;
-
-		//if(abs(xyz[2])<12.5 && (abs(xyz[0])<7.5) && (abs(xyz[1])<7.5))counter_photons+=DetThisPMT;
-//std::cout<<counter_photons<<std::endl;
 		if(DetThisPMT>0) 
         {
 		    DetectedNum[OpChan]=DetThisPMT;
@@ -702,7 +670,6 @@ std::cout<<xyz[0]<<" "<<xyz[1]<<" "<<xyz[2]<<" photons number "<<Num<<" "<<Visib
 	
       if(lgp->UseLitePhotons())
       {
-	//lite photons version
         std::map<int, std::map<int, int>> StepPhotonTable;
         // And then add these to the total collection for the event     
         for(std::map<int,int>::const_iterator itdetphot = DetectedNum.begin();
@@ -734,9 +701,7 @@ std::cout<<xyz[0]<<" "<<xyz[1]<<" "<<xyz[2]<<" photons number "<<Num<<" "<<Visib
       }
       else
       {
-
-//was here
-	  // And then add these to the total collection for the event	- not using lite photons    
+	  // And then add these to the total collection for the event	    
       for(std::map<int,int>::const_iterator itdetphot = DetectedNum.begin();
 	    itdetphot!=DetectedNum.end(); ++itdetphot)
       {
@@ -767,18 +732,13 @@ std::cout<<xyz[0]<<" "<<xyz[1]<<" "<<xyz[2]<<" photons number "<<Num<<" "<<Visib
             float Time = aSecondaryTime;
 		
             // Make a photon object for the collection
-            //sim::OnePhoton  * PhotToAdd = new sim::OnePhoton();
-	//std::unique_ptr<sim::OnePhoton> PhotToAdd(new sim::OnePhoton());
-		sim::OnePhoton PhotToAdd;
+	    sim::OnePhoton PhotToAdd;
             PhotToAdd.InitialPosition  = PhotonPosition;
-		//std::cout<<" photon energy----------------------------------------------------- "<<ener1<<std::endl;
             PhotToAdd.Energy           = Energy;
             PhotToAdd.Time             = Time;
             PhotToAdd.SetInSD          = false;
 			
-           // fst->AddPhoton(itdetphot->first, PhotToAdd);
-
-	fst->AddPhoton(itdetphot->first, std::move(PhotToAdd));
+            fst->AddPhoton(itdetphot->first, std::move(PhotToAdd));
         }
       }
       }
@@ -1006,4 +966,80 @@ G4double OpFastScintillation::sample_time(G4double tau1, G4double tau2)
         return -1.0;
 }
 
+// Get random number based on parametrization
+// ---------------
+//
+double OpFastScintillation::TimingParam(const double & distance){
+
+       TF1* fit4 = new TF1("testParams",mixLaga,0,80,6);
+        fit4->SetParameters(exp(11.288-1.34131*distance),
+                            0.301818 + 0.0109287*distance,
+                            0.427641 +1.6214*distance,
+                            exp(9.27407-0.73157*distance),
+                            exp(-1.10106 +0.41167*distance),  
+                            -8.87049 +4.29312*distance);
+
+        fit4->FixParameter(0,exp(11.288-1.34131*distance));
+        fit4->FixParameter(1,0.301818 + 0.0109287*distance);
+        fit4->FixParameter(2,0.427641 +1.6214*distance);
+        fit4->FixParameter(4,exp(-1.10106 +0.41167*distance));    
+
+        if(distance<5.3){
+           fit4->FixParameter(3,exp(12.2459-1.35122*distance));
+           fit4->FixParameter(5,-7.5 +4.29312*distance);
+          }   
+        else if(distance>=5.3 && distance < 9){ 
+           fit4->FixParameter(3,exp(9.78835-0.828446 *distance));
+           fit4->FixParameter(5,-8.87049 +4.29312*distance);
+          }   
+        else{
+           fit4->FixParameter(3,711.937 -172.824*distance +14.0902*distance*distance-0.382049*distance*distance*distance);
+           fit4->FixParameter(5,-8.87049 +4.29312*distance);
+           }   
+		double paramRand = fit4->GetRandom() ;
+
+//For 8x8x8 voxel division
+ //  fit4->SetParameters(exp(11.6763-1.5758*distance),
+ //                      0.731986-0.0151244*distance,
+ //                      0.248778+1.63419*distance,
+ //                      exp(-.997122*distance +10.4835),
+ //                      exp(0.461917-1.62817*distance),
+ //                      -6.8566+3.98607*distance);
+
+ //  if(distance< 6){
+ //      fit4->FixParameter(0, exp(11.6763-1.5758*distance));
+ //      fit4->FixParameter(3,exp(-.997122*distance +10.4835));
+ //      fit4->FixParameter(5,-3.57247+3.53948*distance);
+ //      fit4->FixParameter(4,-1.7589+1.03429*distance);
+ //  	}
+
+ //  else{
+ //      fit4->FixParameter(0, exp(8.8-0.958812*distance));
+ //      fit4->FixParameter(3,exp(9.4-.77646*distance));
+ //      fit4->FixParameter(4,-7.55718+1.72823*distance);
+ //      fit4->FixParameter(5,-6.8566+3.98607*distance);
+ //  	}
+
+ //  fit4->FixParameter(1,0.731986-0.0151244*distance);
+ //  fit4->FixParameter(2,0.248778+1.63419*distance);
+
+return paramRand ; 
+ }
+
+double mixLaga(double *x, double *par) {
+
+ double fmixGaus;
+ double sum = 0.0;
+
+ if(x[0] >= par[2] - 3*par[1])
+    fmixGaus = par[0]*TMath::Gaus( x[0],par[2], par[1]) + par[3]*TMath::Landau(x[0],par[5],par[4]) ; 
+ else 
+    fmixGaus= 0;
+
+ sum+=fmixGaus ;
+
+ return sum; 
 }
+
+
+} //namespace larg4
