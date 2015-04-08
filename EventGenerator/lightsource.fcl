@@ -35,7 +35,7 @@ standard_lightsource_scanmode:
  SigmaP:             0.25      # Width of distribution (Heindl et al. Europhys.Lett. 91 (2010) 62002)
  T0:                 0.0      # Central time for photon production
  SigmaT:             0.0      # Extent in time
- N:                  10    # Number of photons to make per voxel
+ N:                  10000    # Number of photons to make per voxel
 
  FirstVoxel:         0        # First and last voxel IDs to populate
  LastVoxel:          -1       #  (LastVoxel=-1 means run over all voxels)
@@ -47,10 +47,10 @@ standard_lightsource_scanmode:
  # Custom voxelization parameters
 
  XSteps:             1
- YSteps:             1
- ZSteps:             1
- RegionMin:          [ -1.5,  -1.5,  248.5 ]
- RegionMax:          [  1.5,  1.5,   251.5 ]
+ YSteps:             10
+ ZSteps:             20
+ RegionMin:          [ -120.0,  -120.0,    0.0 ]
+ RegionMax:          [  120.0,   120.0, 1400.0 ]
 }
 
 
