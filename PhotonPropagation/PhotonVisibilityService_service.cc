@@ -51,6 +51,7 @@ namespace phot{
     fLibraryBuildJob(false),
     fDoNotLoadLibrary(false),
     fParameterization(false),
+    fStoreReflected(false),
     fTheLibrary(0)
   {
     this->reconfigure(pset);
@@ -91,7 +92,7 @@ namespace phot{
 	  mf::LogInfo("PhotonVisibilityService") << "PhotonVisibilityService Loading photon library from file "
 						 << LibraryFileWithPath
 						 << std::endl;
-	  fTheLibrary->LoadLibraryFromFile(LibraryFileWithPath, NVoxels, NOpChannels);
+	  fTheLibrary->LoadLibraryFromFile(LibraryFileWithPath, NVoxels, NOpChannels,fStoreReflected);
 	}
       }
       else {
@@ -117,9 +118,9 @@ namespace phot{
 	mf::LogInfo("PhotonVisibilityService") << " Vis service "
 					       << " Storing Library entries to file..." <<std::endl;
 	
-		if( fExtendedLibraryInfo==true) fTheLibrary->StoreLibraryToFile2(fLibraryFile,fNx,fNy,fNz,fNx*fNy*fNz,geo_file);
+	if( fExtendedLibraryInfo==true) fTheLibrary->StoreLibraryToFile2(fLibraryFile,fNx,fNy,fNz,fNx*fNy*fNz,geo_file);
 	else{
-	 fTheLibrary->StoreLibraryToFile(fLibraryFile);
+	fTheLibrary->StoreLibraryToFile(fLibraryFile,fStoreReflected);
        	 mf::LogInfo("PhotonVisibilityService")<<"writing standard library -> extended library info val is "<<fExtendedLibraryInfo<<std::endl;
 	 	}
       }
@@ -139,7 +140,7 @@ namespace phot{
     fParameterization     = p.get< bool        >("LBNE10ktParameterization", false);
     fLibraryFile          = p.get< std::string >("LibraryFile"         );
     fDoNotLoadLibrary     = p.get< bool        >("DoNotLoadLibrary"    );
-
+    fStoreReflected     = p.get< bool          >("StoreReflected"    );
     // Voxel parameters
     fUseCryoBoundary      = p.get< bool        >("UseCryoBoundary"     );
     fExtendedLibraryInfo     = p.get< bool        >("ExtendedLibraryInfo"    );
@@ -193,10 +194,10 @@ namespace phot{
   // Get a vector of the relative visibilities of each OpDet
   //  in the event to a point xyz
 
-  const std::vector<float>* PhotonVisibilityService::GetAllVisibilities(double * xyz) const
+  const std::vector<float>* PhotonVisibilityService::GetAllVisibilities(double * xyz,bool wantReflected) const
   {
     int VoxID = fVoxelDef.GetVoxelID(xyz);
-    return GetLibraryEntries(VoxID);
+    return GetLibraryEntries(VoxID,wantReflected);
   }
 
 
@@ -236,10 +237,10 @@ namespace phot{
 
   //------------------------------------------------------
 
-  float PhotonVisibilityService::GetVisibility(double * xyz, unsigned int OpChannel)
+  float PhotonVisibilityService::GetVisibility(double * xyz, unsigned int OpChannel,bool wantReflected)
   {
     int VoxID = fVoxelDef.GetVoxelID(xyz);  
-    return GetLibraryEntry(VoxID, OpChannel);
+    return GetLibraryEntry(VoxID, OpChannel,wantReflected);
   }
 
 
@@ -262,40 +263,49 @@ namespace phot{
     VoxID = fCurrentVoxel;
   }
   
+
+  
+  
   //------------------------------------------------------
 
-  void PhotonVisibilityService::SetLibraryEntry(int VoxID, int OpChannel, float N)
+  void PhotonVisibilityService::SetLibraryEntry(int VoxID, int OpChannel, float N, bool wantReflected)
   {
 
     if(fTheLibrary == 0)
       LoadLibrary();
-
-      mf::LogInfo("PhotonVisibilityService") << " PVS logging at voxel " << VoxID << " " << OpChannel<<std::endl;
-    fTheLibrary->SetCount(VoxID,OpChannel, N);
-    mf::LogInfo("PhotonVisibilityService") << " PVS logging - entry set " << VoxID << " " << OpChannel<<std::endl;
-
+   if(!wantReflected)
+      fTheLibrary->SetCount(VoxID,OpChannel, N);
+   else
+      fTheLibrary->SetReflCount(VoxID,OpChannel, N); 
+     
+    mf::LogDebug("PhotonVisibilityService") << " PVS logging " << VoxID << " " << OpChannel<<std::endl;
   }
 
   //------------------------------------------------------
 
   
 
-  const std::vector<float>* PhotonVisibilityService::GetLibraryEntries(int VoxID) const
+  const std::vector<float>* PhotonVisibilityService::GetLibraryEntries(int VoxID,bool wantReflected) const
   {
     if(fTheLibrary == 0)
       LoadLibrary();
 
-    return fTheLibrary->GetCounts(VoxID);
+    if(!wantReflected)
+      return fTheLibrary->GetCounts(VoxID);
+    else
+      return fTheLibrary->GetReflCounts(VoxID);
   }
 
   //------------------------------------------------------
 
-  float PhotonVisibilityService::GetLibraryEntry(int VoxID, int Channel) const
+  float PhotonVisibilityService::GetLibraryEntry(int VoxID, int Channel, bool wantReflected ) const
   {
     if(fTheLibrary == 0)
       LoadLibrary();
-
+  if(!wantReflected)
     return fTheLibrary->GetCount(VoxID, Channel);
+  else
+     return fTheLibrary->GetReflCount(VoxID, Channel); 
   }
 
 
