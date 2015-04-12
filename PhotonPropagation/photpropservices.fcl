@@ -12,7 +12,9 @@ standard_photonvisibilityservice:
   DoNotLoadLibrary: false
 	
   LibraryBuildJob: false
- 		
+  StoreReflected:  false 	
+ 	
+ 	
   #LibraryFile: "PhotonPropagation/LibraryData/lib8984855.root"	 
   LibraryFile: "PhotonPropagation/LibraryData/uboone_photon_library_v4.root"
 
@@ -37,7 +39,7 @@ standard_photonvisibilityservice_buildlib:
   DoNotLoadLibrary: true
 
   LibraryBuildJob: true
- 		
+  StoreReflected:  false 		
   LibraryFile: "PhotonPropagation/LibraryData/Not_A_Library.root"	 
  
 
@@ -62,7 +64,8 @@ standard_photonvisibilityservice_par:
   DoNotLoadLibrary: true
 
   LibraryBuildJob: false
-
+  StoreReflected:  false 
+  
   LibraryFile: "PhotonPropagation/LibraryData/Not_A_Library.root"
   XMin: -627
   XMax: -389
