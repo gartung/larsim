@@ -55,6 +55,13 @@ G4bool test1=false;
 G4bool tracktest=false;
 G4double refl_all=0;//> all reflections count
 G4String processn;//> number of physical process
+G4String thePrePVname1;
+G4String thePostPVname1;
+
+// Photon variables defined at each step, for use 
+// in temporary velocity bug fix. -wforeman
+double globalTime, velocity_G4, velocity_step;
+
 namespace larg4 {
 
   //----------------------------------------------------------------------------
@@ -118,29 +125,36 @@ namespace larg4 {
 
 
 	}
-  
-	const G4StepPoint* preStepPoint = step->GetPreStepPoint();
-	const G4StepPoint* postStepPoint = step->GetPostStepPoint();
-	const G4ThreeVector position = preStepPoint->GetPosition();
 
+
+        // Temporary fix for problem where  DeltaTime on the first step
+        // of optical photon propagation is calculated incorrectly. -wforeman
+        globalTime = step->GetTrack()->GetGlobalTime();
+        velocity_G4 = step->GetTrack()->GetVelocity();
+        velocity_step = step->GetStepLength() / step->GetDeltaTime();
+        if ( (step->GetTrack()->GetDefinition()->GetPDGEncoding()==0) && (velocity_G4 != velocity_step) ) {
+          // Subtract the faulty step time from the global time,
+          // and add the correct step time based on G4 velocity.
+          step->GetPostStepPoint()->SetGlobalTime( globalTime - step->GetDeltaTime() + step->GetStepLength()/velocity_G4);
+        }
 
 
 	if (step->GetTrack()->GetDefinition()->GetPDGEncoding()==0){
 		tmppos.clear();
 
 		//check if reflected from wall && thePrePVname1.contains("refl") double(step->GetTrack()->GetKineticEnergy()/eV) <4.2) &&
-		G4String thePrePVname1 = preStepPoint->GetPhysicalVolume()->GetName();
-		G4String thePostPVname1 = postStepPoint->GetPhysicalVolume()->GetName();
+		thePrePVname1 = step->GetPreStepPoint()->GetPhysicalVolume()->GetName();
+		thePostPVname1 = step->GetPostStepPoint()->GetPhysicalVolume()->GetName();
 		if (step->GetTrack()) tracktest=true;
 		else tracktest=false;
 
 
-		if( tracktest && (double(step->GetTrack()->GetKineticEnergy()/eV) >7.2) && (step->GetTrack()->GetParentID()==0) &&!test2 && (preStepPoint->GetPhysicalVolume()->GetName()=="volBeamBox_PV") && postStepPoint->GetPhysicalVolume()->GetName().contains("voltpb")){
+		if( tracktest && (double(step->GetTrack()->GetKineticEnergy()/eV) >7.2) && (step->GetTrack()->GetParentID()==0) &&!test2 && (step->GetPreStepPoint()->GetPhysicalVolume()->GetName()=="volBeamBox_PV") && step->GetPostStepPoint()->GetPhysicalVolume()->GetName().contains("voltpb")){
 			refltpb++;
 			test2=true;
 		}
 
-		if(  !test1 && preStepPoint->GetPhysicalVolume()->GetName().contains("voltpb") && postStepPoint->GetPhysicalVolume()->GetName()=="volBeamBox_PV"){
+		if(  !test1 && step->GetPreStepPoint()->GetPhysicalVolume()->GetName().contains("voltpb") && step->GetPostStepPoint()->GetPhysicalVolume()->GetName()=="volBeamBox_PV"){
 			refl++;
 			//std::cout<<"reflected photons!!!!!!!! "<<refl<<" dirceted into tpb "<<refltpb<<" reflectivity  "<<double(refl)/double(refltpb)<<" energy "<<step->GetTrack()->GetKineticEnergy()/eV<<std::endl;	
 			test1=true;
@@ -149,7 +163,7 @@ namespace larg4 {
 
 
  
-		if ( postStepPoint->GetPhysicalVolume()->GetName()=="volArgon_cap_L_PV" && ((postStepPoint->GetPosition()[2]/cm)>90.0 ||(postStepPoint->GetPosition()[2]/cm)<0.0)){
+		if ( step->GetPostStepPoint()->GetPhysicalVolume()->GetName()=="volArgon_cap_L_PV" && ((step->GetPostStepPoint()->GetPosition()[2]/cm)>90.0 ||(step->GetPostStepPoint()->GetPosition()[2]/cm)<0.0)){
 			step->GetTrack()->SetTrackStatus(fStopAndKill);
 			ktrack1++;
 			}//if in argon cap behind TPC - killing track
