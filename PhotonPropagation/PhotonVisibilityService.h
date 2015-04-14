@@ -31,23 +31,26 @@ namespace phot{
     
     double DistanceToOpDet(                 double* xyz, unsigned int OpChannel );
     double SolidAngleFactor(                double* xyz, unsigned int OpChannel );
-    float GetVisibility(                    double* xyz, unsigned int OpChannel );         
-
-    const std::vector<float>* GetAllVisibilities( double* xyz ) const;
+    float GetVisibility(                    double* xyz, unsigned int OpChannel, bool wantReflected=false );         
+    
+    const std::vector<float>* GetAllVisibilities( double* xyz, bool wantReflected=false ) const;
     
     void LoadLibrary() const;
     void StoreLibrary();
     
     
-    void StoreLightProd(    int  VoxID,  double  N );
+    void StoreLightProd(    int  VoxID,  double  N  );
     void RetrieveLightProd( int& VoxID,  double& N ) const;
     
-    void SetLibraryEntry(   int VoxID, int OpChannel, float N);
-    float GetLibraryEntry( int VoxID, int OpChannel) const;
-    const std::vector<float>* GetLibraryEntries( int VoxID ) const;
+    
+    void SetLibraryEntry(   int VoxID, int OpChannel, float N, bool wantReflected=false);
+    float GetLibraryEntry( int VoxID, int OpChannel, bool wantReflected=false) const;
+    
+    const std::vector<float>* GetLibraryEntries( int VoxID, bool wantReflected=false ) const;
 
     
     bool IsBuildJob() const { return fLibraryBuildJob; }
+    bool StoreReflected() const { return fStoreReflected; }
     bool UseParameterization() const {return fParameterization;}
 
     sim::PhotonVoxelDef GetVoxelDef() const {return fVoxelDef; }
@@ -56,6 +59,7 @@ namespace phot{
     
     int    fCurrentVoxel;
     double fCurrentValue;
+    double fCurrentReflValue;
     
     float  fXmin, fXmax;
     float  fYmin, fYmax;
@@ -68,6 +72,7 @@ namespace phot{
     bool                 fExtendedLibraryInfo;
     bool                 fDoNotLoadLibrary;
     bool                 fParameterization;
+    bool		 fStoreReflected;
     std::string          fLibraryFile;      
     mutable PhotonLibrary* fTheLibrary;
 mutable    std::string          geo_file;      

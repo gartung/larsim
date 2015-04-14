@@ -111,14 +111,14 @@ namespace larg4 {
 		if(eventnumber_fast!=evnr){
 			change_event=true;
 			evnr=eventnumber_fast;
-			mf::LogWarning("LaRLightEnergyAction")<<"--------------EVENT NUMBER"<<evnr<<std::endl;
+	//		mf::LogWarning("LaRLightEnergyAction")<<"--------------EVENT NUMBER"<<evnr<<std::endl;
 		}
 
 	}
 	else{
 		change_event=true;
 		evnr=eventnumber_fast;
-		mf::LogWarning("LaRLightEnergyAction")<<" EVENT NUMBER laRlight energyaction "<<evnr<<std::endl;	
+	//	mf::LogWarning("LaRLightEnergyAction")<<" EVENT NUMBER laRlight energyaction "<<evnr<<std::endl;	
 	}
 	if(change_event==true){
 		energy_deposit_step=0.;
