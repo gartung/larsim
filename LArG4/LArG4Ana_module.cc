@@ -146,7 +146,7 @@ namespace larg4 {
     art::ServiceHandle<geo::Geometry> geo;
     
     fPDGCodes    = tfs->make<TH1D>("pdgcodes", ";PDG Code;",               5000, -2500, 2500);
-fEdep    = tfs->make<TH1D>("energy deposit", "edeposit",300, 0, 1.5);
+fEdep    = tfs->make<TH1D>("energy deposit", "edeposit",500, 0, 0.5);
 //fTRefl    = tfs->make<TH1D>("reflected photons", "reflphot",1000, 0, 10000);
     fPi0Momentum = tfs->make<TH1D>("pi0mom",   ";#pi^{0} Momentum (GeV);", 1000, 0.,    1000.);
 
@@ -249,7 +249,7 @@ fTree->Branch("MCDIST", &fTDIST, "MCDIST/F");
  ////////////////////////////////////////////////////////////////////
     //Determination of the electron energy at the beginning of the TPC
     //JUST THE ELECTRON!!! IF IT MAKES BREMS,THOSE ARE NOT CONSIDERED!!!
-    int tsize=plist.Particle(0)->Trajectory().size();
+   // int tsize=plist.Particle(0)->Trajectory().size();
 int list_size=plist.size();
     int tt=0;
 int tts=0;
@@ -270,49 +270,12 @@ vec1.clear();
 pt1.clear();
 pt2.clear();
 fTEnedep=0.;
-//fTRefl=0;
-for(tu=0;tu<list_size;tu++){
-tts=0;
-en_dep=0.;
-entry_test=false;
-    for(tt=0;tt<int(plist.Particle(tu)->Trajectory().size());tt++)
-    {
-std::cout<<tu<<" "<<plist.Particle(tu)->TrackId()<<" BEFORE ENTERING BOX @@@@@@@@@@@@ POSITION X "<<plist.Particle(tu)->Trajectory().X(tt)<<" @@@@@@@@@@@@ POSITION Y "<<plist.Particle(tu)->Trajectory().Y(tt)<<" @@@@@@@@@@@@ POSITION Z "<<plist.Particle(tu)->Trajectory().Z(tt)<<" ENERGY "<<plist.Particle(tu)->Trajectory().E(tt)<<std::endl;
-     if ((TMath::Abs(double(plist.Particle(tu)->Trajectory().X(tt))) <= 7.5) && (TMath::Abs(double(plist.Particle(tu)->Trajectory().Y(tt))) <= 7.5) && (TMath::Abs(double(plist.Particle(tu)->Trajectory().Z(tt))) <= 12.5)){
-
-std::cout<<tu<<"&&&&&&&& IN CHAMBER @@@@@@@@@@@@ POSITION X "<<plist.Particle(tu)->Trajectory().X(tt)<<" @@@@@@@@@@@@ POSITION Y "<<plist.Particle(tu)->Trajectory().Y(tt)<<" @@@@@@@@@@@@ POSITION Z "<<plist.Particle(tu)->Trajectory().Z(tt)<<" ENERGY "<<plist.Particle(tu)->Trajectory().E(tt)<<std::endl;
-   	  if(entry_test==false){
-			 if(tt>0) tts=tt-1;
-			 else tts=tt;
-				}
-	  
-	  entry_test=true;
-						}
-
-if (entry_test && ((TMath::Abs(double(plist.Particle(tu)->Trajectory().X(tt))) > 7.5) || (TMath::Abs(double(plist.Particle(tu)->Trajectory().Y(tt))) > 7.5) || (TMath::Abs(double(plist.Particle(tu)->Trajectory().Z(tt))) > 12.5))){
-		en_dep=double(plist.Particle(tu)->Trajectory().E(tts))-double(plist.Particle(tu)->Trajectory().E(tt));
-
-std::cout<<tu<<" LEAVING CHAMBER @@@@@@@@@@@@ POSITION X "<<plist.Particle(tu)->Trajectory().X(tt)<<" @@@@@@@@@@@@ POSITION Y "<<plist.Particle(tu)->Trajectory().Y(tt)<<" @@@@@@@@@@@@ POSITION Z "<<plist.Particle(tu)->Trajectory().Z(tt)<<" ENERGY "<<plist.Particle(tu)->Trajectory().E(tt)<<" starting point "<<tts<<" end "<<tt<<std::endl;
- 		break;
-		}
- 
-
-	    }//loop over each trajectory
-std::cout<<tu<<" TRAJECTORY finished size -> "<<plist.Particle(tu)->Trajectory().size()<<" energy deposited "<<float(en_dep)*1000.<<std::endl;
-	//if (entry_test==true)fTEnedep+=float(en_dep)*1000.;
-	//else fTEnedep+=0.;
-	//en_ent=0.;
-	//en_ext=0.;
-	}//loop over trajectories
-
-//dist2=sqrt(pow((plist.Particle(0)->Trajectory().X(tt)-plist.Particle(0)->Trajectory().X(tts)),2.0)+pow((plist.Particle(0)->Trajectory().Y(tt)-plist.Particle(0)->Trajectory().Y(tts)),2.0)+pow((plist.Particle(0)->Trajectory().Z(tt)-plist.Particle(0)->Trajectory().Z(tts)),2.0));
-
-
 
 fTEnedep=energy_deposit_step;
+std::cout<<"ftenedep "<<fTEnedep<<std::endl;
 //fTRefl=phot_refl_ev;
 fTDIST=float(dist2);
-//fEdep->Fill(fTEnedep);//MeV
+fEdep->Fill(fTEnedep);//MeV
 
 //evt.id().event(); 
 
@@ -323,10 +286,32 @@ fTDIST=float(dist2);
     // sim::IDEs with trackID values that are not in the sim::ParticleList
     std::vector<const sim::SimChannel*> sccol;
     evt.getView(fG4ModuleLabel, sccol);
+ int temp_id=0;
+eventnumber_fast=int(evt.id().event());
+      fTEvt = eventnumber_fast;//evt.id().event(); 
+std::cout<<fTEvt<<" eventlarg4ana "<<eventnumber_fast<<std::endl;
+    if(fTEvt!=0){
+	if(fTEvt!=temp_id){
+			fill_tree=true;
+			temp_id=fTEvt;
+std::cout<<"g4anafillingtree "<<std::endl;
+			}
+	else fill_tree=false;
 
+		}
+    else{
+	fill_tree=true;
+std::cout<<"g4anafillingtree "<<std::endl;
+
+		}
+      if(fill_tree==true){
+		fTree->Fill();
+	std::cout<<"g4anafillingtree2 "<<std::endl;
+	}
+std::cout<<"g4anafillingtree_val "<<fill_tree<<std::endl;
     double totalCharge=0.0;
     double totalEnergy=0.0;
-    int temp_id=0;
+   
     fnumChannels->Fill(sccol.size());
     for(size_t sc = 0; sc < sccol.size(); ++sc){
       double numIDEs=0.0;
@@ -411,20 +396,7 @@ fTDIST=float(dist2);
       for (unsigned int s = 0; s < geom->VolumeName(pvec[i]->EndPosition().Vect()).length(); ++s) 
 	*(fTTVolume+s) = geom->VolumeName(pvec[i]->EndPosition().Vect())[s];
 
-      fTEvt = evt.id().event(); 
-    if(fTEvt!=0){
-	if(fTEvt!=temp_id){
-			fill_tree=true;
-			temp_id=fTEvt;
-			}
-	else fill_tree=false;
 
-		}
-    else{
-	fill_tree=true;
-
-
-		}
       fTSub = evt.subRun();
       fTRun = evt.run();
       fTParentID = pvec[i]->Mother();
@@ -464,7 +436,10 @@ fTDIST=float(dist2);
       }
 
       fTWeight = pvec[i]->Weight();
-      if(fill_tree==true) fTree->Fill();
+     /* if(fill_tree==true){
+		fTree->Fill();
+	std::cout<<"g4anafillingtree2 "<<std::endl;
+	}*/
       
     } // end loop on particles in list 
     if(numpi0gamma == 2 && pi0loc > 0){

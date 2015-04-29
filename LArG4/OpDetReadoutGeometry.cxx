@@ -109,7 +109,7 @@ namespace larg4 {
     std::vector<std::string> OpParamVolumes      = lgp->OpticalParamVolumes();
     std::vector<int>         OpParamOrientations = lgp->OpticalParamOrientations();;
     std::vector<std::vector<std::vector<double > > > OpParamParameters    = lgp->OpticalParamParameters();
-    
+    	mf::LogInfo("OpDetReadoutGeometry")<< OpParamModels.size()<<" size of opparam models"<<std::endl;
     if((OpParamModels.size()!=OpParamVolumes.size())||
        (OpParamModels.size()!=OpParamOrientations.size())||
        (OpParamModels.size()!=OpParamParameters.size()))
@@ -133,6 +133,7 @@ namespace larg4 {
 	
 	OpParamSD * ParamSD = new OpParamSD(SDName.str().c_str(), OpParamModels.at(imodel), OpParamOrientations.at(imodel), OpParamParameters.at(imodel));
 	
+
 
 	if(OpParamVolumesFound.size()>0)
 	  {
@@ -192,7 +193,7 @@ G4cout<<"searching for optical detector !!!!!! "<<VolumeName<<" "<<OpDetName <<G
 	( VolumeName.find( OpDetNameUnderscore,0,OpDetNameUnderscore.length() )==0 )
 	)
       {
-G4cout<<"optical detector !!!!!! "<<VolumeName<<" "<<OpDetName <<G4endl;
+G4cout<<"optical detector found !!!!!! "<<VolumeName<<" "<<OpDetName <<G4endl;
 	// We found a OpDet! Store its volume and global transformation
 	G4ThreeVector     Trans(0,0,0);
 	G4RotationMatrix  Rot(0,0,0);

@@ -19,7 +19,7 @@
 #define LArG4_LARLIGHTENERGYACTION_H
 
 #include "G4Base/UserAction.h"
-
+#include <cstring>
 #include "Geant4/globals.hh"
 #include <map>
 
@@ -36,7 +36,7 @@ int eventnumber_fast;
   {
   public:
     // Standard constructors and destructors;
-    LaRLightEnergyAction(int );
+    LaRLightEnergyAction(int, std::string, std::string );
     virtual ~LaRLightEnergyAction();
 
     // UserActions method that we'll override, to obtain access to

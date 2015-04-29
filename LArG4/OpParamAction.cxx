@@ -111,16 +111,25 @@ namespace larg4
       }
     for(size_t i=0; i!=InputVectors.size(); ++i)
       {
-	if(InputVectors.at(i).size()!=3)
-	  {
-	    throw cet::exception("OpParamAction") << "Unrecognized wireplane parameter format. Expected vector(3)'s with v[0] = wire angle, v[1] = wire pitch, v[2] = wire diameter\n";
-	  }
-	else
+	if(InputVectors.at(i).size()==3)
 	  {
 	    double theta = InputVectors[i][0]*3.142/180.;
 	    fWireDirections.push_back(cos(theta)*WireBasis1 + sin(theta)*WireBasis2);
 	    fDPRatios.push_back(InputVectors[i][2]/InputVectors[i][1]);
-	  }	
+	  }
+	else if(InputVectors.at(i).size()==4)
+	  {
+	    double theta = InputVectors[i][0]*3.142/180.;
+	    fWireDirections.push_back(cos(theta)*WireBasis1 + sin(theta)*WireBasis2);
+	    fDPRatios.push_back(InputVectors[i][2]/InputVectors[i][1]);
+	fPlaneTransmittances.push_back(InputVectors[i][3]);
+	  }
+	else
+	  {
+	    throw cet::exception("OpParamAction") << "Unrecognized wireplane parameter format. Expected vector(3)'s with v[0] = wire angle, v[1] = wire pitch, v[2] = wire diameter\n or vector(4)'s with v[0] = wire angle, v[1] = wire pitch, v[2] = wire diameter, v[3]=plane tramsmitance for visible light\n";
+	  }
+
+	
       }
   }
   
@@ -148,8 +157,9 @@ namespace larg4
 	if(CosTheta < fDPRatios.at(i)) 
 	  return 0;
 	else
-	  AttenFraction *= (1.0 - fDPRatios.at(i) / CosTheta);
+	  AttenFraction *= fPlaneTransmittances.at(i)*(1.0 - fDPRatios.at(i) / CosTheta);
       }
+
     return AttenFraction;
   }
 

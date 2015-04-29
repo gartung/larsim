@@ -169,8 +169,7 @@ if(Material=="G10"){
 		std::cout<< "reflector  "<<volume->GetName()<<std::endl;
 		const G4int num2 = 12;
   		G4double Ephoton2[num2] = {1.77*eV, 2.0675*eV, 2.481*eV, 2.819*eV, 2.953*eV, 3.1807*eV, 3.54*eV, 4.135*eV, 4.962*eV, 5.39*eV,6.2*eV,15.0*eV};
-		 G4double Reflectivity_refl[num2] = {0.83, 0.83,0.83,0.83,0.83,0.83,0.089,0.089,0.152,0.268,0.0,0.0};
- //{0.33, 0.33,0.33,0.33,0.33,0.33,0.01,0.01,0.07,0.03};//VM2002 data from DOE,  
+		 G4double Reflectivity_refl[num2]  = {0.83, 0.83,0.83,0.83,0.83,0.28,0.035,0.02,0.16,0.16,0.0,0.0};//VM2000 data arXiv:1304.6117, rescaled - needs to be checked!,  
   		 G4MaterialPropertiesTable* reflspt = new G4MaterialPropertiesTable(); 
   		reflspt->AddProperty("REFLECTIVITY", Ephoton2, Reflectivity_refl, num2);
  		 G4OpticalSurface* refl_opsurf = new G4OpticalSurface("Reflector Surface",unified,groundfrontpainted,dielectric_dielectric);//groundfrontpainted

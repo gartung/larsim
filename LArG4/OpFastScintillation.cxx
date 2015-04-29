@@ -117,6 +117,7 @@
 
 #include "art/Framework/Services/Optional/RandomNumberGenerator.h"
 int counter_photons=0;
+double energy_deposited1=0.0;//FIXME, REMOVE ME, I SHOULDN'T BE HERE, I'M JUST A TEST VARIABLE!
 namespace larg4{
 
 /////////////////////////
@@ -319,7 +320,7 @@ OpFastScintillation::PostStepDoIt(const G4Track& aTrack, const G4Step& aStep)
 	larg4::IonizationAndScintillation::Instance()->Reset(&aStep);
 	double MeanNumberOfPhotons = larg4::IonizationAndScintillation::Instance()->NumberScintillationPhotons();
         RecordPhotonsProduced(aStep, MeanNumberOfPhotons);
-
+	energy_deposited1+=larg4::IonizationAndScintillation::Instance()->EnergyDeposit();
 	//std::cout<<"mean number of photons "<<MeanNumberOfPhotons<<std::endl;
 	if (verboseLevel>0) {
 	  G4cout << "\n Exiting from OpFastScintillation::DoIt -- NumberOfSecondaries = " 
@@ -361,32 +362,7 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
   
   G4MaterialPropertiesTable* aMaterialPropertiesTable =
     aMaterial->GetMaterialPropertiesTable();
-//VISIBILITY TEST - REMOVE /COMMENT OUT WHEN CONCLUDED!!!!!!!!!!!!!!!!!!!!!!
- /*double xyz2[3];
-int Num2=10;
-double c0x=-11.5;
-double c0y=-11.5;
-double c0z=-15.5;
-  std::vector<float>* Visibilities0 = nullptr;
 
-for(int ix=0;ix<10;ix++){
-	for(int iy=0;iy<10;iy++){
-		for(int iz=0;iz<10;iz++){
-			  xyz2[0]=c0x+ix;
-  			  xyz2[1]=c0y+iy;
-  			  xyz2[2]=c0z+iz;
-			Visibilities0 = pvs->GetAllVisibilities(xyz2);
- 			for(size_t OpChan2=0; OpChan2!=Visibilities0->size(); OpChan2++)
-      			{
-			 std::cout<<"channel "<<OpChan2<<" "<<xyz2[0]<<" "<<xyz2[1]<<" "<<xyz2[2]<<" photons number "<<Num2<<" 			"<<Visibilities0->at(OpChan2)<<" poisson dist "<<G4Poisson(Visibilities0->at(OpChan2) * Num2)<<std::endl;
-//std::cout<<"no visibilities "<<std::endl;
-			}
-		}
-	}
-}
-*/
-
-//END OF VISIBILITY TEST!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
   double xyz[3];

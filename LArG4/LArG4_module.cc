@@ -138,7 +138,10 @@ namespace larg4 {
     bool                       fUseLitePhotons;
     int                        fSmartStacking;      ///< Whether to instantiate and use class to 
 
-                                                    ///< dictate how tracks are put on stack.        
+                                                    ///< dictate how tracks are put on stack. 
+bool fLarLightEnergyAction; ///< used in LArIAT, by default false for the sake of transparency  
+std::string fTPCLariat; ///< used in LArIAT, by default volTPC for the sake of transparency, not used if larlightenergyaction not set
+std::string fTPCTest; ///< used in LArIAT, by default volTPC for the sake of transparency, not used if larlightenergyaction not set       
     std::vector<std::string>   fInputLabels;
 
   };
@@ -156,9 +159,13 @@ namespace larg4 {
     , fG4PhysListName        (pset.get< std::string >("G4PhysListName","larg4::PhysicsList"))
     , fdumpParticleList      (pset.get< bool        >("DumpParticleList")                   )
     , fSmartStacking         (pset.get< int         >("SmartStacking",0)                    )
+,  fLarLightEnergyAction         (pset.get< bool>("LarLightEnergyAction",false))
   {
     LOG_DEBUG("LArG4") << "Debug: LArG4()";
-
+if(fLarLightEnergyAction){
+    fTPCLariat=pset.get< std::string >("TPCName1","volTPCActive_PV");
+    fTPCTest=pset.get< std::string >("TPCName2","volBeamBox_PV");
+	}
     // setup the random number service for Geant4, the "G4Engine" label is a
     // special tag setting up a global engine for use by Geant4/CLHEP;
     // obtain the random seed from SeedService,
@@ -239,8 +246,10 @@ namespace larg4 {
     // The techniques used in this UserAction are not to be repeated
     // as in general they are a very bad idea, ie they take a const
     // pointer and jump through hoops to change it
-    larg4::LaRLightEnergyAction *llea = new larg4::LaRLightEnergyAction(fSmartStacking);
+   if (fLarLightEnergyAction){
+	 larg4::LaRLightEnergyAction *llea = new larg4::LaRLightEnergyAction(fSmartStacking, fTPCLariat, fTPCTest);
     uaManager->AddAndAdoptAction(llea);
+	}
 
     // remove IonizationAndScintillationAction for now as we are ensuring
     // the Reset for each G4Step within the G4SensitiveVolumes

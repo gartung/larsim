@@ -10,11 +10,13 @@ standard_largeant:
  VisualizeEvents:        false
  SmartStacking:          0	# non-0 turns it on. The 0x4 bit 
 	                        # will shut off primary showering.
+LarLightEnergyAction: false #used in LArIAT to estimate light yield - will be removed to largeantmodules_lariat adn set to false by default in LArG4_module
 # The following variables are not used anywhere in LArG4_module.cc.
 # They has been moved to the LArG4Parameters_service and so should
 # not be included here.
 # DisableWireplanes:      false
 # UseModBoxRecomb:        false   # use Modified Box recombination model
+
 }
 argoneut_largeant:   @local::standard_largeant
 # The following line is already in largeantmodules_microboone.fcl

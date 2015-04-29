@@ -55,12 +55,16 @@ G4bool test1=false;
 G4bool tracktest=false;
 G4double refl_all=0;//> all reflections count
 G4String processn;//> number of physical process
+G4String tpc_big;
+G4String tpc_test;
 namespace larg4 {
 
   //----------------------------------------------------------------------------
   // Constructor.
-  LaRLightEnergyAction::LaRLightEnergyAction(int trkOption)
+  LaRLightEnergyAction::LaRLightEnergyAction(int trkOption, std::string tpc1, std::string tpc2)
   {
+tpc_big=tpc1;
+tpc_test=tpc2;
   }
 
   //----------------------------------------------------------------------------
@@ -156,12 +160,12 @@ namespace larg4 {
 	}//if opticalphoton - check
 
 
-if(step->GetTrack()->GetVolume()->GetName()=="volBeamBox_PV" || step->GetTrack()->GetVolume()->GetName()=="volTPCActive_PV"){ 
+if(step->GetTrack()->GetVolume()->GetName()==tpc_test || step->GetTrack()->GetVolume()->GetName()==tpc_big){ 
 		
 
 			 energy_deposit_step+=step->GetTotalEnergyDeposit();
-			//mf::LogWarning("LaRLightEnergyAction")<<"energy deposit step filled!!!!!!!!! "<<energy_deposit_step<<" change event "<<change_event<<std::endl;
-
+			mf::LogWarning("LaRLightEnergyAction")<<"energy deposit step filled!!!!!!!!! "<<energy_deposit_step<<" change event "<<change_event<<" tpc name "<<tpc_big<<std::endl;
+//wspolrzedne z geometry, MCparticle, trajectory, get energy deposit 
 	}
 			
     
