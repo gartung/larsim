@@ -126,18 +126,18 @@ namespace larg4 {
 
 	}
 
-
         // Temporary fix for problem where  DeltaTime on the first step
         // of optical photon propagation is calculated incorrectly. -wforeman
         globalTime = step->GetTrack()->GetGlobalTime();
         velocity_G4 = step->GetTrack()->GetVelocity();
         velocity_step = step->GetStepLength() / step->GetDeltaTime();
-        if ( (step->GetTrack()->GetDefinition()->GetPDGEncoding()==0) && (velocity_G4 != velocity_step) ) {
+        if ( (step->GetTrack()->GetDefinition()->GetPDGEncoding()==0) && 
+             fabs(velocity_G4 - velocity_step) > 0.0001 ) {
           // Subtract the faulty step time from the global time,
           // and add the correct step time based on G4 velocity.
-          step->GetPostStepPoint()->SetGlobalTime( globalTime - step->GetDeltaTime() + step->GetStepLength()/velocity_G4);
+          step->GetPostStepPoint()->SetGlobalTime( 
+           globalTime - step->GetDeltaTime() + step->GetStepLength()/velocity_G4);
         }
-
 
 	if (step->GetTrack()->GetDefinition()->GetPDGEncoding()==0){
 		tmppos.clear();
