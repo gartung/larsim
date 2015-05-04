@@ -19,7 +19,7 @@
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
 namespace larg4 {
-
+  
   //----------------------------------------------
   void MaterialPropertyLoader::SetMaterialProperty(std::string Material,
 						   std::string Property, 
@@ -60,7 +60,7 @@ namespace larg4 {
     mf::LogInfo("MaterialPropertyLoader") << "Set Birks constant " 
 					  << Material;
   }
-
+  
   //----------------------------------------------  
   void MaterialPropertyLoader::UpdateGeometry(G4LogicalVolumeStore * lvs)
   {
@@ -72,7 +72,7 @@ namespace larg4 {
     // Loop over each material with a property vector and create a new material table for it
     for(std::map<std::string,std::map<std::string,std::map<double,double> > >::const_iterator i=fPropertyList.begin(); i!=fPropertyList.end(); i++){
       std::string Material=i->first;
-std::cout<<">>>>>>>>>>>>>>material set "<<Material<<std::endl;
+      std::cout<<">>>>>>>>>>>>>>material set "<<Material<<std::endl;
       MaterialsSet[Material]=true;
       MaterialTables[Material]=new G4MaterialPropertiesTable;
     }
@@ -108,8 +108,8 @@ std::cout<<">>>>>>>>>>>>>>material set "<<Material<<std::endl;
 					      <<Property
 					      <<" to material table " 
 					      << Material;
-
-//std::cout<< "Added property " <<Property<<" to material table " << Material<<std::endl;
+	
+	//std::cout<< "Added property " <<Property<<" to material table " << Material<<std::endl;
       }
     }
     
@@ -132,50 +132,60 @@ std::cout<<">>>>>>>>>>>>>>material set "<<Material<<std::endl;
       G4LogicalVolume* volume = (*i);
       G4Material* TheMaterial = volume->GetMaterial();
       std::string Material = TheMaterial->GetName();
+      
+      if(Material=="Copper"){
+	std::cout<< "copper foil surface set "<<volume->GetName()<<std::endl;
+	G4OpticalSurface* refl_opsurfc = new G4OpticalSurface("Surface copper",glisur,ground,dielectric_metal);
+	refl_opsurfc->SetMaterialPropertiesTable(MaterialTables[Material]);
+	refl_opsurfc->SetPolish(0.2);
+	new G4LogicalSkinSurface("refl_surfacec",volume, refl_opsurfc);
+      }
+      
+      if(Material=="G10"){
+	std::cout<< "G10 surface set "<<volume->GetName()<<std::endl;
+	G4OpticalSurface* refl_opsurfg = new G4OpticalSurface("g10 Surface",glisur,ground,dielectric_metal);
+	refl_opsurfg->SetMaterialPropertiesTable(MaterialTables[Material]);
+	refl_opsurfg->SetPolish(0.1);
+	new G4LogicalSkinSurface("refl_surfaceg",volume, refl_opsurfg);
+      }
+      
+      if(Material=="vm2000"){
+	std::cout<< "reflector  "<<volume->GetName()<<std::endl;
+	G4OpticalSurface* refl_opsurf = new G4OpticalSurface("Reflector Surface",unified,groundfrontpainted,dielectric_dielectric);
+	refl_opsurf->SetMaterialPropertiesTable(MaterialTables[Material]);
+	G4double sigma_alpha = 0.8;
+	refl_opsurf->SetSigmaAlpha(sigma_alpha);
+	new G4LogicalSkinSurface("refl_surface",volume, refl_opsurf);
+      }
 
+      if(Material=="STEEL_STAINLESS_Fe7Cr2Ni"){
+	std::cout<< "STEEL_STAINLESS_Fe7Cr2Ni surface set "<<volume->GetName()<<std::endl;
+	G4OpticalSurface* refl_opsurfs = new G4OpticalSurface("Surface Steel",glisur,ground,dielectric_metal);
+	refl_opsurfs->SetMaterialPropertiesTable(MaterialTables[Material]);
+	refl_opsurfs->SetPolish(0.5);
+	new G4LogicalSkinSurface("refl_surfaces",volume, refl_opsurfs);
+      }
 
+      if(Material=="Titanium"){
+	std::cout<< "Titanium surface set "<<volume->GetName()<<std::endl;
+	G4OpticalSurface* refl_opsurft = new G4OpticalSurface("Surface Titanium",glisur,ground,dielectric_metal);
+	refl_opsurft->SetMaterialPropertiesTable(MaterialTables[Material]);
+	refl_opsurft->SetPolish(1.);
+	new G4LogicalSkinSurface("refl_surfacet",volume, refl_opsurft);
+      }
+      
+      /* if(Material=="Glass"){
+	std::cout<< "Glass surface set "<<volume->GetName()<<std::endl;
 
-if(Material=="Copper"){
-		std::cout<< "copper foil surface set "<<volume->GetName()<<std::endl;
-		const G4int num3 = 12;
-  		G4double Ephoton3[num3] = {1.77*eV, 2.0675*eV, 2.481*eV, 2.819*eV, 2.953*eV, 3.1807*eV, 3.54*eV, 4.135*eV, 4.962*eV, 5.39*eV, 7.*eV,15.*eV};
-		 G4double Reflectivity_refl2[num3] ={0.902,0.841,0.464,0.379,0.345,0.299,0.287,0.264,0.337,0.3,0.0,0.0};//measurements at Cracow University of Technology- need to be rescaled, 
-  		 G4MaterialPropertiesTable* reflspt2 = new G4MaterialPropertiesTable(); 
-  		reflspt2->AddProperty("REFLECTIVITY", Ephoton3, Reflectivity_refl2, num3);
+	const G4int nEntries = 2;
+	G4double photonEnergy[nEntries] = {1.77*eV, 15.*eV};
+	G4double efficiency[nEntries] = {1, 1};
+	MaterialTables[Material]->AddProperty("EFFICIENCY",photonEnergy,efficiency,nEntries);
+	G4OpticalSurface* refl_opsurfgl = new G4OpticalSurface("Surface Glass",glisur,ground,dielectric_metal,1);
+	refl_opsurfgl->SetMaterialPropertiesTable(MaterialTables[Material]);
+	new G4LogicalSkinSurface("refl_surfacegl",volume, refl_opsurfgl);
+	} */     
 
- 		 G4OpticalSurface* refl_opsurfc = new G4OpticalSurface("Surface copper",glisur,ground,dielectric_metal);
- 		 refl_opsurfc->SetMaterialPropertiesTable(reflspt2);
-   		refl_opsurfc -> SetPolish(0.2);
-		new G4LogicalSkinSurface("refl_surfacec",volume, refl_opsurfc);
-		}
-
-if(Material=="G10"){
-		std::cout<< "G10 surface set "<<volume->GetName()<<std::endl;
-		const G4int num4 = 12;
-  		G4double Ephoton4[num4] = {1.77*eV, 2.0675*eV, 2.481*eV, 2.819*eV, 2.953*eV, 3.1807*eV, 3.54*eV, 4.135*eV, 4.962*eV, 5.39*eV,6.2*eV,15.0*eV};
-		 G4double Reflectivity_refl3[num4] = {0.393,0.405,0.404,0.352,0.323,.243,0.127,0.065,0.068,0.068, 0.0, 0.0};//measurements at Cracow University of Technology- need to be rescaled
-  		 G4MaterialPropertiesTable* reflspt3 = new G4MaterialPropertiesTable(); 
-  		reflspt3->AddProperty("REFLECTIVITY", Ephoton4, Reflectivity_refl3, num4);
-
- 		 G4OpticalSurface* refl_opsurfg = new G4OpticalSurface("g10 Surface",glisur,ground,dielectric_metal);
- 		 refl_opsurfg->SetMaterialPropertiesTable(reflspt3);
-   		refl_opsurfg-> SetPolish(0.1);
-		new G4LogicalSkinSurface("refl_surfaceg",volume, refl_opsurfg);
-		}
-
-	if(Material=="vm2000"){
-		std::cout<< "reflector  "<<volume->GetName()<<std::endl;
-		const G4int num2 = 12;
-  		G4double Ephoton2[num2] = {1.77*eV, 2.0675*eV, 2.481*eV, 2.819*eV, 2.953*eV, 3.1807*eV, 3.54*eV, 4.135*eV, 4.962*eV, 5.39*eV,6.2*eV,15.0*eV};
-		 G4double Reflectivity_refl[num2] = {0.83, 0.83,0.83,0.83,0.83,0.28,0.035,0.02,0.16,0.16,0.0,0.0};//VM2000 data arXiv:1304.6117, rescaled - needs to be checked!
-  		 G4MaterialPropertiesTable* reflspt = new G4MaterialPropertiesTable(); 
-  		reflspt->AddProperty("REFLECTIVITY", Ephoton2, Reflectivity_refl, num2);
- 		 G4OpticalSurface* refl_opsurf = new G4OpticalSurface("Reflector Surface",unified,groundfrontpainted,dielectric_dielectric);//groundfrontpainted
- 		 refl_opsurf->SetMaterialPropertiesTable(reflspt);
-		G4double sigma_alpha = 0.8;
-		refl_opsurf->SetSigmaAlpha(sigma_alpha);
-   		new G4LogicalSkinSurface("refl_surface",volume, refl_opsurf);
-		}
       for(std::map<std::string,G4MaterialPropertiesTable*>::const_iterator j=MaterialTables.begin(); j!=MaterialTables.end(); j++){
 	if(Material==j->first){
 	  TheMaterial->SetMaterialPropertiesTable(j->second);
@@ -184,15 +194,13 @@ if(Material=="G10"){
 	    TheMaterial->GetIonisation()->SetBirksConstant(fBirksConstants[Material]);
 	  volume->SetMaterial(TheMaterial);
 
-
-
-
+	  
 	}
       }
     }
   }
-
-
+  
+  
   void MaterialPropertyLoader::SetReflectances(std::string Material, std::map<std::string,std::map<double, double> > Reflectances,  std::map<std::string,std::map<double, double> >  DiffuseFractions)
   {
     std::map<double, double> ReflectanceToStore;
@@ -204,7 +212,7 @@ if(Material=="G10"){
       {
 	std::string ReflectancePropName = std::string("REFLECTANCE_") + itMat->first;
 	ReflectanceToStore.clear();
-
+	
 	for(std::map<double,double>::const_iterator itEn=itMat->second.begin();
 	    itEn!=itMat->second.end();
 	    ++itEn)	  
@@ -213,8 +221,8 @@ if(Material=="G10"){
 	  }    
 	SetMaterialProperty("LAr", ReflectancePropName, ReflectanceToStore,1);
       }
-
- for(std::map<std::string,std::map<double,double> >::const_iterator itMat=DiffuseFractions.begin();
+    
+    for(std::map<std::string,std::map<double,double> >::const_iterator itMat=DiffuseFractions.begin();
 	itMat!=DiffuseFractions.end();
 	++itMat)
       {
@@ -231,46 +239,64 @@ if(Material=="G10"){
     
   } 
   
-
+  
+  void MaterialPropertyLoader::SetReflectances(std::map<std::string,std::map<double, double> > Reflectances)
+  {
+    std::map<double, double> ReflectanceToStore;
+    
+    for(std::map<std::string,std::map<double,double> >::const_iterator itMat=Reflectances.begin();
+	itMat!=Reflectances.end();
+	++itMat)
+      {
+	ReflectanceToStore.clear();
+	for(std::map<double,double>::const_iterator itEn=itMat->second.begin();
+	    itEn!=itMat->second.end();
+	    ++itEn)  
+	  {
+	    ReflectanceToStore[itEn->first]=itEn->second;
+	  }    
+	SetMaterialProperty(itMat->first, "REFLECTIVITY", ReflectanceToStore,1);
+      }
+  } 
+  
+  
   void MaterialPropertyLoader::GetPropertiesFromServices()
   {
     art::ServiceHandle<util::LArProperties>   LarProp;
     
     // wavelength dependent quantities
-
+    
     SetMaterialProperty( "LAr", "FASTCOMPONENT", LarProp->FastScintSpectrum(), 1  );
     SetMaterialProperty( "LAr", "SLOWCOMPONENT", LarProp->SlowScintSpectrum(), 1  );
     SetMaterialProperty( "LAr", "RINDEX",        LarProp->RIndexSpectrum(),    1  );
     SetMaterialProperty( "LAr", "ABSLENGTH",     LarProp->AbsLengthSpectrum(), cm );
     SetMaterialProperty( "LAr", "RAYLEIGH",      LarProp->RayleighSpectrum(),  cm );
-
-   if(LarProp->ExtraMatProperties()){
-
-
- SetMaterialProperty( "TPB", "RINDEX",        LarProp->RIndexSpectrum(),    1  );
- SetMaterialProperty( "TPB", "WLSABSLENGTH",        LarProp->TpbAbs(),    m  );
- SetMaterialProperty( "TPB", "WLSCOMPONENT",        LarProp->TpbEm(),    1  );
- SetMaterialConstProperty( "TPB", "WLSTIMECONSTANT",        LarProp->TpbTimeConstant(),    ns  );
- SetMaterialProperty( "vm2000", "RINDEX",        LarProp->RIndexSpectrum(),    1  );
-
-}
-
+    
+    if(LarProp->ExtraMatProperties()){
+      SetMaterialProperty( "TPB", "RINDEX",        LarProp->RIndexSpectrum(),    1  );
+      SetMaterialProperty( "TPB", "WLSABSLENGTH",        LarProp->TpbAbs(),    m  );
+      SetMaterialProperty( "TPB", "WLSCOMPONENT",        LarProp->TpbEm(),    1  );
+      SetMaterialConstProperty( "TPB", "WLSTIMECONSTANT",        LarProp->TpbTimeConstant(),    ns  );
+      SetMaterialProperty( "vm2000", "RINDEX",        LarProp->RIndexSpectrum(),    1  );
+      
+    }
+    
     // scalar properties
-
+    
     SetMaterialConstProperty("LAr", "SCINTILLATIONYIELD",  LarProp->ScintYield(),           1/MeV );
     SetMaterialConstProperty("LAr", "RESOLUTIONSCALE",     LarProp->ScintResolutionScale(), 1);
     SetMaterialConstProperty("LAr", "FASTTIMECONSTANT",    LarProp->ScintFastTimeConst(),   ns);
     SetMaterialConstProperty("LAr", "SLOWTIMECONSTANT",    LarProp->ScintSlowTimeConst(),   ns);
     SetMaterialConstProperty("LAr", "YIELDRATIO",          LarProp->ScintYieldRatio(),      1);
     SetMaterialConstProperty("LAr", "ELECTRICFIELD",       LarProp->Efield(),               kilovolt/cm);
-
+    
     SetBirksConstant("LAr",LarProp->ScintBirksConstant(), cm/MeV);
     
-    SetReflectances("LAr", LarProp->SurfaceReflectances(), LarProp->SurfaceReflectanceDiffuseFractions());
-
-
+    //SetReflectances("LAr", LarProp->SurfaceReflectances(), LarProp->SurfaceReflectanceDiffuseFractions());
+    SetReflectances(LarProp->SurfaceReflectances());
+    
     // If we are using scint by particle type, load these
-
+    
     if(LarProp->ScintByParticleType())
       {
 	SetMaterialConstProperty("LAr", "PROTONSCINTILLATIONYIELD",  LarProp->ProtonScintYield(),        1./MeV );
@@ -287,5 +313,5 @@ if(Material=="G10"){
 	SetMaterialConstProperty("LAr", "ALPHAYIELDRATIO",           LarProp->AlphaScintYieldRatio(),    1.);
       }
   }
-
+  
 }
