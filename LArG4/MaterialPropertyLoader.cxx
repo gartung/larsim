@@ -133,50 +133,78 @@ namespace larg4 {
       G4Material* TheMaterial = volume->GetMaterial();
       std::string Material = TheMaterial->GetName();
       
+      G4MaterialPropertyVector* PropertyPointer;
+      if(MaterialTables[Material])    
+	PropertyPointer = MaterialTables[Material]->GetProperty("REFLECTIVITY");
+
       if(Material=="Copper"){
-	std::cout<< "copper foil surface set "<<volume->GetName()<<std::endl;
-	G4OpticalSurface* refl_opsurfc = new G4OpticalSurface("Surface copper",glisur,ground,dielectric_metal);
-	refl_opsurfc->SetMaterialPropertiesTable(MaterialTables[Material]);
-	refl_opsurfc->SetPolish(0.2);
-	new G4LogicalSkinSurface("refl_surfacec",volume, refl_opsurfc);
+	std::cout<< "copper foil surface set "<<volume->GetName()<<std::endl; 
+	if(PropertyPointer) {
+	  std::cout<< "defining Copper optical boundary "<<std::endl;
+	  G4OpticalSurface* refl_opsurfc = new G4OpticalSurface("Surface copper",glisur,ground,dielectric_metal);
+	  refl_opsurfc->SetMaterialPropertiesTable(MaterialTables[Material]);
+	  refl_opsurfc->SetPolish(0.2);
+	  new G4LogicalSkinSurface("refl_surfacec",volume, refl_opsurfc);
+	}
+	else
+	  std::cout<< "Warning: Copper surface in the geometry without REFLECTIVITY assigned"<<std::endl;
       }
       
       if(Material=="G10"){
 	std::cout<< "G10 surface set "<<volume->GetName()<<std::endl;
-	G4OpticalSurface* refl_opsurfg = new G4OpticalSurface("g10 Surface",glisur,ground,dielectric_metal);
-	refl_opsurfg->SetMaterialPropertiesTable(MaterialTables[Material]);
-	refl_opsurfg->SetPolish(0.1);
-	new G4LogicalSkinSurface("refl_surfaceg",volume, refl_opsurfg);
+	if(PropertyPointer) {
+	  std::cout<< "defining G10 optical boundary "<<std::endl;
+	  G4OpticalSurface* refl_opsurfg = new G4OpticalSurface("g10 Surface",glisur,ground,dielectric_metal);
+	  refl_opsurfg->SetMaterialPropertiesTable(MaterialTables[Material]);
+	  refl_opsurfg->SetPolish(0.1);
+	  new G4LogicalSkinSurface("refl_surfaceg",volume, refl_opsurfg);
+	}
+	else
+	  std::cout<< "Warning: G10 surface in the geometry without REFLECTIVITY assigned"<<std::endl;
       }
       
       if(Material=="vm2000"){
-	std::cout<< "reflector  "<<volume->GetName()<<std::endl;
-	G4OpticalSurface* refl_opsurf = new G4OpticalSurface("Reflector Surface",unified,groundfrontpainted,dielectric_dielectric);
-	refl_opsurf->SetMaterialPropertiesTable(MaterialTables[Material]);
-	G4double sigma_alpha = 0.8;
-	refl_opsurf->SetSigmaAlpha(sigma_alpha);
-	new G4LogicalSkinSurface("refl_surface",volume, refl_opsurf);
+	std::cout<< "vm2000 surface set "<<volume->GetName()<<std::endl;
+	if(PropertyPointer) {
+	  std::cout<< "defining vm2000 optical boundary "<<std::endl;
+	  G4OpticalSurface* refl_opsurf = new G4OpticalSurface("Reflector Surface",unified,groundfrontpainted,dielectric_dielectric);
+	  refl_opsurf->SetMaterialPropertiesTable(MaterialTables[Material]);
+	  G4double sigma_alpha = 0.8;
+	  refl_opsurf->SetSigmaAlpha(sigma_alpha);
+	  new G4LogicalSkinSurface("refl_surface",volume, refl_opsurf);
+	}
+	else
+	  std::cout<< "Warning: vm2000 surface in the geometry without REFLECTIVITY assigned"<<std::endl;
       }
 
       if(Material=="STEEL_STAINLESS_Fe7Cr2Ni"){
 	std::cout<< "STEEL_STAINLESS_Fe7Cr2Ni surface set "<<volume->GetName()<<std::endl;
-	G4OpticalSurface* refl_opsurfs = new G4OpticalSurface("Surface Steel",glisur,ground,dielectric_metal);
-	refl_opsurfs->SetMaterialPropertiesTable(MaterialTables[Material]);
-	refl_opsurfs->SetPolish(0.5);
-	new G4LogicalSkinSurface("refl_surfaces",volume, refl_opsurfs);
+	if(PropertyPointer) {
+	  std::cout<< "defining STEEL_STAINLESS_Fe7Cr2Ni optical boundary "<<std::endl;
+	  G4OpticalSurface* refl_opsurfs = new G4OpticalSurface("Surface Steel",glisur,ground,dielectric_metal);
+	  refl_opsurfs->SetMaterialPropertiesTable(MaterialTables[Material]);
+	  refl_opsurfs->SetPolish(0.5);
+	  new G4LogicalSkinSurface("refl_surfaces",volume, refl_opsurfs);
+	}
+	else
+	  std::cout<< "Warning: STEEL_STAINLESS_Fe7Cr2Ni surface in the geometry without REFLECTIVITY assigned"<<std::endl;
       }
 
       if(Material=="Titanium"){
 	std::cout<< "Titanium surface set "<<volume->GetName()<<std::endl;
-	G4OpticalSurface* refl_opsurft = new G4OpticalSurface("Surface Titanium",glisur,ground,dielectric_metal);
-	refl_opsurft->SetMaterialPropertiesTable(MaterialTables[Material]);
-	refl_opsurft->SetPolish(1.);
-	new G4LogicalSkinSurface("refl_surfacet",volume, refl_opsurft);
+	if(PropertyPointer) {
+	  std::cout<< "defining Titanium optical boundary "<<std::endl;
+	  G4OpticalSurface* refl_opsurft = new G4OpticalSurface("Surface Titanium",glisur,ground,dielectric_metal);
+	  refl_opsurft->SetMaterialPropertiesTable(MaterialTables[Material]);
+	  refl_opsurft->SetPolish(1.);
+	  new G4LogicalSkinSurface("refl_surfacet",volume, refl_opsurft);
+	}
+	else
+	  std::cout<< "Warning: Titanium surface in the geometry without REFLECTIVITY assigned"<<std::endl;
       }
       
       /* if(Material=="Glass"){
 	std::cout<< "Glass surface set "<<volume->GetName()<<std::endl;
-
 	const G4int nEntries = 2;
 	G4double photonEnergy[nEntries] = {1.77*eV, 15.*eV};
 	G4double efficiency[nEntries] = {1, 1};
