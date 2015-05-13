@@ -40,6 +40,7 @@ standard_photonvisibilityservice_buildlib:
   DoNotLoadLibrary: true
 
   LibraryBuildJob: true
+  ExtendedLibraryInfo: false
   StoreReflected:  false 		
   LibraryFile: "PhotonPropagation/LibraryData/Not_A_Library.root"	 
  

@@ -50,6 +50,7 @@ namespace larg4 {
     
     void SetReflectances( std::string, std::map<std::string, std::map<double,double> >, std::map<std::string, std::map<double, double> >);
     
+    void SetReflectances( std::map<std::string, std::map<double,double> >);
     // Set material properties supplied from services
     void GetPropertiesFromServices();
 
