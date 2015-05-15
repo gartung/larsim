@@ -32,6 +32,7 @@
 #include "Geant4/G4ThreeVector.hh"
 
 class G4Track;
+class TVector3;
 
 //#include "ExN04TrackerHit.hh"
 //#include "ExN04MuonHit.hh"
@@ -40,7 +41,7 @@ class LArStackingActionMessenger;
 class LArStackingAction : public G4UserStackingAction
 {
   public:
-    LArStackingAction(int );
+    LArStackingAction(G4int stack, G4int alg=0 );
     virtual ~LArStackingAction();
 
   public:
@@ -48,22 +49,26 @@ class LArStackingAction : public G4UserStackingAction
     virtual G4ClassificationOfNewTrack ClassifyNewTrack(const G4Track* aTrack);
     virtual void NewStage();
     virtual void PrepareNewEvent();
-    G4int fStack;
 
   private:
     //G4bool InsideRoI(const G4Track * aTrack,G4double ang);
     std::string InsideTPC(const G4Track * aTrack);
     //G4VHitsCollection* GetCollection(G4String colName);
+    bool PointsAtCryostat(const TVector3& p0, const TVector3& p_hat, double* bounds) const;
     
     //ExN04TrackerHitsCollection* trkHits;
     //ExN04MuonHitsCollection* muonHits;
     //LArStackingActionMessenger* theMessenger;
 
-    G4int fstage;
+    G4int fStage;
+    G4int fStack;
+    G4int fAlg;
+    
     G4int freqMuon;
     G4int freqIsoMuon;
     G4int freqIso;
     G4double fangRoI;
+    
 
 
   

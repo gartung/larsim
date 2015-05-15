@@ -8,6 +8,9 @@ standard_largeant:
  DumpLArVoxelList:       false
  DebugVoxelAccumulation: 0
  VisualizeEvents:        false
+ StackingAlg:            0      # 0 is previous smart stacking
+ 				# 1 removes low energy electrons outside cryostats
+				# 2 does #1 and removes electrons that point away from cryostat
  SmartStacking:          0	# non-0 turns it on. The 0x4 bit 
 	                        # will shut off primary showering.
 # The following variables are not used anywhere in LArG4_module.cc.

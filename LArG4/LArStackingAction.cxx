@@ -49,18 +49,16 @@
 #include "art/Persistency/Common/PtrVector.h"
 #include "cetlib/exception.h"
 
-LArStackingAction::LArStackingAction(G4int dum)
- : fstage(0)
+LArStackingAction::LArStackingAction(G4int stack, G4int alg /*=0*/)
+ : fStage(0)
+ , fStack(stack)
+ , fAlg(alg)
  , freqMuon(2)
  , freqIsoMuon(0)
  , freqIso(10)
  , fangRoI(30.*deg)
 { 
   //theMessenger = new LArStackingActionMessenger(this);
-  fStack = dum;
-    // Positive values effect action in this routine. Negative values
-    // effect action in G4BadIdeaAction.
-
 }
 
 LArStackingAction::~LArStackingAction()
@@ -70,8 +68,140 @@ LArStackingAction::~LArStackingAction()
 G4ClassificationOfNewTrack 
 LArStackingAction::ClassifyNewTrack(const G4Track * aTrack)
 {
-  G4ClassificationOfNewTrack classification = fWaiting;
-  art::ServiceHandle<geo::Geometry> geom;
+  
+  G4ClassificationOfNewTrack classification = fUrgent;  
+  
+  art::ServiceHandle<geo::Geometry> geom; 
+  
+  if (fAlg > 0 && aTrack->GetDefinition()->GetPDGEncoding()==11) {
+    
+    double bounds[6] = {0};
+    bool insideCryo = false;
+    const G4ThreeVector tr4Pos = aTrack->GetPosition();
+    const TVector3 trPos(tr4Pos.x()/cm,tr4Pos.y()/cm,tr4Pos.z()/cm);
+    for(unsigned int c = 0; c < geom->Ncryostats(); ++c) {
+      geom->CryostatBoundaries(bounds, c);
+      if ( trPos.X() - bounds[0] > 0.0 && trPos.X() - bounds[1] < 0.0 &&
+           trPos.Y() - bounds[2] > 0.0 && trPos.Y() - bounds[3] < 0.0 &&
+	   trPos.Z() - bounds[4] > 0.0 && trPos.Z() - bounds[5] < 0.0 ) {
+        insideCryo = true;
+	break;
+      }
+    }
+    
+    if (!insideCryo && aTrack->GetKineticEnergy() < 5.0) return fKill;
+  
+    //reject electrons that point away from cryostat
+    if (fAlg > 1 && !insideCryo) {
+
+      //unit direction vector
+      TVector3 p_hat(aTrack->GetMomentumDirection.x(), aTrack->GetMomentumDirection.y(), aTrack->GetMomentumDirection.z());
+      p_hat = p_hat.Unit();
+
+      //Start position vector
+      TVector3 p0(aTrack->GetPosition().x()/cm, aTrack->GetPosition().y()/cm, aTrack->GetPosition().z()/cm);
+
+      double bounds[6] = {0};
+      double min_deflection = 4.0;
+      for (unsigned int c = 0; c < geom->Ncryostats(); ++c) {
+	geom->CryostatBoundaries(bounds, c);
+
+	//does particle point at the cryostat?
+	if (PointsAtCryoStat(p0, p_hat, bounds)) {
+          min_deflection = 0.0;
+	  break;
+	}
+
+	//make edges
+	std::vector< std::pair<TVector3, TVector3> > edges;
+	edges.push_back( std::pair<TVector3,TVector3>( TVector3(bounds[0], bounds[2], bounds[4]), TVector3(bounds[1]-bounds[0], 0.0, 0.0) ) );
+	edges.push_back( std::pair<TVector3,TVector3>( TVector3(bounds[0], bounds[3], bounds[4]), TVector3(bounds[1]-bounds[0], 0.0, 0.0) ) );
+	edges.push_back( std::pair<TVector3,TVector3>( TVector3(bounds[0], bounds[2], bounds[5]), TVector3(bounds[1]-bounds[0], 0.0, 0.0) ) );
+	edges.push_back( std::pair<TVector3,TVector3>( TVector3(bounds[0], bounds[3], bounds[5]), TVector3(bounds[1]-bounds[0], 0.0, 0.0) ) );
+
+	edges.push_back( std::pair<TVector3,TVector3>( TVector3(bounds[0], bounds[2], bounds[4]), TVector3(0.0, bounds[3]-bounds[2], 0.0) ) );
+	edges.push_back( std::pair<TVector3,TVector3>( TVector3(bounds[1], bounds[2], bounds[4]), TVector3(0.0, bounds[3]-bounds[2], 0.0) ) );
+	edges.push_back( std::pair<TVector3,TVector3>( TVector3(bounds[0], bounds[2], bounds[5]), TVector3(0.0, bounds[3]-bounds[2], 0.0) ) );
+	edges.push_back( std::pair<TVector3,TVector3>( TVector3(bounds[1], bounds[2], bounds[5]), TVector3(0.0, bounds[3]-bounds[2], 0.0) ) );
+
+	edges.push_back( std::pair<TVector3,TVector3>( TVector3(bounds[0], bounds[2], bounds[4]), TVector3(0.0, 0.0, bounds[5]-bounds[4]) ) );
+	edges.push_back( std::pair<TVector3,TVector3>( TVector3(bounds[1], bounds[2], bounds[4]), TVector3(0.0, 0.0, bounds[5]-bounds[4]) ) );
+	edges.push_back( std::pair<TVector3,TVector3>( TVector3(bounds[0], bounds[3], bounds[4]), TVector3(0.0, 0.0, bounds[5]-bounds[4]) ) );
+	edges.push_back( std::pair<TVector3,TVector3>( TVector3(bounds[1], bounds[3], bounds[4]), TVector3(0.0, 0.0, bounds[5]-bounds[4]) ) );
+
+	//loop over edges and find minimum deflection
+	for (auto itE = edges.begin(); itE != edges.end(); ++itE) {
+
+	  double A = (itE->first - p0).Dot(p_hat);
+	  double B = (itE->second).Dot(p_hat);
+
+	  double D, E;
+	  if ( (itE->second).x() != 0.0 ) {
+	    D = itE->second.x();
+	    E = -p0.x();
+	  }
+	  else if ( (itE->second).y() != 0.0 ) {
+	    D = itE->second.y();
+	    E = -p0.y();
+	  }
+	  else if ( (itE->second).z() != 0.0 ) {
+	    D = itE->second.z();
+	    E = -p0.z();
+	  }
+	  else { std::cout << "PROBLEM" <<std::endl; }
+	  double C2 = (itE->first - p0).Mag2() - E*E;
+
+	  double tmp_min = 99.9;
+	  if (B==0.0) {
+	    if (A==0.0) {
+	      std::cout<<"DEGENERATE CASE: A=B=0"<<std::endl;
+	      tmp_min = 3.14145 / 2.0; //90 degrees
+	    }
+	    else if ( 0.0 <= -E/D && 1.0 >= -E/D) {
+	      std::cout<<"DEGENERATE CASE: -E/D = t"<<std::endl;
+	      tmp_min = acos(A/sqrt(C2));
+	    }
+	    else {
+	      std::cout<<"ODD THIRD CASE"<<std::endl;
+            }
+
+	    if (tmp_min < min_deflection) {
+	      min_deflection = tmp_min;
+	      if (min_deflection > 3.5) std::cout<<"BAD DEFLECTION"<<std::endl;
+	      continue;
+	    }
+	    else continue;
+	  }
+
+	  double tmp_minlocation = B*C2/(D*(A*D-B*E)) - E/D;
+	  if (tmp_minlocation < 0.0 || tmp_minlocation > 1.0) {
+	    double arg_at_0 = A/sqrt(C2 + E*E);
+	    double arg_at_1 = (A+B)/sqrt(C2+ (D+E)*(D+E));
+
+	    double val_at_0 = acos(arg_at_0);
+	    double val_at_1 = acos(arg_at_1);
+	    if (val_at_0 < min_deflection) min_deflection = val_at_0;
+	    if (val_at_1 < min_deflection) min_deflection = val_at_1;
+
+	    if (min_deflection > 3.5) std::cout<<"BAD DEFLECTION OB "<<std::endl;
+	  }
+	  else {
+	    tmp_min = acos( (A+B*tmp_minlocation)/sqrt(C2 + (D*tmp_minlocation + E)*(D*tmp_minlocation+E)  ) );
+	    if (tmp_min < min_deflection) min_deflection = tmp_min;
+	    if (min_deflection > 3.5) std::cout<<"BAD DEFLECTION NORM"<<std::endl;
+	  }
+	}//end loop over edges
+      }//end loop over cryostats
+      
+      if (min_deflection > 1.4) return fKill; //hardcoded cut for now
+    }//end if fAlg > 1
+    
+    return classification;
+  }//end if fAlg > 0
+  
+  //The following only runs for fAlg==0  
+  
+  classification = fWaiting;
   TString volName(InsideTPC(aTrack));
   Double_t buffer = 500; // Keep muNucl neutrals within 5m (for now) of larTPC.
 
@@ -82,7 +212,7 @@ LArStackingAction::ClassifyNewTrack(const G4Track * aTrack)
   if (ppdg) process = (TString)aTrack->GetCreatorProcess()->GetProcessName();
 
 
-  switch(fstage){
+  switch(fStage){
   case 0: // Fstage 0 : Primary muons only
     if (aTrack->GetParentID()==0)
     {
@@ -192,14 +322,14 @@ void LArStackingAction::NewStage()
 
   // Here when Urgent stack is empty. Waiting stack about to be made Urgent,
   // upon saying ReClassify().
-  fstage++;
+  fStage++;
 
     // I yanked the ExN04's use here of stackManager->clear(), which clears stack
     // and prepares to end the event. Think I may wanna do something like this if
     // muon has been tracked, its doca is large, there are no hit voxels in the TPC,
     // and I'm in further need of optimization.
 
-  if(fstage==1){
+  if(fStage==1){
   // Stage 0->1 : check if at least "reqMuon" hits on muon chamber
   //              otherwise abort current event
 
@@ -207,7 +337,7 @@ void LArStackingAction::NewStage()
     return;
   }
 
-  else if(fstage==2){
+  else if(fStage==2){
   // Stage 1->2 : check the isolation of muon tracks
   //              at least "reqIsoMuon" isolated muons
   //              otherwise abort current event.
@@ -226,7 +356,7 @@ void LArStackingAction::NewStage()
     
 void LArStackingAction::PrepareNewEvent()
 { 
-  fstage = 0; 
+  fStage = 0; 
   //trkHits = 0;
   //muonHits = 0;
 }
