@@ -133,7 +133,7 @@ namespace larg4 {
       G4Material* TheMaterial = volume->GetMaterial();
       std::string Material = TheMaterial->GetName();
       
-      G4MaterialPropertyVector* PropertyPointer;
+      G4MaterialPropertyVector* PropertyPointer = 0;
       if(MaterialTables[Material])    
 	PropertyPointer = MaterialTables[Material]->GetProperty("REFLECTIVITY");
 
