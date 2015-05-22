@@ -65,6 +65,7 @@ LArStackingAction::~LArStackingAction()
 { //delete theMessenger; 
 }
 
+
 G4ClassificationOfNewTrack 
 LArStackingAction::ClassifyNewTrack(const G4Track * aTrack)
 {
@@ -72,7 +73,7 @@ LArStackingAction::ClassifyNewTrack(const G4Track * aTrack)
   G4ClassificationOfNewTrack classification = fUrgent;  
   
   art::ServiceHandle<geo::Geometry> geom; 
-  
+  //LOG_INFO("LArStackingAction")<<"ClassifyNewTrack "<<fAlg;
   if (fAlg > 0 && aTrack->GetDefinition()->GetPDGEncoding()==11) {
     
     double bounds[6] = {0};
@@ -90,12 +91,12 @@ LArStackingAction::ClassifyNewTrack(const G4Track * aTrack)
     }
     
     if (!insideCryo && aTrack->GetKineticEnergy() < 5.0) return fKill;
-  
+    
     //reject electrons that point away from cryostat
     if (fAlg > 1 && !insideCryo) {
 
       //unit direction vector
-      TVector3 p_hat(aTrack->GetMomentumDirection.x(), aTrack->GetMomentumDirection.y(), aTrack->GetMomentumDirection.z());
+      TVector3 p_hat(aTrack->GetMomentumDirection().x(), aTrack->GetMomentumDirection().y(), aTrack->GetMomentumDirection().z());
       p_hat = p_hat.Unit();
 
       //Start position vector
@@ -107,7 +108,7 @@ LArStackingAction::ClassifyNewTrack(const G4Track * aTrack)
 	geom->CryostatBoundaries(bounds, c);
 
 	//does particle point at the cryostat?
-	if (PointsAtCryoStat(p0, p_hat, bounds)) {
+	if (PointsAtCryostat(p0, p_hat, bounds)) {
           min_deflection = 0.0;
 	  break;
 	}
@@ -135,7 +136,7 @@ LArStackingAction::ClassifyNewTrack(const G4Track * aTrack)
 	  double A = (itE->first - p0).Dot(p_hat);
 	  double B = (itE->second).Dot(p_hat);
 
-	  double D, E;
+	  double D=0, E=0;
 	  if ( (itE->second).x() != 0.0 ) {
 	    D = itE->second.x();
 	    E = -p0.x();
@@ -361,4 +362,41 @@ void LArStackingAction::PrepareNewEvent()
   //muonHits = 0;
 }
 
+bool LArStackingAction::PointsAtCryostat(const TVector3& p0, const TVector3& p_hat, double* bounds) const {
 
+  double proj_1 = p0.y() + (p_hat.y()/p_hat.x())*(p0.x()-bounds[0]);
+  double proj_2 = p0.z() + (p_hat.z()/p_hat.x())*(p0.x()-bounds[0]);
+  if (proj_1 >= bounds[2] && proj_1 <= bounds[3] &&
+      proj_2 >= bounds[4] && proj_2 <= bounds[5]) return true;
+
+  proj_1 = p0.y() + (p_hat.y()/p_hat.x())*(p0.x()-bounds[1]);
+  proj_2 = p0.z() + (p_hat.z()/p_hat.x())*(p0.x()-bounds[1]);
+  if (proj_1 >= bounds[2] && proj_1 <= bounds[3] &&
+      proj_2 >= bounds[4] && proj_2 <= bounds[5]) return true;
+
+
+
+  proj_1 = p0.x() + (p_hat.x()/p_hat.y())*(p0.y()-bounds[2]);
+  proj_2 = p0.z() + (p_hat.z()/p_hat.y())*(p0.y()-bounds[2]);
+  if (proj_1 >= bounds[0] && proj_1 <= bounds[1] &&
+      proj_2 >= bounds[4] && proj_2 <= bounds[5]) return true;
+
+  proj_1 = p0.x() + (p_hat.x()/p_hat.y())*(p0.y()-bounds[3]);
+  proj_2 = p0.z() + (p_hat.z()/p_hat.y())*(p0.y()-bounds[3]);
+  if (proj_1 >= bounds[0] && proj_1 <= bounds[1] &&
+      proj_2 >= bounds[4] && proj_2 <= bounds[5]) return true;
+
+
+
+  proj_1 = p0.x() + (p_hat.x()/p_hat.z())*(p0.z()-bounds[4]);
+  proj_2 = p0.y() + (p_hat.y()/p_hat.z())*(p0.z()-bounds[4]);
+  if (proj_1 >= bounds[0] && proj_1 <= bounds[1] &&
+      proj_2 >= bounds[2] && proj_2 <= bounds[3]) return true;
+
+  proj_1 = p0.x() + (p_hat.x()/p_hat.z())*(p0.z()-bounds[5]);
+  proj_2 = p0.y() + (p_hat.y()/p_hat.z())*(p0.z()-bounds[5]);
+  if (proj_1 >= bounds[0] && proj_1 <= bounds[1] &&
+      proj_2 >= bounds[2] && proj_2 <= bounds[3]) return true;
+
+  return false;
+}

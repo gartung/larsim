@@ -139,7 +139,8 @@ namespace larg4 {
     bool                       fdumpSimChannels;    ///< Whether each event's sim::Channel will be displayed.
     bool                       fUseLitePhotons;
     int                        fSmartStacking;      ///< Whether to instantiate and use class to 
-                                                    ///< dictate how tracks are put on stack.        
+                                                    ///< dictate how tracks are put on stack.    
+    int                        fStackingAlg;        ///< Type of particle stacking algorithm, see LArStackingAction    
     std::vector<std::string>   fInputLabels;
   };
 
@@ -157,6 +158,7 @@ namespace larg4 {
     , fdumpParticleList      (pset.get< bool        >("DumpParticleList")                   )
     , fdumpSimChannels       (pset.get< bool        >("DumpSimChannels", false)             )
     , fSmartStacking         (pset.get< int         >("SmartStacking",0)                    )
+    , fStackingAlg           (pset.get< int         >("StackingAlg",0)                      )
   {
     LOG_DEBUG("LArG4") << "Debug: LArG4()";
 
@@ -263,7 +265,7 @@ namespace larg4 {
     // With an enormous detector with lots of rock ala LAr34 (nee LAr20)
     // we need to be smarter about stacking.
     if (fSmartStacking>0){
-      G4UserStackingAction* stacking_action = new LArStackingAction(fSmartStacking);
+      G4UserStackingAction* stacking_action = new LArStackingAction(fSmartStacking, fStackingAlg);
       fG4Help->GetRunManager()->SetUserAction(stacking_action);
     }
   
