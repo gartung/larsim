@@ -174,7 +174,7 @@ namespace sim {
 	for(size_t i=0; i<mcp.NumberTrajectoryPoints(); ++i) {
 	  
 	  if(InDetector(mcp.Vx(i),mcp.Vy(i),mcp.Vz(i)))
-
+		//std::cout<<"in detector MCRECOPART "<<std::endl;
 	    det_path_index.insert(i);
 
 	}

@@ -42,12 +42,14 @@ standard_largeantparameters:
  #
  # This format is chosen to allow for future extensions to the model
  #  for, eg, LBNE wireplane development.
- #
- OpticalParamParameters:   [ [ [30,  3, 0.15], 
- 	 		       [-30, 3, 0.15],
-                               [0,   3, 0.15],
-                               [90,  3.5, 0.2],
-                               [0,   3.5, 0.2] ] ]	
+ # another format is possible [plane angle, pitch/mm, wire diameter/mm, plane transmittance]
+# OpticalParamParameters:   [ [ [30,  3, 0.15], 30, 3, 0.15],[0,   3, 0.15],[90,  3.5, 0.2],[0,   3.5, 0.2] ] ]
+
+ OpticalParamParameters:   [ [ [30,  3, 0.15,0.97], 
+ 	 		       [-30, 3, 0.15,0.97],
+                               [0,   3, 0.15,0.97],
+                               [90,  3.5, 0.2,0.97],
+                               [0,   3.5, 0.2,0.97] ] ]	
  UseLitePhotons: false 
 }
 

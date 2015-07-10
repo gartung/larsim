@@ -116,7 +116,8 @@
 #include "Utilities/DetectorProperties.h" 
 
 #include "art/Framework/Services/Optional/RandomNumberGenerator.h"
-
+int counter_photons=0;
+double energy_deposited1=0.0;//FIXME, REMOVE ME, I SHOULDN'T BE HERE, I'M JUST A TEST VARIABLE!
 namespace larg4{
 
 /////////////////////////
@@ -161,7 +162,7 @@ namespace larg4{
 
         BuildThePhysicsTable();
         art::ServiceHandle<util::DetectorProperties> det;                 
-        //fGlobalTimeOffset = det->ConvertTicksToTDC(0) * det->SamplingRate();
+      //  fGlobalTimeOffset = det->ConvertTicksToTDC(0) * det->SamplingRate();
 
         emSaturation = NULL;
 }
@@ -180,7 +181,7 @@ namespace larg4{
     emSaturation                = rhs.GetSaturation();
 
     art::ServiceHandle<util::DetectorProperties> det;                 
-    //fGlobalTimeOffset = det->ConvertTicksToTDC(0) * det->SamplingRate();
+   // fGlobalTimeOffset = det->ConvertTicksToTDC(0) * det->SamplingRate();
 
     BuildThePhysicsTable();
   }
@@ -234,13 +235,14 @@ OpFastScintillation::PostStepDoIt(const G4Track& aTrack, const G4Step& aStep)
 	// Check that we are in a material with a properties table, if not
 	// just return
         const G4Material* aMaterial = aTrack.GetMaterial();
+	//if (aMaterial->GetName()!="LAr" && aMaterial->GetName()!="Glass") std::cout<<" MATERIAL NAME (excl LAr, Glass) FROM SCINTILLATION FAST "<<aMaterial->GetName()<<" "<<aTrack.GetParticleDefinition().GetParticleName()<<std::endl;
         G4MaterialPropertiesTable* aMaterialPropertiesTable =
                                aMaterial->GetMaterialPropertiesTable();
         if (!aMaterialPropertiesTable)
              return G4VRestDiscreteProcess::PostStepDoIt(aTrack, aStep);
 
         G4StepPoint* pPreStepPoint  = aStep.GetPreStepPoint();
-      
+      	
         G4ThreeVector x0 = pPreStepPoint->GetPosition();
         G4ThreeVector p0 = aStep.GetDeltaPosition().unit();
       
@@ -318,8 +320,8 @@ OpFastScintillation::PostStepDoIt(const G4Track& aTrack, const G4Step& aStep)
 	larg4::IonizationAndScintillation::Instance()->Reset(&aStep);
 	double MeanNumberOfPhotons = larg4::IonizationAndScintillation::Instance()->NumberScintillationPhotons();
         RecordPhotonsProduced(aStep, MeanNumberOfPhotons);
-
-	
+	energy_deposited1+=larg4::IonizationAndScintillation::Instance()->EnergyDeposit();
+	//std::cout<<"mean number of photons "<<MeanNumberOfPhotons<<std::endl;
 	if (verboseLevel>0) {
 	  G4cout << "\n Exiting from OpFastScintillation::DoIt -- NumberOfSecondaries = " 
 		 << aParticleChange.GetNumberOfSecondaries() << G4endl;
@@ -352,16 +354,16 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
   const G4Material* aMaterial = aTrack->GetMaterial();
 
   G4int materialIndex = aMaterial->GetIndex();
-	
-
+ // G4double ener1 = pPreStepPoint->GetKineticEnergy();
   G4ThreeVector x0 = pPreStepPoint->GetPosition();
   G4ThreeVector p0 = aStep.GetDeltaPosition().unit();
   //G4double      t0 = pPreStepPoint->GetGlobalTime() - fGlobalTimeOffset;
   G4double      t0 = pPreStepPoint->GetGlobalTime();
   
-  
   G4MaterialPropertiesTable* aMaterialPropertiesTable =
     aMaterial->GetMaterialPropertiesTable();
+
+
 
   double xyz[3];
   xyz[0]=x0[0]/cm;
@@ -370,6 +372,8 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
 
   // Get the visibility vector for this point
   const std::vector<float>* Visibilities = nullptr;
+
+
   if(!pvs->UseParameterization())Visibilities = pvs->GetAllVisibilities(xyz);
 
 
@@ -549,9 +553,12 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
 	// if null pointer, this means no data for this voxel - in 
 	// this case do nothing.
 	//mf::LogInfo("OpFastScintillation")<<"Warning : null vis vector"<<std::endl;
+std::cout<<"551 Warning : null vis vector"<<std::endl;
       }
     else
     {
+
+//was here
 	 if(pvs->UseParameterization())
 	  {
         art::ServiceHandle<geo::Geometry> geo;
@@ -615,7 +622,7 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
               DetectedNum[OpDet] = DetThisPMT;
             }
           }
-       }
+       }//op chan loop
 
     std::map<int, std::map<int, int>> StepPhotonTable;
     // And then add these to the total collection for the event	    
@@ -648,9 +655,19 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
 	  }
 	else
     {
+
 	  for(size_t OpDet=0; OpDet!=Visibilities->size(); OpDet++)
       {
 		G4int DetThisPMT = G4int(G4Poisson(Visibilities->at(OpDet) * Num));
+
+//was here - CALCULATING number of detected photons
+
+
+
+
+std::cout<<xyz[0]<<" "<<xyz[1]<<" "<<xyz[2]<<" photons number "<<Num<<" "<<Visibilities->at(OpDet)<<" "<<G4Poisson(Visibilities->at(OpDet) * Num)<<std::endl;
+
+
 		if(DetThisPMT>0) 
         {
 		    DetectedNum[OpDet]=DetThisPMT;
@@ -662,6 +679,7 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
 	
       if(lgp->UseLitePhotons())
       {
+	//lite photons version
         std::map<int, std::map<int, int>> StepPhotonTable;
         // And then add these to the total collection for the event     
         for(std::map<int,int>::const_iterator itdetphot = DetectedNum.begin();
@@ -693,7 +711,9 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
       }
       else
       {
-	  // And then add these to the total collection for the event	    
+
+//was here
+	  // And then add these to the total collection for the event	- not using lite photons    
       for(std::map<int,int>::const_iterator itdetphot = DetectedNum.begin();
 	    itdetphot!=DetectedNum.end(); ++itdetphot)
       {
@@ -724,13 +744,18 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
             float Time = aSecondaryTime;
 		
             // Make a photon object for the collection
-	    sim::OnePhoton PhotToAdd;
+            //sim::OnePhoton  * PhotToAdd = new sim::OnePhoton();
+	//std::unique_ptr<sim::OnePhoton> PhotToAdd(new sim::OnePhoton());
+		sim::OnePhoton PhotToAdd;
             PhotToAdd.InitialPosition  = PhotonPosition;
+		//std::cout<<" photon energy----------------------------------------------------- "<<ener1<<std::endl;
             PhotToAdd.Energy           = Energy;
             PhotToAdd.Time             = Time;
             PhotToAdd.SetInSD          = false;
 			
-            fst->AddPhoton(itdetphot->first, std::move(PhotToAdd));
+           // fst->AddPhoton(itdetphot->first, PhotToAdd);
+
+	fst->AddPhoton(itdetphot->first, std::move(PhotToAdd));
         }
       }
       }
