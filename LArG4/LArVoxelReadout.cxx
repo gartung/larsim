@@ -419,7 +419,7 @@ namespace larg4 {
 
       // Get SCE {x,y,z} offsets for particular location in TPC      
       std::vector<double> posOffsets;
-      if (fLgpHandle->EnableSCE() == true)
+      if ((fLgpHandle->EnableSCE() == true) && (tpcg.DriftDistance()/cm > 50.0)) // Only do SCE in large drift volumes
       {
         art::ServiceHandle<spacecharge::SpaceCharge> SCEHandle;
         posOffsets = SCEHandle->GetPosOffsets(stepMidPoint.x()/cm,stepMidPoint.y()/cm,stepMidPoint.z()/cm);
