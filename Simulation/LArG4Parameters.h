@@ -61,7 +61,7 @@ namespace sim {
     const std::vector<int>         OpticalParamOrientations() const { return fOpticalParamOrientations;}
     const std::vector<std::vector<std::vector<double>>> OpticalParamParameters() const{return fOpticalParamParameters;  }
     bool UseLitePhotons()                                     const { return fLitePhotons;            }
-    bool EnableSCE()                                          const { return fEnableSCE;              }
+    bool EnableSpaceCharge()                                  const { return fEnableSpaceCharge;      }
 
   private:
     int                      fOpVerbosity;           ///< Verbosity of optical simulation - soon to be depricated
@@ -102,7 +102,7 @@ namespace sim {
                                                                              ///< paramaterized volumes
  
     bool fLitePhotons;
-    bool fEnableSCE;
+    bool fEnableSpaceCharge;
   };
 }
 
