@@ -295,12 +295,12 @@ namespace larg4 {
     //look to see if there is any MCTruth information for this
     //event
     std::vector< art::Handle< std::vector<simb::MCTruth> > > mclists;
-    if(fInputLabels.size()==0)
+    if(fInputLabels.size() == 0)
       evt.getManyByType(mclists);
     else{
       mclists.resize(fInputLabels.size());
-      for(size_t i=0; i<fInputLabels.size(); i++)
-	evt.getByLabel(fInputLabels[i],mclists[i]);
+      for(size_t i = 0; i < fInputLabels.size(); ++i)
+	     evt.getByLabel(fInputLabels[i], mclists[i]);
     }
 
 

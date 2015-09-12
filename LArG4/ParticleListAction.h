@@ -38,24 +38,26 @@ namespace larg4 {
   {
   public:
     // Standard constructors and destructors;
-    ParticleListAction(double energyCut, bool storeTrajectories=false, bool keepEMShowerDaughters=false);
+    ParticleListAction(double energyCut,
+                       bool storeTrajectories=false,
+                       bool keepEMShowerDaughters=false);
     virtual ~ParticleListAction();
 
     // UserActions method that we'll override, to obtain access to
     // Geant4's particle tracks and trajectories.
-    virtual void             BeginOfEventAction(const G4Event*);
+    virtual void           BeginOfEventAction(const G4Event*);
     virtual void     	     EndOfEventAction  (const G4Event*);
     virtual void     	     PreTrackingAction (const G4Track*);
     virtual void     	     PostTrackingAction(const G4Track*);
     virtual void     	     SteppingAction    (const G4Step* );
 
     // TrackID of the current particle, EveID if the particle is from an EM shower
-    static int               GetCurrentTrackID()  { return fCurrentTrackID; }
-			                                                     
-    void                     ResetTrackIDOffset() { fTrackIDOffset = 0;     }
+    static int             GetCurrentTrackID()  { return fCurrentTrackID; }
+    void                   ResetTrackIDOffset() { fTrackIDOffset = 0;     }
 
     // Returns the ParticleList accumulated during the current event.
     const sim::ParticleList* GetList() const;
+    std::map<int, size_t>    TrackIDToMCTruthIndexMap() const;
 
   private:
 
@@ -71,7 +73,8 @@ namespace larg4 {
                                                      ///< all particles in the event.	
     G4bool                   fstoreTrajectories;     ///< Whether to store particle trajectories with each particle. 
     std::map<int, int>       fParentIDMap;           ///< key is current track ID, value is parent ID		  
-    static int               fCurrentTrackID;        ///< track ID of the current particle, set to eve ID 
+    std::map<int, size_t>    fTrackIDToMCTruthIndex; ///< map track ID to index of MCTruth in input list
+    static int               fCurrentTrackID;        ///< track ID of the current particle, set to eve ID
                                                      ///< for EM shower particles		
     static int               fTrackIDOffset;         ///< offset added to track ids when running over		  
                                                      ///< multiple MCTruth objects.				  
