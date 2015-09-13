@@ -255,7 +255,7 @@ namespace larg4 {
     if(fTrackIDToMCTruthIndex.count(fCurrentTrackID) > 0)
     LOG_WARNING("ParticleListAction") << "attempting to put " << fCurrentTrackID
     << " into fTrackIDToMCTruthIndex map "
-    << " particle is\n" << *fParticle;
+    << " particle is\n" << *fparticle;
     
     fTrackIDToMCTruthIndex[fCurrentTrackID] = mcTruthIndex;
 
@@ -268,8 +268,6 @@ namespace larg4 {
       fparticle->SetWeight(aTrack->GetWeight());
       G4String process = aTrack->GetStep()->GetPostStepPoint()->GetProcessDefinedStep()->GetProcessName();
       fparticle->SetEndProcess(process);
-      
-      
     }
     
     return;
