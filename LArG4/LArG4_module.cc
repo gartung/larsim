@@ -139,7 +139,8 @@ namespace larg4 {
     bool                       fdumpSimChannels;    ///< Whether each event's sim::Channel will be displayed.
     bool                       fUseLitePhotons;
     int                        fSmartStacking;      ///< Whether to instantiate and use class to 
-                                                    ///< dictate how tracks are put on stack.        
+                                                    ///< dictate how tracks are put on stack.
+    size_t                     fPLAIndex;           ///< index of the ParticleListAction in the UserAction Manager
     std::vector<std::string>   fInputLabels;
   };
 
@@ -157,6 +158,7 @@ namespace larg4 {
     , fdumpParticleList      (pset.get< bool        >("DumpParticleList")                   )
     , fdumpSimChannels       (pset.get< bool        >("DumpSimChannels", false)             )
     , fSmartStacking         (pset.get< int         >("SmartStacking",0)                    )
+    , fPLAIndex              (UINT_MAX)
   {
     LOG_DEBUG("LArG4") << "Debug: LArG4()";
 
@@ -256,6 +258,7 @@ namespace larg4 {
                                                         lgp->StoreTrajectories(),
                                                         lgp->KeepEMShowerDaughters());
     uaManager->AddAndAdoptAction(fparticleListAction);
+    fPLAIndex = uaManager->GetSize() - 1;
 
     // UserActionManager is now configured so continue G4 initialization
     fG4Help->SetUserAction();
@@ -303,41 +306,61 @@ namespace larg4 {
 	     evt.getByLabel(fInputLabels[i], mclists[i]);
     }
 
-
-    // Need to process Geant4 simulation for each interaction separately.
-    for(size_t mcl = 0; mcl < mclists.size(); ++mcl){
-
-      art::Handle< std::vector<simb::MCTruth> > mclistHandle = mclists[mcl];
-
-      for(size_t m = 0; m < mclistHandle->size(); ++m){
-        art::Ptr<simb::MCTruth> mct(mclistHandle, m);
-
-        LOG_DEBUG("LArG4") << *(mct.get());
-
-        // The following tells Geant4 to track the particles in this interaction.
-        fG4Help->G4Run(mct);
-
-        const sim::ParticleList& particleList = *( fparticleListAction->GetList() );
-        
-        partCol->reserve(partCol->size() + particleList.size()); // not very useful here...
-        for(auto pitr = particleList.begin(); pitr != particleList.end(); ++pitr){
-          // copy the particle so that it isnt const
-          simb::MCParticle p(*(*pitr).second);
-          partCol->push_back(p);
-          util::CreateAssn(*this, evt, *(partCol.get()), mct, *(tpassn.get()));
-        }
-
-        // Has the user request a detailed dump of the output objects?
-        if (fdumpParticleList){
-          mf::LogInfo("LArG4") << "Dump sim::ParticleList; size()="
-                               << particleList.size() << "\n"
-                               << particleList;
-        }
-
+    // G4 is faster if we only run it once per event, so collect the MCTruths
+    // into a single vector of const *simb::MCTruth
+    std::vector< const simb::MCTruth* >    mct;
+    std::vector< art::Ptr<simb::MCTruth> > mctp;
+    for(auto list : mclists){
+      for(size_t i = 0; i < list->size(); ++i){
+        art::Ptr<simb::MCTruth> ptr(list, i);
+        mctp.push_back(ptr);
+        mct .push_back(ptr.get());
       }
+    }
+    
+    // map to keep track of which G4 track IDs go with which MCTruth
+    // to make the associations later
+    std::map<int, size_t> trackIDToMCTruthIndex;
+    
+    g4b::UserActionManager*  uam = g4b::UserActionManager::Instance();
+    ParticleListAction* pla = dynamic_cast<ParticleListAction *>(uam->GetAction(fPLAIndex));
+    pla->ResetTrackIDOffset();
+    
+    fG4Help->G4Run(mct);
+    
+    trackIDToMCTruthIndex = pla->TrackIDToMCTruthIndexMap();
 
-    }// end loop over interactions
-   
+    const sim::ParticleList& particleList = *( fparticleListAction->GetList() );
+        
+    partCol->reserve(partCol->size() + particleList.size()); // not very useful here...
+
+    // make associations for the particles and MCTruth objects
+    int    trackID = INT_MAX;
+    size_t mctidx  = 0;
+
+    for(size_t p = 0; p < particleList.size(); ++p){
+      // copy the particle so that it isnt const
+      simb::MCParticle part(*(particleList[p]));
+      trackID = part.TrackId();
+      partCol->push_back(part);
+
+      if( trackIDToMCTruthIndex.count(trackID) > 0){
+        mctidx = trackIDToMCTruthIndex.find(trackID)->second;
+        util::CreateAssn(*this, evt, *partCol, mctp[mctidx], *tpassn, p);
+      }
+      else
+        throw cet::exception("G4Gen") << "Cannot find MCTruth for Track Id: "
+        << trackID
+        << " to create association between Particle and MCTruth";
+    }
+
+    // Has the user request a detailed dump of the output objects?
+    if (fdumpParticleList){
+      mf::LogInfo("LArG4") << "Dump sim::ParticleList; size()="
+      << particleList.size() << "\n"
+      << particleList;
+    }
+
     // get the electrons from the LArVoxelReadout sensitive detector
     // Get the sensitive-detector manager.
     G4SDManager* sdManager = G4SDManager::GetSDMpointer();
