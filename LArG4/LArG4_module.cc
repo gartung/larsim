@@ -317,18 +317,18 @@ namespace larg4 {
         mct .push_back(ptr.get());
       }
     }
-    
-    // map to keep track of which G4 track IDs go with which MCTruth
-    // to make the associations later
-    std::map<int, size_t> trackIDToMCTruthIndex;
-    
+
+    // make sure the particle list action is reset for this event
     g4b::UserActionManager*  uam = g4b::UserActionManager::Instance();
     ParticleListAction* pla = dynamic_cast<ParticleListAction *>(uam->GetAction(fPLAIndex));
     pla->ResetTrackIDOffset();
     
+    // Run G4 with all the MCTruth objections
     fG4Help->G4Run(mct);
     
-    trackIDToMCTruthIndex = pla->TrackIDToMCTruthIndexMap();
+    // map to keep track of which G4 track IDs go with which MCTruth
+    // to make the associations later
+    std::map<int, size_t> trackIDToMCTruthIndex = pla->TrackIDToMCTruthIndexMap();
 
     const sim::ParticleList& particleList = *( fparticleListAction->GetList() );
         
@@ -356,7 +356,7 @@ namespace larg4 {
 
     // Has the user request a detailed dump of the output objects?
     if (fdumpParticleList){
-      mf::LogInfo("LArG4") << "Dump sim::ParticleList; size()="
+      LOG_INFO("LArG4") << "Dump sim::ParticleList; size()="
       << particleList.size() << "\n"
       << particleList;
     }
@@ -374,10 +374,10 @@ namespace larg4 {
       if(!fUseLitePhotons){      
         LOG_DEBUG("Optical") << "Storing OpDet Hit Collection in Event";
         
-	std::vector<sim::SimPhotons>& ThePhotons = OpDetPhotonTable::Instance()->GetPhotons();
-	PhotonCol->reserve(ThePhotons.size());
-	for(auto& it : ThePhotons)
-	  PhotonCol->push_back(std::move(it));
+        std::vector<sim::SimPhotons>& ThePhotons = OpDetPhotonTable::Instance()->GetPhotons();
+        PhotonCol->reserve(ThePhotons.size());
+        for(auto& it : ThePhotons)
+          PhotonCol->push_back(std::move(it));
       }
       else{
         LOG_DEBUG("Optical") << "Storing OpDet Hit Collection in Event";
@@ -466,10 +466,10 @@ namespace larg4 {
                  for(auto const& ide : tdcide.second){
                     double xyz[3] = {ide.x, ide.y, ide.z};
                     scCol->at(idtest).AddIonizationElectrons(ide.trackID,
-                                        tdcide.first,
-                                        ide.numElectrons,
-                                        xyz,
-                                        ide.energy);
+                                                             tdcide.first,
+                                                             ide.numElectrons,
+                                                             xyz,
+                                                             ide.energy);
                   } // end loop to add ionization electrons to  scCol->at(idtest)
                }// end loop over tdc to vector<sim::IDE> map
             } // end if check to see if we've put SimChannels in for ichan yet or not
@@ -498,27 +498,27 @@ namespace larg4 {
       // gdml file - see AuxDetGeo.cxx
       for(size_t sv = 0; sv < geom->AuxDet(a).NSensitiveVolume(); ++sv){
 
-	// N.B. this name convention is used when creating the 
-	//      AuxDetReadout SD in AuxDetReadoutGeometry       
-	std::stringstream name;
-	name << "AuxDetSD_AuxDet" << a << "_" << sv;
-	G4VSensitiveDetector* sd = sdManager->FindSensitiveDetector(name.str().c_str());
-	if ( !sd ){
-	  throw cet::exception("LArG4") << "Sensitive detector '"
-					<< name
-					<< "' does not exist\n";
-	}
-
-	// Convert the G4VSensitiveDetector* to a AuxDetReadout*.
-	larg4::AuxDetReadout *auxDetReadout = dynamic_cast<larg4::AuxDetReadout*>(sd);
-
-	LOG_DEBUG("LArG4") << "now put the AuxDetSimTracks in the event";
-
-	const sim::AuxDetSimChannel adsc = auxDetReadout->GetAuxDetSimChannel();
-	adCol->push_back(adsc);
-	auxDetReadout->clear();
+        // N.B. this name convention is used when creating the
+        //      AuxDetReadout SD in AuxDetReadoutGeometry
+        std::stringstream name;
+        name << "AuxDetSD_AuxDet" << a << "_" << sv;
+        G4VSensitiveDetector* sd = sdManager->FindSensitiveDetector(name.str().c_str());
+        if ( !sd ){
+          throw cet::exception("LArG4") << "Sensitive detector '"
+          << name
+          << "' does not exist\n";
+        }
+        
+          // Convert the G4VSensitiveDetector* to a AuxDetReadout*.
+        larg4::AuxDetReadout *auxDetReadout = dynamic_cast<larg4::AuxDetReadout*>(sd);
+        
+        LOG_DEBUG("LArG4") << "now put the AuxDetSimTracks in the event";
+        
+        const sim::AuxDetSimChannel adsc = auxDetReadout->GetAuxDetSimChannel();
+        adCol->push_back(adsc);
+        auxDetReadout->clear();
       }
-	
+      
     } // Loop over AuxDets
 	
     if (fdumpSimChannels) {
