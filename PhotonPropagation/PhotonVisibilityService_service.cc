@@ -71,7 +71,7 @@ namespace phot{
 
     if(fTheLibrary == 0) {
       fTheLibrary = new PhotonLibrary();
-
+	art::ServiceHandle<geo::Geometry> geom;
 
     geo_file=std::string(geom->GDMLFile());
 

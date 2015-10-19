@@ -69,9 +69,9 @@ namespace larg4 {
 	    
       ThisVolPos/=cm;
 	    
-      //	    std::cout<<"Det: " << xyz[0]<< " " <<xyz[1]<< " " << xyz[2]<<std::endl;
-      //    std::cout<<"Vol: " << ThisVolPos.x()<< " " <<ThisVolPos.y() << " " <<ThisVolPos.z()<<std::endl;
-    
+      	    std::cout<<"Det: " << xyz[0]<< " " <<xyz[1]<< " " << xyz[2]<<std::endl;
+          std::cout<<"Vol: " << ThisVolPos.x()<< " " <<ThisVolPos.y() << " " <<ThisVolPos.z()<<std::endl;
+    std::cout<<"NOpDets"<<geom->NOpDets()<<std::endl;
       double Distance = (DetPos-ThisVolPos).mag();
       if(Distance < MinDistance)
       {
