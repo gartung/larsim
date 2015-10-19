@@ -1,5 +1,5 @@
 
-include_directories ( $ENV{GaisserParamHOME}/src )
+include_directories ( $ENV{MuonPropagationHOME}/src )
 
 art_make( BASENAME_ONLY
           MODULE_LIBRARIES 
@@ -11,6 +11,7 @@ art_make( BASENAME_ONLY
                         Geometry_service
                         SeedService_service # artextensions
                         ${GaisserParam}
+			${MUSUN}
                         ${SIMULATIONBASE}
                         ${ART_FRAMEWORK_CORE}
                         ${ART_FRAMEWORK_PRINCIPAL}
