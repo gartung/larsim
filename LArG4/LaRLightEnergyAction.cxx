@@ -108,14 +108,14 @@ tpc_test=tpc2;
 		if(eventnumber_fast!=evnr){
 			change_event=true;
 			evnr=eventnumber_fast;
-			mf::LogWarning("LaRLightEnergyAction")<<"--------------EVENT NUMBER"<<evnr<<std::endl;
+			//mf::LogWarning("LaRLightEnergyAction")<<"--------------EVENT NUMBER"<<evnr<<std::endl;
 		}
 
 	}
 	else{
 		change_event=true;
 		evnr=eventnumber_fast;
-		mf::LogWarning("LaRLightEnergyAction")<<" EVENT NUMBER laRlight energyaction "<<evnr<<std::endl;	
+		//mf::LogWarning("LaRLightEnergyAction")<<" EVENT NUMBER laRlight energyaction "<<evnr<<std::endl;	
 	}
 	if(change_event==true){
 		energy_deposit_step=0.;
@@ -154,8 +154,8 @@ tpc_test=tpc2;
 
  
 		if ( postStepPoint->GetPhysicalVolume()->GetName()=="volArgon_cap_L_PV" && ((postStepPoint->GetPosition()[2]/cm)>90.0 ||(postStepPoint->GetPosition()[2]/cm)<0.0)){
-			step->GetTrack()->SetTrackStatus(fStopAndKill);
-			ktrack1++;
+			//step->GetTrack()->SetTrackStatus(fStopAndKill);
+			//ktrack1++;
 			}//if in argon cap behind TPC - killing track
 	}//if opticalphoton - check
 
@@ -164,7 +164,7 @@ if(step->GetTrack()->GetVolume()->GetName()==tpc_test || step->GetTrack()->GetVo
 		
 
 			 energy_deposit_step+=step->GetTotalEnergyDeposit();
-			mf::LogWarning("LaRLightEnergyAction")<<"energy deposit step filled!!!!!!!!! "<<energy_deposit_step<<" change event "<<change_event<<" tpc name "<<tpc_big<<std::endl;
+			//mf::LogWarning("LaRLightEnergyAction")<<"energy deposit step filled!!!!!!!!! "<<energy_deposit_step<<" change event "<<change_event<<" tpc name "<<tpc_big<<std::endl;
 //wspolrzedne z geometry, MCparticle, trajectory, get energy deposit 
 	}
 			

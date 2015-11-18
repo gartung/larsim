@@ -132,21 +132,16 @@ std::cout<< "Added property " <<Property<<" to material table " << Material<<std
       G4LogicalVolume* volume = (*i);
       G4Material* TheMaterial = volume->GetMaterial();
       std::string Material = TheMaterial->GetName();
-//std::cout<< "Material !!!!!!!!! "<<Material<<" "<<volume->GetName()<<std::endl;
-
 
 if(Material=="Copper"){
 		std::cout<< "copper foil surface set "<<volume->GetName()<<std::endl;
 		const G4int num3 = 12;
   		G4double Ephoton3[num3] = {1.77*eV, 2.0675*eV, 2.481*eV, 2.819*eV, 2.953*eV, 3.1807*eV, 3.54*eV, 4.135*eV, 4.962*eV, 5.39*eV, 7.*eV,15.*eV};
-		 G4double Reflectivity_refl2[num3] ={0.902,0.841,0.464,0.379,0.345,0.299,0.287,0.264,0.337,0.3,0.0,0.0};//measurements at Cracow University of Technology- need to be rescaled
-
-  		 G4MaterialPropertiesTable* reflspt2 = new G4MaterialPropertiesTable(); 
-  		
+		G4double Reflectivity_refl2[num3] ={0.43,0.40145,0.221,0.181,0.165,0.143,0.137,0.126,0.1609,0.1609,0.0,0.0};//measurements at Cracow University of Technology
+  		G4MaterialPropertiesTable* reflspt2 = new G4MaterialPropertiesTable(); 
   		reflspt2->AddProperty("REFLECTIVITY", Ephoton3, Reflectivity_refl2, num3);
-
- 		 G4OpticalSurface* refl_opsurfc = new G4OpticalSurface("Surface copper",glisur,ground,dielectric_metal);
- 		 refl_opsurfc->SetMaterialPropertiesTable(reflspt2);
+ 		G4OpticalSurface* refl_opsurfc = new G4OpticalSurface("Surface copper",glisur,ground,dielectric_metal);
+ 		refl_opsurfc->SetMaterialPropertiesTable(reflspt2);
    		refl_opsurfc -> SetPolish(0.2);
 		new G4LogicalSkinSurface("refl_surfacec",volume, refl_opsurfc);
 		}
@@ -155,12 +150,11 @@ if(Material=="G10"){
 		std::cout<< "G10 surface set "<<volume->GetName()<<std::endl;
 		const G4int num4 = 12;
   		G4double Ephoton4[num4] = {1.77*eV, 2.0675*eV, 2.481*eV, 2.819*eV, 2.953*eV, 3.1807*eV, 3.54*eV, 4.135*eV, 4.962*eV, 5.39*eV,6.2*eV,15.0*eV};
-		 G4double Reflectivity_refl3[num4] = {0.393,0.405,0.404,0.352,0.323,.243,0.127,0.065,0.068,0.068, 0.0, 0.0};//measurements at Cracow University of Technology- need to be rescaled
-  		 G4MaterialPropertiesTable* reflspt3 = new G4MaterialPropertiesTable(); 
+		G4double Reflectivity_refl3[num4] = {0.393,0.405,0.404,0.352,0.323,.243,0.127,0.065,0.068,0.068, 0.0, 0.0};//measurements at Cracow University of Technology- need to be rescaled
+  		G4MaterialPropertiesTable* reflspt3 = new G4MaterialPropertiesTable(); 
   		reflspt3->AddProperty("REFLECTIVITY", Ephoton4, Reflectivity_refl3, num4);
-
- 		 G4OpticalSurface* refl_opsurfg = new G4OpticalSurface("g10 Surface",glisur,ground,dielectric_metal);
- 		 refl_opsurfg->SetMaterialPropertiesTable(reflspt3);
+ 		G4OpticalSurface* refl_opsurfg = new G4OpticalSurface("g10 Surface",glisur,ground,dielectric_metal);
+ 		refl_opsurfg->SetMaterialPropertiesTable(reflspt3);
    		refl_opsurfg-> SetPolish(0.1);
 		new G4LogicalSkinSurface("refl_surfaceg",volume, refl_opsurfg);
 		}
@@ -169,13 +163,13 @@ if(Material=="G10"){
 		std::cout<< "reflector  "<<volume->GetName()<<std::endl;
 		const G4int num2 = 12;
   		G4double Ephoton2[num2] = {1.77*eV, 2.0675*eV, 2.481*eV, 2.819*eV, 2.953*eV, 3.1807*eV, 3.54*eV, 4.135*eV, 4.962*eV, 5.39*eV,6.2*eV,15.0*eV};
-		 G4double Reflectivity_refl[num2]  = {0.83, 0.83,0.83,0.83,0.83,0.28,0.035,0.02,0.16,0.16,0.0,0.0};//VM2000 data arXiv:1304.6117, rescaled - needs to be checked!,  
-  		 G4MaterialPropertiesTable* reflspt = new G4MaterialPropertiesTable(); 
+		G4double Reflectivity_refl[num2]  = {0.83, 0.83,0.83,0.83,0.83,0.28,0.035,0.02,0.16,0.16,0.0,0.0};//VM2000 data arXiv:1304.6117, rescaled - needs to be checked!,  
+  		G4MaterialPropertiesTable* reflspt = new G4MaterialPropertiesTable(); 
   		reflspt->AddProperty("REFLECTIVITY", Ephoton2, Reflectivity_refl, num2);
- 		 G4OpticalSurface* refl_opsurf = new G4OpticalSurface("Reflector Surface",unified,groundfrontpainted,dielectric_dielectric);//groundfrontpainted
- 		 refl_opsurf->SetMaterialPropertiesTable(reflspt);
+ 		G4OpticalSurface* refl_opsurf = new G4OpticalSurface("Reflector Surface",unified,groundfrontpainted,dielectric_dielectric);//groundfrontpainted
+ 		refl_opsurf->SetMaterialPropertiesTable(reflspt);
 		G4double sigma_alpha = 0.8;
-refl_opsurf->SetSigmaAlpha(sigma_alpha);
+		refl_opsurf->SetSigmaAlpha(sigma_alpha);
    		//refl_opsurf -> SetPolish(0.65);
 		new G4LogicalSkinSurface("refl_surface",volume, refl_opsurf);
 		}
@@ -189,59 +183,7 @@ refl_opsurf->SetSigmaAlpha(sigma_alpha);
 
 
 
-		/*
-		if(volume->GetName()=="volOpDetSensitive"){
-				std::cout<< "Hamamatsu!!!!!!!!! "<<volume->GetName()<<std::endl;
-		const G4int num3 = 10;
-  		G4double Ephoton2[num3] = {1.77*eV, 2.0675*eV, 2.481*eV, 2.819*eV, 2.953*eV, 3.1807*eV, 3.54*eV, 4.135*eV, 4.962*eV, 5.39*eV};
-		 G4double EFF_pmt[num3] = {0.0, 0.05, 0.24, 0.32, 0.34, 0.36, 0.35, 0.28, 0.20,0.};//VM2002 data from DOE, 
-				  G4double Ephoton0[2] = {7.0*eV, 10.14*eV};
-  		G4double photocath_ReR2[2]={1.92,1.92};
- 		G4double photocath_ImR2[2]={1.69,1.69};
-  		 G4MaterialPropertiesTable* reflspt2 = new G4MaterialPropertiesTable(); 
-  		reflspt2->AddProperty("EFFICIENCY", Ephoton2, EFF_pmt, num3);
-  		reflspt2->AddProperty("REALRINDEX",Ephoton0,photocath_ReR2,2);
-  		reflspt2->AddProperty("IMAGINARYRINDEX",Ephoton0,photocath_ImR2,2);
- 		 G4OpticalSurface* refl_opsurf2 = new G4OpticalSurface("PMT Surface",glisur,polished,
-			 dielectric_metal);
- 		 refl_opsurf2->SetMaterialPropertiesTable(reflspt2);
-   		refl_opsurf2 -> SetPolish(1.0);
-		new G4LogicalSkinSurface("pmt_surface",volume, refl_opsurf2);
-		}
-
-		if(volume->GetName()=="volOpDetSensitive_1"){
-				std::cout<< "ETL!!!!!!!!! "<<volume->GetName()<<std::endl;
-		const G4int num4 = 10;
-  		G4double Ephoton3[num4] = {1.77*eV, 2.0675*eV, 2.481*eV, 2.819*eV, 2.953*eV, 3.1807*eV, 3.54*eV, 4.135*eV, 4.962*eV, 5.39*eV};
-		 G4double EFF_pmt2[num4] = {0.0, 0.0, 0.14, 0.18, 0.2, 0.19, 0.18, 0.14, 0.02,0.};//VM2002 data from DOE, 
-		  G4double Ephoton[2] = {7.0*eV, 10.14*eV};
-  		G4double photocath_ReR3[2]={1.92,1.92};
- 		G4double photocath_ImR3[2]={1.69,1.69};
-  		 G4MaterialPropertiesTable* reflspt3 = new G4MaterialPropertiesTable(); 
-  		reflspt3->AddProperty("EFFICIENCY", Ephoton3, EFF_pmt2, num4);
-  		reflspt3->AddProperty("REALRINDEX",Ephoton,photocath_ReR3,2);
-  		reflspt3->AddProperty("IMAGINARYRINDEX",Ephoton,photocath_ImR3,2);
- 		 G4OpticalSurface* refl_opsurf3 = new G4OpticalSurface("PMT Surface2",glisur,polished,
-			 dielectric_metal);
- 		 refl_opsurf3->SetMaterialPropertiesTable(reflspt3);
-   		refl_opsurf3 -> SetPolish(1.0);
-		new G4LogicalSkinSurface("pmt_surface2",volume, refl_opsurf3);
-		}
-		if(volume->GetName()=="volOpDetSensitive_2"||volume->GetName()=="volOpDetSensitive_3"){
-				std::cout<< "sipm!!!!!!!!! "<<volume->GetName()<<std::endl;
-		const G4int num5 = 10;
-  		G4double Ephoton4[num5] = {1.77*eV, 2.0675*eV, 2.481*eV, 2.819*eV, 2.953*eV, 3.1807*eV, 3.54*eV, 4.135*eV, 4.962*eV, 5.39*eV};
-		 G4double EFF_pmt3[num5] = {0.19, 0.32, 0.49, 0.5, 0.48, 0.44, 0.25, 0.15, 0.02,0.};//VM2002 data from DOE, 
-  		 G4MaterialPropertiesTable* reflspt4 = new G4MaterialPropertiesTable(); 
-  		reflspt4->AddProperty("EFFICIENCY", Ephoton4, EFF_pmt3, num5);
-
- 		 G4OpticalSurface* refl_opsurf4 = new G4OpticalSurface("PMT Surface3",glisur,polished,
-			 dielectric_metal);
- 		 refl_opsurf4->SetMaterialPropertiesTable(reflspt4);
-   		refl_opsurf4 -> SetPolish(1.0);
-		new G4LogicalSkinSurface("pmt_surface3",volume, refl_opsurf4);
-		}
-		*/
+		
 	}
       }
     }
