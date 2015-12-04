@@ -31,9 +31,9 @@ namespace phot{
     
     double DistanceToOpDet(                 double* xyz, unsigned int OpDet );
     double SolidAngleFactor(                double* xyz, unsigned int OpDet );
-    float GetVisibility(                    double* xyz, unsigned int OpChannel );         
+    float GetVisibility(                    double* xyz, unsigned int OpChannel,bool wantReflected );         
 
-    const std::vector<float>* GetAllVisibilities( double* xyz ) const;
+    const std::vector<float>* GetAllVisibilities( double* xyz, bool  wantReflected) const;
     
     void LoadLibrary() const;
     void StoreLibrary();
@@ -42,9 +42,9 @@ namespace phot{
     void StoreLightProd(    int  VoxID,  double  N );
     void RetrieveLightProd( int& VoxID,  double& N ) const;
     
-    void SetLibraryEntry(   int VoxID, int OpChannel, float N);
-    float GetLibraryEntry( int VoxID, int OpChannel) const;
-    const std::vector<float>* GetLibraryEntries( int VoxID ) const;
+    void SetLibraryEntry(   int VoxID, int OpChannel, float N,bool wantReflected);
+    float GetLibraryEntry( int VoxID, int OpChannel,bool wantReflected) const;
+    const std::vector<float>* GetLibraryEntries( int VoxID,bool wantReflected ) const;
 
     
     bool IsBuildJob() const { return fLibraryBuildJob; }
@@ -69,6 +69,7 @@ namespace phot{
     bool                 fExtendedLibraryInfo;
     bool                 fDoNotLoadLibrary;
     bool                 fParameterization;
+    bool		 fStoreReflected;
     std::string          fLibraryFile;      
     mutable PhotonLibrary* fTheLibrary;
 mutable    std::string          geo_file;      

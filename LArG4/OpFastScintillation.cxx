@@ -374,7 +374,7 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
   const std::vector<float>* Visibilities = nullptr;
 
 
-  if(!pvs->UseParameterization())Visibilities = pvs->GetAllVisibilities(xyz);
+  if(!pvs->UseParameterization())Visibilities = pvs->GetAllVisibilities(xyz,false);//FIXME and make use of added capability of storing reflected light in library  separately
 
 
   G4MaterialPropertyVector* Fast_Intensity = 

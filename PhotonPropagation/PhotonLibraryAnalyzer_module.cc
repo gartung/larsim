@@ -189,7 +189,7 @@ namespace phot {
     
       std::vector<int> Coords = TheVoxelDef.GetVoxelCoords(i);
                 
-      const std::vector<float>* Visibilities = pvs->GetLibraryEntries(i);
+      const std::vector<float>* Visibilities = pvs->GetLibraryEntries(i,false);
       
       float TotalVis=0;
       if (fOpDet < 0) {
