@@ -26,7 +26,7 @@
 #include "TSystem.h"
 
 #include "CLHEP/Random/RandGaussQ.h"
-
+#include "CLHEP/Random/RandFlat.h"
 // Framework includes
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Principal/Event.h"
@@ -79,7 +79,7 @@ namespace evgen {
         std::string ReactionChannel(int ccnc,int mode);
     
         void FillHistograms(simb::MCTruth mc);
-
+ 
 	std::string         fNdkFile;
 	std::ifstream      *fEventFile;
 	TStopwatch          fStopwatch;      ///keep track of how long it takes to run the job
@@ -90,7 +90,16 @@ namespace evgen {
 	
 	TH1F* fVertexX;    ///< vertex location of generated events in x
 	TH1F* fVertexY;    ///< vertex location of generated events in y
-	TH1F* fVertexZ;    ///< vertex location of generated events in z
+        TH1F* fVertexZ;    ///< vertex location of generated events in z
+
+       
+        double fX0;
+        double fY0;
+        double fZ0;
+        double fSigmaX;
+        double fSigmaY;
+        double fSigmaZ;
+        int fPosDist  ;
 	
 	TH2F* fVertexXY;   ///< vertex location in xy
 	TH2F* fVertexXZ;   ///< vertex location in xz
@@ -131,8 +140,6 @@ namespace evgen{
     produces< sumdata::RunData, art::InRun >();
 
     fEventFile = new ifstream(fNdkFile.c_str());
-    if(!fEventFile->good())
-      exit(0);
     // create a default random engine; obtain the random seed from SeedService,
     // unless overridden in configuration with key "Seed"
     art::ServiceHandle<artext::SeedService>()
@@ -149,7 +156,16 @@ namespace evgen{
   //____________________________________________________________________________
   void NDKGen::reconfigure(fhicl::ParameterSet const& p)
   {
-    fNdkFile   =(p.get< std::string         >("NdkFile"));
+    fNdkFile   = p.get< std::string         >("NdkFile");
+    fX0        = p.get< double        >("X0",128.0   ); 
+    fY0        = p.get< double        >("Y0",0.0     ); 
+    fZ0        = p.get< double        >("Z0",518.0   ); 
+
+    fSigmaX    = p.get< double        >("SigmaX",0.0 );
+    fSigmaY    = p.get< double        >("SigmaY",0.0 );
+    fSigmaZ    = p.get< double        >("SigmaZ",0.0 );
+
+    fPosDist   = p.get< int                 >("PosDist",1); 
     return;
   }
 //___________________________________________________________________________
@@ -263,6 +279,8 @@ namespace evgen{
     */
 
     std::string name, k, dollar;
+
+
      
 
     // event dump format on file output by the two commands ....
@@ -312,11 +330,26 @@ namespace evgen{
     art::ServiceHandle<art::RandomNumberGenerator> rng;
     CLHEP::HepRandomEngine &engine = rng->getEngine();
     CLHEP::RandGaussQ gauss(engine);
+    CLHEP::RandFlat   flat(engine);
 
-    // appropriate to 4APA dune geom
+    // appropriate to 4APA lbne geom
     double X0 =  0.0 + gauss.fire(0,1.0*geo->DetHalfWidth());
     double Y0 = 0.0  + gauss.fire(0,1.*geo->DetHalfHeight());
     double Z0 = geo->DetLength() + 0.5*gauss.fire(0,geo->DetLength());
+    
+    if (fPosDist == 1) {
+      X0 = gauss.fire(fX0, fSigmaX);
+      Y0 = gauss.fire(fY0, fSigmaY);
+      Z0 = gauss.fire(fZ0, fSigmaZ);
+    }
+
+    else {
+      X0 = fX0 + fSigmaX*(2.0*flat.fire()-1.0);
+      Y0 = fY0 + fSigmaY*(2.0*flat.fire()-1.0);
+      Z0 = fZ0 + fSigmaZ*(2.0*flat.fire()-1.0);
+    }
+
+
     double fvCut (5.0); // force vtx to be this far from any wall.
     //    if (X0 < fvCut) X0 = fvCut;
     if (X0 > 2.0*geo->DetHalfWidth() - fvCut ) X0 = 2.0*geo->DetHalfWidth()-fvCut;
@@ -333,79 +366,115 @@ namespace evgen{
 
     std::cout << "NDKGen_module: X, Y, Z of vtx: " << X0 << ", "<< Y0 << ", "<< Z0 << std::endl;
 
-    
+    int GenieEvt = -999;
     if(!fEventFile->good())
       std::cout << "NdkFile: Problem reading Ndk file" << std::endl; 
     
+    //The getline is the moment where the grid screw up... 
     while(getline(*fEventFile,k)){
-      if (!k.compare(0,25,"GENIE Interaction Summary")) // testing for new event.
-        break;
-      if (k.compare(0,1,"|") || k.compare(1,2,"  ")) continue; // uninteresting line if it doesn't start with "|" and if second and third characters aren't spaces.
-      if (k.find("Fin-Init") != std::string::npos) continue; // Meh.
-      if (k.find("Ar") != std::string::npos) continue; // Meh.
-      if (k.find("HadrBlob") != std::string::npos) continue; // Meh.
-      if (k.find("NucBindE") != std::string::npos) continue; // Meh. atmo
-      if (k.find("FLAGS") != std::string::npos) break; // Event end. gevgen_ndcy
-      if (k.find("Vertex") != std::string::npos) break; // Event end. atmo
-
-      //      if (!k.compare(26,1,"3") || !k.compare(26,1,"1")) ; // New event or stable particles.
-      if (!k.compare(26,1,"1"))  // New event or stable particles.
-      {
-
-	std::istringstream in;
-	in.clear();
-	in.str(k);
-
-	in>>p1>> Idx >>p2>> Name >>p3>> Ist >>p4>> PDG >>p5>>Mother1 >> p6 >> Mother2 >>p7>> Daughter1 >>p8>> Daughter2 >>p9>>Px>>p10>>Py>>p11>>Pz>>p12>>E>>p13>> m>>p14;
-      //std::cout<<std::setprecision(9)<<dollar<<"  "<<name<<"  "<<PDGCODE<<"  "<<energy<<"  "<<cosx<<" "<<cosy<<"  "<<cosz<<"  "<<partnumber<<std::endl;
-	if (Ist!=1) continue;
-
-	std::cout << "PDG = " << PDG << std::endl;	
-	
-	const TDatabasePDG* databasePDG = TDatabasePDG::Instance();
-	const TParticlePDG* definition = databasePDG->GetParticle(PDG);
-	Mass = definition->Mass(); // GeV
-	if (E-Mass < 0.001) continue; // KE is too low.
-	
-	//	  if(partnumber == -1)
-	Status = 1;
+      /* 
+	 if (k.compare(0,1,"|") || k.compare(1,2,"  ")) continue; // uninteresting line if it doesn't start with "|" and if second and third characters aren't spaces.
+	 if (k.find("Fin-Init") != std::string::npos) continue; // Meh.
+	 if (k.find("Ar") != std::string::npos) continue; // Meh.
+	 if (k.find("HadrBlob") != std::string::npos) continue; // Meh.
+	 if (k.find("NucBindE") != std::string::npos) continue; // Meh. atmo
+	 if (k.find("FLAGS") != std::string::npos) break; // Event end. gevgen_ndcy
+	 if (k.find("Vertex") != std::string::npos) break; // Event end. atmo
+      */
+      
+      if (k.find("** Event:")!= std::string::npos) 
+	{
+	  std::istringstream in;
+	  in.clear();
+	  in.str(k);
+	  std::string dummy;	  
+	  in>> dummy>> dummy>> dummy >> dummy>> dummy>> dummy>> dummy >> dummy>> dummy>> dummy >> GenieEvt;
+	  std::cout<<"Genie Evt "<< GenieEvt <<" art evt "<<evt.id().event()<<"\n";
+	  if (GenieEvt+1 == static_cast<int>(evt.id().event())) {
+	    std::cout <<"All right, baby!\n";
+	  } else {std::cout <<"Grid Problem\n";}
+	}
+      
+      if (GenieEvt+1 != static_cast<int>(evt.id().event()))
+	{continue;}
+      else
+	{
 	  
-	simb::MCParticle mcpart(trackid,
-				PDG,
-				primary,		    
-				FirstMother,
-				Mass,
-				Status
-				);
-		
-	P = std::sqrt(pow(E,2.) - pow(Mass,2.)); // GeV/c
-	std::cout << "Momentum = " << P << std::endl;
+	  
+	  if (k.compare(0,1,"|") || k.compare(1,2,"  ")) continue; // uninteresting line if it doesn't start with "|" and if second and third characters aren't spaces.
+	  //if (k.find("Fin-Init") != std::string::npos) continue; // Meh.
+	  if (k.find("Ar") != std::string::npos) continue; // Meh.
+	  if (k.find("HadrBlob") != std::string::npos) continue; // Meh.
+	  if (k.find("NucBindE") != std::string::npos) continue; // Meh. atmo
+	  if (k.find("FLAGS") != std::string::npos) break; // Event end. gevgen_ndcy
+	  if (k.find("Fin-Init") != std::string::npos) break; // Event end. gevgen_ndcy, 15-July-2014
+	  if (k.find("Vertex") != std::string::npos) break; // Event end. atmo
+	  
+	  //      if (!k.compare(26,1,"3") || !k.compare(26,1,"1")) ; // New event or stable particles.
+	  if (!k.compare(26,1,"1"))  // New event or stable particles.
+	    {
+	      
+	      std::istringstream in;
+	      in.clear();
+	      in.str(k);
+	      
+	      in>>p1>> Idx >>p2>> Name >>p3>> Ist >>p4>> PDG >>p5>>Mother1 >> p6 >> Mother2 >>p7>> Daughter1 >>p8>> Daughter2 >>p9>>Px>>p10>>Py>>p11>>Pz>>p12>>E>>p13>> m>>p14;
+	      
+	      std::cout<<"Event "<<evt.id() <<" E "<<E<<" Px "<<Px<<" Py "<<Py<<" Pz "<<Pz<<" \n";
+	      //std::cout<<std::setprecision(9)<<dollar<<"  "<<name<<"  "<<PDGCODE<<"  "<<energy<<"  "<<cosx<<" "<<cosy<<"  "<<cosz<<"  "<<partnumber<<std::endl;
+	      //	std::cout<<"Event "<<evt.id() <<" | "<<p1<<" | "<< Idx <<" | "<<p2<<" | "<< Name <<" | "<<p3<<" | "<< Ist <<" | "<<p4<<" | "<< PDG <<" | "<<p5<<" | "<<Mother1 <<" | "<< p6 <<" | "<< Mother2 <<" | "<<p7<<" | "<< Daughter1 <<" | "<<p8<<" | "<< Daughter2 <<" | "<<p9<<" | "<<Px<<" | "<<p10<<" | "<<Py<<" | "<<p11<<" | "<<Pz<<" | "<<p12<<" | "<<E<<" | "<<p13<<" | "<< m<<" | "<<p14<<"\n";
+	      
+	      
+	      if (Ist!=1) continue;
+	      
+	      std::cout << "PDG = " << PDG << std::endl;	
+	      
+	      const TDatabasePDG* databasePDG = TDatabasePDG::Instance();
+	      const TParticlePDG* definition = databasePDG->GetParticle(PDG);
+	      Mass = definition->Mass(); // GeV
+	      if (E-Mass < 0.001) continue; // KE is too low.
+	      
+	      //	  if(partnumber == -1)
+	      Status = 1;
+	      
+	      simb::MCParticle mcpart(trackid,
+				      PDG,
+				      primary,		    
+				      FirstMother,
+				      Mass,
+				      Status
+				      );
+	      
+	      P = std::sqrt(pow(E,2.) - pow(Mass,2.)); // GeV/c
+	      std::cout << "Momentum = " << P << std::endl;
+	      
+	      TLorentzVector pos(X0, Y0, Z0, 0);
+	      
+	      Tpos = pos; // for target
+	      
+	      TLorentzVector mom(Px,Py,Pz, E);
+	      
+	      mcpart.AddTrajectoryPoint(pos,mom);
+	      truth.Add(mcpart);
+	      
 	
-	TLorentzVector pos(X0, Y0, Z0, 0);
-
-	Tpos = pos; // for target
-	
-	TLorentzVector mom(Px,Py,Pz, E);
-	
-	mcpart.AddTrajectoryPoint(pos,mom);
-	truth.Add(mcpart);
-	
-	
-      }// loop over particles in an event
-      truth.SetOrigin(simb::kUnknown);
-      
-      //if (!k.compare(1,1,"FLAGS")) // end of event
-      //  break;  
-      
+	    }// loop over particles in an event
+	  truth.SetOrigin(simb::kUnknown);
+	  
+	  if (!k.compare(1,1,"FLAGS")) // end of event
+	    {
+	      break;  
+	    }
+	}
     } // end while loop
     
     /////////////////////////////////
-      std::cout << "NDKGen.cxx: Putting " << truth.NParticles() << " tracks on stack." << std::endl; 
-      truthcol->push_back(truth);
-      //FillHistograms(truth);  
-      evt.put(std::move(truthcol));
-      
-      return;
+    std::cout << "NDKGen.cxx: Putting " << truth.NParticles() << " tracks on stack." << std::endl; 
+    truthcol->push_back(truth);
+    //FillHistograms(truth);  
+    evt.put(std::move(truthcol));
+    
+    return;
   }
   
 //   //......................................................................
