@@ -212,7 +212,7 @@ namespace evgen{
     fNCMode->GetXaxis()->SetBinLabel(5, "kNuElectronElastic");
     fNCMode->GetXaxis()->CenterLabels();
 
-    //fDeltaE = tfs->make<TH1F>("fDeltaE", ";#Delta E_{#nu} (GeV);", 200, -1., 1.); 
+
     fECons  = tfs->make<TH1F>("fECons", ";#Delta E(#nu,lepton);", 500, -5., 5.);
 
     art::ServiceHandle<geo::Geometry> geo;
