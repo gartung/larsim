@@ -46,23 +46,14 @@ namespace larg4 {
 					 bool   storeTrajectories,
 					 bool   keepEMShowerDaughters)
     : fenergyCut(energyCut * GeV)
-    , fparticleList(0)
     , fstoreTrajectories(storeTrajectories)
     , fKeepEMShowerDaughters(keepEMShowerDaughters)
-  {
-    // Create the particle list that we'll (re-)use during the course
-    // of the Geant4 simulation.
-    fparticleList = new sim::ParticleList;
-    fParentIDMap.clear();
-  }
+  {}
 
   //----------------------------------------------------------------------------
   // Destructor.
   ParticleListAction::~ParticleListAction()
-  {
-    // Delete anything that we created with "new'.
-    delete fparticleList;
-  }
+  {}
 
   //----------------------------------------------------------------------------
   // Begin the event
@@ -70,9 +61,11 @@ namespace larg4 {
   {
     // Clear any previous particle information.
     fparticle = 0;
-    fparticleList->clear();
     fParentIDMap.clear();
     fCurrentTrackID = sim::NoParticleId;
+    // fparticleList is a std::unique_ptr, created at the start of each
+    // event and "destroyed" by CreateList at the end of the event.
+    fparticleList = std::unique_ptr<sim::ParticleList>( new sim::ParticleList );
   }
 
   //-------------------------------------------------------------
@@ -165,7 +158,7 @@ namespace larg4 {
 		
 	// check that fCurrentTrackID is in the particle list - it is possible
 	// that this particle's parent is a particle that did not get tracked.
-	// An example is a partent that was made due to muMinusCaptureAtRest
+	// An example is a parent that was made due to muMinusCaptureAtRest
 	// and the daughter was made by the phot process.  The parent likely
 	// isn't saved in the particle list because it is below the energy cut
 	// which will put a bogus track id value into the sim::IDE object for 
@@ -187,7 +180,7 @@ namespace larg4 {
 	fparticle = 0;
 
 	// do add the particle to the parent id map though
-	// and set the current track id to be it's ultimate parent
+	// and set the current track id to be its ultimate parent
 	fParentIDMap[trackID] = parentID;
 
 	fCurrentTrackID = -1*this->GetParentage(trackID);
@@ -392,7 +385,9 @@ namespace larg4 {
     // "for_each" instead of the C++ "for loop" because it's supposed
     // to be faster.
     UpdateDaughterInformation updateDaughterInformation;
-    updateDaughterInformation.SetParticleList( fparticleList );
+    // Tell SetParticleList the address of in fparticleList, but don't
+    // give up ownership of the std::unique_ptr.
+    updateDaughterInformation.SetParticleList( fparticleList.get() );
 
     // Update the daughter information for each particle in the list.
     std::for_each(fparticleList->begin(), 
@@ -402,7 +397,10 @@ namespace larg4 {
   
   //----------------------------------------------------------------------------
   // Returns the ParticleList accumulated during the current event.
-  const sim::ParticleList* ParticleListAction::GetList() const
+  // This is "CreateList" since the ownership of the pointer is being
+  // passed to calling routine. After this method is called, fParticeList
+  // will no longer be valid within the scope of this class. 
+  std::unique_ptr<sim::ParticleList> ParticleListAction::CreateList()
   {
     // check if the ParticleNavigator has entries, and if
     // so grab the highest track id value from it to 
@@ -413,7 +411,7 @@ namespace larg4 {
       
     fTrackIDOffset = highestID + 1;
 
-    return fparticleList;
+    return std::move( fparticleList );
   }
 
 } // namespace LArG4

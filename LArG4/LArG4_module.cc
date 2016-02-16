@@ -127,7 +127,7 @@ namespace larg4 {
     void beginJob();
     void beginRun(art::Run& run);
     void FillInterestingVolumes(std::set<std::string> const& vol_names);
-    bool KeepParticle(simb::MCParticle const& part) const;
+    bool KeepParticle(const simb::MCParticle& part) const;
 
   private:
     g4b::G4Helper*             fG4Help;             ///< G4 interface object                                           
@@ -321,7 +321,7 @@ namespace larg4 {
 
   } // FillInterestingVolumes()
     
-  bool LArG4::KeepParticle(simb::MCParticle const& part) const {
+  bool LArG4::KeepParticle(const simb::MCParticle& part) const {
     // if no volume in the list, keep everything
     if (fKeepParticlesInVolumes.empty()) return true;
     // check every point in the trajectory
@@ -374,11 +374,13 @@ namespace larg4 {
 	evt.getByLabel(fInputLabels[i],mclists[i]);
     }
     
-    // Need to process Geant4 simulation for each interaction separately.
-    for(size_t mcl = 0; mcl < mclists.size(); ++mcl){
+    // We want to run the Geant4 simulation for each interaction separately,
+    // in order to create the Assn between MCTruth and its daughter particles.
+    for (size_t mcl = 0; mcl < mclists.size(); ++mcl) {
 
       art::Handle< std::vector<simb::MCTruth> > mclistHandle = mclists[mcl];
 
+      // For each MCTruth in this event...
       for(size_t m = 0; m < mclistHandle->size(); ++m){
         art::Ptr<simb::MCTruth> mct(mclistHandle, m);
 
@@ -387,32 +389,47 @@ namespace larg4 {
         // The following tells Geant4 to track the particles in this interaction.
         fG4Help->G4Run(mct);
 
-        const sim::ParticleList& particleList = *( fparticleListAction->GetList() );
-        
-        for(auto const& partPair: particleList) {
-	  simb::MCParticle const& p = *(partPair.second);
-	  if (!KeepParticle(p)) continue;
-          partCol->push_back(p);
-          util::CreateAssn(*this, evt, *partCol, mct, *tpassn);
-        }//for
-
+	// Adopt (accept control of the pointer) the list of particles tracked
+	// tracked by Geant4 for this MCTruth particle. 
+	std::unique_ptr<sim::ParticleList> particleList = fparticleListAction->CreateList();
 
         // Has the user request a detailed dump of the output objects?
-        if (fdumpParticleList){
+        if (fdumpParticleList) {
           mf::LogInfo("LArG4") << "Dump sim::ParticleList; size()="
-                               << particleList.size() << "\n"
-                               << particleList;
+                               << particleList->size() << "\n"
+                               << (*particleList);
         }
+        
+	// Move the G4 particle list to the MCParticle output container,
+	// destroying the G4 particle list in the process.
+        for (auto& partPair: *particleList) {
+	  // sim::ParticleList is a map of pair<trackID,MCParticle*>
+	  const simb::MCParticle& particle = *(partPair.second);
 
-      }
+	  // Does this particle fall within our geometry cuts?
+	  if ( KeepParticle(particle) ) {
+	    // It does. Save it in the MCParticle output container.
+	    partCol->push_back(particle);
 
-    }// end loop over interactions
+	    // Create the association between the last particle in the
+	    // output container and the MCTruth object.
+	    util::CreateAssn(*this, evt, *partCol, mct, *tpassn);
+	  }
+
+	  // We don't need the MCParticle anymore, so get rid of it to
+	  // save memory.
+	  delete partPair.second;
+	  partPair.second = 0;
+
+        } // for each particle in the list
+
+      } // for each MC Truth in this interaction
+    } // end loop over interactions
    
-    // get the electrons from the LArVoxelReadout sensitive detector
     // Get the sensitive-detector manager.
     G4SDManager* sdManager = G4SDManager::GetSDMpointer();
     
-    // Find the sensitive detector with the name "LArVoxelSD".
+    // Find the sensitive detector with the name "OpDetSensitiveDetector".
     OpDetSensitiveDetector *theOpDetDet = dynamic_cast<OpDetSensitiveDetector*>(sdManager->FindSensitiveDetector("OpDetSensitiveDetector"));
  
     // Store the contents of the detected photon table
@@ -443,6 +460,7 @@ namespace larg4 {
       }
     }
       
+    // get the electrons from the LArVoxelReadout sensitive detector
     // only put the sim::SimChannels into the event once, not once for every
     // MCTruth in the event
 

@@ -55,7 +55,10 @@ namespace larg4 {
     void                     ResetTrackIDOffset() { fTrackIDOffset = 0;     }
 
     // Returns the ParticleList accumulated during the current event.
-    const sim::ParticleList* GetList() const;
+    // This is "CreateList" since the ownership of the pointer is being
+    // passed to calling routine. After this method is called, fParticeList
+    // will no longer be valid within the scope of this class. 
+    std::unique_ptr<sim::ParticleList> CreateList();
 
   private:
 
@@ -67,7 +70,7 @@ namespace larg4 {
                                                      ///< be included in the list.
     static simb::MCParticle* fparticle;              ///< The particle and trajectory information 
                                                      ///< for a single particle.		
-    sim::ParticleList*       fparticleList;          ///< The accumulated particle information for 
+    std::unique_ptr<sim::ParticleList> fparticleList;///< The accumulated particle information for 
                                                      ///< all particles in the event.	
     G4bool                   fstoreTrajectories;     ///< Whether to store particle trajectories with each particle. 
     std::map<int, int>       fParentIDMap;           ///< key is current track ID, value is parent ID		  
