@@ -47,6 +47,7 @@ art_make( BASENAME_ONLY
                         ${ROOT_EGPYTHIA6}
                         ${ROOT_GUI}
                         ${ROOT_BASIC_LIB_LIST}
+                        ${ROOT_GEOM}
                         ${CLHEP}
                         ${G4_LIB_LIST}
            MODULE_LIBRARIES LArG4

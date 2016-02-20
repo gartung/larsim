@@ -12,6 +12,7 @@
 #include "TRandom3.h"
 #include "TDatabasePDG.h"
 #include "TString.h"
+#include "TSystem.h" //need BaseName and DirName
 
 // Framework includes
 #include "art/Framework/Core/EDProducer.h"
@@ -40,6 +41,7 @@
 
 #include <sqlite3.h> 
 #include "CLHEP/Random/RandFlat.h"
+#include "ifdh.h"  //to handle flux files
 
 namespace evgen {
 
@@ -58,22 +60,26 @@ namespace evgen {
   private:
     void openDBs();
     void populateNShowers();
+    void populateTOffset();
     void GetSample(simb::MCTruth&);
-    double wrapvar( double var, double low, double high);
-    void ProjectToBoxEdge(	const double 	xyz[],
+    double wrapvar( const double var, const double low, const double high);
+    double wrapvarBoxNo( const double var, const double low, const double high, int& boxno);
+    void ProjectToBoxEdge(const double 	xyz[],
                                         const double 	dxyz[],
-                                        double & 	xlo,
-                                        double & 	xhi,
-                                        double & 	ylo,
-                                        double & 	yhi,
-                                        double & 	zlo,
-                                        double & 	zhi,
-                                        double 	xyzout[]	 );
+                                        const double xlo,
+                                        const double xhi,
+                                        const double ylo,
+                                        const double yhi,
+                                        const double zlo,
+                                        const double zhi,
+                                        double xyzout[]);
     
     int fShowerInputs=0; ///< Number of shower inputs to process from    
     std::vector<int> fNShowersPerEvent; ///< Number of showers to put in each event of duration fSampleTime; one per showerinput
     std::vector<int> fMaxShowers; //< Max number of showers to query, one per showerinput
     double fShowerBounds[6]={0.,0.,0.,0.,0.,0.}; ///< Boundaries of area over which showers are to be distributed
+    double fToffset_corsika=0.; ///< Timing offset to account for propagation time through atmosphere, populated from db
+    ifdh_ns::ifdh* fIFDH=0; ///< (optional) flux file handling
     
     //fcl parameters
     double fProjectToHeight=0.; ///< Height to which particles will be projected [cm]
@@ -85,6 +91,7 @@ namespace evgen {
     double fShowerAreaExtension=0.; ///< Extend distribution of corsika particles in x,z by this much (e.g. 1000 will extend 10 m in -x, +x, -z, and +z) [cm]
     sqlite3* fdb[5]; ///< Pointers to sqlite3 database object, max of 5
     double fRandomXZShift=0.; ///< Each shower will be shifted by a random amount in xz so that showers won't repeatedly sample the same space [cm]
+
   };
 }
 
@@ -117,6 +124,7 @@ namespace evgen{
     
     this->openDBs();
     this->populateNShowers();
+    this->populateTOffset();
     
     produces< std::vector<simb::MCTruth> >();
     produces< sumdata::RunData, art::InRun >();    
@@ -127,17 +135,19 @@ namespace evgen{
     for(int i=0; i<fShowerInputs; i++){
       sqlite3_close(fdb[i]);
     }
+    //cleanup temp files
+    fIFDH->cleanup();
   }
   
   void CORSIKAGen::ProjectToBoxEdge(	const double 	xyz[],
                                         const double 	indxyz[],
-                                        double & 	xlo,
-                                        double & 	xhi,
-                                        double & 	ylo,
-                                        double & 	yhi,
-                                        double & 	zlo,
-                                        double & 	zhi,
-                                        double 	xyzout[]	 ){
+                                        const double 	xlo,
+                                        const double 	xhi,
+                                        const double 	ylo,
+                                        const double 	yhi,
+                                        const double 	zlo,
+                                        const double 	zhi,
+                                        double xyzout[]	 ){
                                         
     
     //we want to project backwards, so take mirror of momentum
@@ -169,21 +179,111 @@ namespace evgen{
   }
   
   void CORSIKAGen::openDBs(){
+    //choose files based on fShowerInputFiles, copy them with ifdh, open them
     sqlite3_stmt *statement;
+    //get rng engine
+    art::ServiceHandle<art::RandomNumberGenerator> rng;
+    CLHEP::HepRandomEngine &engine = rng->getEngine();
+    CLHEP::RandFlat flat(engine);
     
+    //setup ifdh object
+    if ( ! fIFDH ) fIFDH = new ifdh_ns::ifdh;
+    const char* ifdh_debug_env = std::getenv("IFDH_DEBUG_LEVEL");
+    if ( ifdh_debug_env ) {
+      mf::LogInfo("CORSIKAGen") << "IFDH_DEBUG_LEVEL: " << ifdh_debug_env<<"\n";
+      fIFDH->set_debug(ifdh_debug_env);
+    }
+    
+    //get ifdh path for each file in fShowerInputFiles, put into selectedflist
+    //if 1 file returned, use that file
+    //if >1 file returned, randomly select one file
+    //if 0 returned, make exeption for missing files
+    std::vector<std::pair<std::string,long>> selectedflist;
     for(int i=0; i<fShowerInputs; i++){
+      if(fShowerInputFiles[i].find("*")==std::string::npos){ 
+        //if there are no wildcards, don't call findMatchingFiles
+        selectedflist.push_back(std::make_pair(fShowerInputFiles[i],0));
+        mf::LogInfo("CorsikaGen") << "Selected"<<selectedflist.back().first<<"\n";
+	  }else{
+        //use findMatchingFiles
+        std::vector<std::pair<std::string,long>> flist;
+		std::string path(gSystem->DirName(fShowerInputFiles[i].c_str()));
+		std::string pattern(gSystem->BaseName(fShowerInputFiles[i].c_str()));
+		flist = fIFDH->findMatchingFiles(path,pattern);
+		unsigned int selIndex=-1;
+		if(flist.size()==1){ //0th element is the search path:pattern
+			selIndex=0;
+		}else if(flist.size()>1){
+			selIndex= (unsigned int) (engine.flat()*(flist.size()-1)+0.5); //rnd with rounding, dont allow picking the 0th element
+		}else{
+			throw cet::exception("CORSIKAGen") << "No files returned for path:pattern: "<<path<<":"<<pattern<<std::endl;
+		}
+		selectedflist.push_back(flist[selIndex]);
+		mf::LogInfo("CorsikaGen") << "For "<<fShowerInputFiles[i]<<":"<<pattern
+        <<"\nFound "<< flist.size() << " candidate files"
+	<<"\nChoosing file number "<< selIndex << "\n"
+        <<"\nSelected "<<selectedflist.back().first<<"\n";
+     }
+
+    }
+    
+    //do the fetching, store local filepaths in locallist
+    std::vector<std::string> locallist;
+    for(unsigned int i=0; i<selectedflist.size(); i++){
+      mf::LogInfo("CorsikaGen") << "Fetching: "<<selectedflist[i].first<<" "<<selectedflist[i].second<<"\n";
+      std::string fetchedfile(fIFDH->fetchInput(selectedflist[i].first));
+      mf::LogInfo("CorsikaGen") << "Fetched; local path: "<<fetchedfile<<"\n";
+      locallist.push_back(fetchedfile);
+      mf::LogInfo("CorsikaGen") << "Done; local path: "<<fetchedfile<<"\n";
+    }
+    
+    //open the files in fShowerInputFilesLocalPaths with sqlite3
+    for(unsigned int i=0; i<locallist.size(); i++){
       //prepare and execute statement to attach db file
-      int res=sqlite3_open(fShowerInputFiles[i].c_str(),&fdb[i]);
+      int res=sqlite3_open(locallist[i].c_str(),&fdb[i]);
       if (res!= SQLITE_OK)
-        throw cet::exception("CORSIKAGen") << "Error opening db: (" <<fShowerInputFiles[i]<<") ("<<res<<"): " << sqlite3_errmsg(fdb[i]) << "; memory used:<<"<<sqlite3_memory_used()<<"/"<<sqlite3_memory_highwater(0)<<"\n";
+        throw cet::exception("CORSIKAGen") << "Error opening db: (" <<locallist[i].c_str()<<") ("<<res<<"): " << sqlite3_errmsg(fdb[i]) << "; memory used:<<"<<sqlite3_memory_used()<<"/"<<sqlite3_memory_highwater(0)<<"\n";
       else
-        mf::LogInfo("CORSIKAGen")<<"Attached db "<< fShowerInputFiles[i]<<"\n";
+        mf::LogInfo("CORSIKAGen")<<"Attached db "<< locallist[i]<<"\n";
     }
   }
 
-  double CORSIKAGen::wrapvar( double var, double low, double high){
+  double CORSIKAGen::wrapvar( const double var, const double low, const double high){
     //wrap variable so that it's always between low and high
     return (var - (high - low) * floor(var/(high-low))) + low;
+  }
+
+  double CORSIKAGen::wrapvarBoxNo( const double var, const double low, const double high, int& boxno){
+    //wrap variable so that it's always between low and high
+    boxno=int(floor(var/(high-low)));
+    return (var - (high - low) * floor(var/(high-low))) + low;
+  }
+  
+  void CORSIKAGen::populateTOffset(){
+    //populate TOffset_corsika by finding minimum ParticleTime from db file
+    
+    sqlite3_stmt *statement;
+    const std::string kStatement("select min(t) from particles");
+    double t=0.;
+    
+    for(int i=0; i<fShowerInputs; i++){
+        //build and do query to get run min(t) from each db
+        if ( sqlite3_prepare(fdb[i], kStatement.c_str(), -1, &statement, 0 ) == SQLITE_OK ){
+          int res=0;
+          res = sqlite3_step(statement);
+          if ( res == SQLITE_ROW ){
+            t=sqlite3_column_double(statement,0);
+            mf::LogInfo("CORSIKAGen")<<"For showers input "<< i<<" found particles.min(t)="<<t<<"\n";
+            if (i==0 || t<fToffset_corsika) fToffset_corsika=t;
+          }else{
+            throw cet::exception("CORSIKAGen") << "Unexpected sqlite3_step return value: (" <<res<<"); "<<"ERROR:"<<sqlite3_errmsg(fdb[i])<<"\n";
+          }         
+        }else{
+          throw cet::exception("CORSIKAGen") << "Error preparing statement: (" <<kStatement<<"); "<<"ERROR:"<<sqlite3_errmsg(fdb[i])<<"\n";
+        }
+    }
+    
+    mf::LogInfo("CORSIKAGen")<<"Found corsika timeoffset [ns]: "<< fToffset_corsika<<"\n";
   }
   
   void CORSIKAGen::populateNShowers(){
@@ -310,7 +410,7 @@ namespace evgen{
     int nShowerCntr=0; //keep track of how many showers are left to be added to mctruth
     int nShowerQry=0; //number of showers to query from db
     int shower,pdg;
-    double px,py,pz,x,z,toff,etot,showerTime=0.,showerXOffset=0.,showerZOffset=0.,t;
+    double px,py,pz,x,z,tParticleTime,etot,showerTime=0.,showerXOffset=0.,showerZOffset=0.,t;
     for(int i=0; i<fShowerInputs; i++){
       nShowerCntr=fNShowersPerEvent[i];
       while(nShowerCntr>0){
@@ -333,7 +433,7 @@ namespace evgen{
               shower=sqlite3_column_int(statement,0);
               if(shower!=lastShower){
                 //each new shower gets its own random time and position offsets
-                showerTime=1e9*(engine.flat()*fSampleTime - (fSampleTime/2)); //converting from s to ns
+                showerTime=1e9*(engine.flat()*fSampleTime); //converting from s to ns
                 //and a random offset in both z and x controlled by the fRandomXZShift parameter
                 showerXOffset=engine.flat()*fRandomXZShift - (fRandomXZShift/2);
                 showerZOffset=engine.flat()*fRandomXZShift - (fRandomXZShift/2);
@@ -352,10 +452,19 @@ namespace evgen{
               etot=sqlite3_column_double(statement,8);
               
               //get/calculate position components
-              x=wrapvar(sqlite3_column_double(statement,6)+showerXOffset,fShowerBounds[0],fShowerBounds[1]);
-              z=wrapvar(-sqlite3_column_double(statement,5)+showerZOffset,fShowerBounds[4],fShowerBounds[5]);
-              toff=sqlite3_column_double(statement,7); //time offset
-              t=toff+showerTime;
+              int boxnoX=0,boxnoZ=0;
+              x=wrapvarBoxNo(sqlite3_column_double(statement,6)+showerXOffset,fShowerBounds[0],fShowerBounds[1],boxnoX);
+              z=wrapvarBoxNo(-sqlite3_column_double(statement,5)+showerZOffset,fShowerBounds[4],fShowerBounds[5],boxnoZ);
+              tParticleTime=sqlite3_column_double(statement,7); //time offset, includes propagation time from top of atmosphere
+              //actual particle time is particle surface arrival time
+              //+ shower start time
+              //+ global offset (fcl parameter, in s)
+              //- propagation time through atmosphere
+              //+ boxNo{X,Z} time offset to make grid boxes have different shower times
+              t=tParticleTime+showerTime+(1e9*fToffset)-fToffset_corsika + showerTime*boxnoX + showerTime*boxnoZ;
+              //wrap surface arrival so that it's in the desired time window
+              t=wrapvar(t,(1e9*fToffset),1e9*(fToffset+fSampleTime));
+              
               simb::MCParticle p(ntotalCtr,pdg,"primary",-200,m,1);
               
               //project back to wordvol/fProjectToHeight
