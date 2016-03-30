@@ -23,13 +23,10 @@ namespace sim {
 
   std::unique_ptr<std::vector<sim::MCShower>> 
                MCShowerRecoAlg::Reconstruct(MCRecoPart& part_v,
-				    MCRecoEdep& edep_v)
+				    MCRecoEdep const& edep_v)
   {
     
     art::ServiceHandle<geo::Geometry> geo;
-
-    PlaneIndex p;
-    auto pindex = p.create_map();
 
     fPartAlg.ConstructShower(part_v);
     auto result = std::make_unique<std::vector<sim::MCShower>>();
@@ -263,14 +260,7 @@ namespace sim {
 	  // Weight by energy (momentum)
 	  double magnitude = sqrt(pow(mom.at(0),2) + pow(mom.at(1),2) + pow(mom.at(2),2));
 
-	  double energy = 0;
-	  double npid = 0;
-	  for(auto const& pid_energy : edep.deps) {
-	    npid++;
-	    energy += pid_energy.energy;
-
-	  }
-	  energy /= npid;
+	  double energy = edep.total_energy / edep.n_deposits;
 	  if(magnitude>1.e-10) {
 	    mom.at(0) = mom.at(0) * energy / magnitude;
 	    mom.at(1) = mom.at(1) * energy / magnitude;
@@ -299,9 +289,7 @@ namespace sim {
 	  mcs_daughter_mom[3] += energy;
 
 	  // Charge
-          auto q_i = pindex.find(edep.pid);
-          if(q_i != pindex.end())
-            plane_charge[edep.pid.Plane] += (double)(edep.deps[pindex[edep.pid]].charge);
+          plane_charge[edep.pid.Plane] += (double)(edep.total_charge_in_plane);
 
 	}///Looping through the MCShower daughter's energy depositions
 
@@ -347,25 +335,10 @@ namespace sim {
 	  if( (a*edep.pos._x + b*edep.pos._y + c*edep.pos._z + d)/sqrt( pow(a,2) + pow(b,2) + pow(c,2)) < 2.4 &&
 	      (a*edep.pos._x + b*edep.pos._y + c*edep.pos._z + d)/sqrt( pow(a,2) + pow(b,2) + pow(c,2)) > 0){
 	     
-	    double E = 0;
-	    double N = 0;
-	    
-	    for(auto const& pid_energy : edep.deps) {
-	      N += 1;
-	      E += pid_energy.energy;
-	    }
-
-	    if(N > 0){
-	      E /= N;
-	    }
-	    else{ E = 0;}
-
-	    mcs_daughter_dedx += E;
+	    mcs_daughter_dedx += edep.total_energy / edep.n_deposits;
 
 	    // Charge
-	    auto q_i = pindex.find(edep.pid);
-            if(q_i != pindex.end())
-              plane_dqdx[edep.pid.Plane] += (double)(edep.deps[pindex[edep.pid]].charge); 
+            plane_dqdx[edep.pid.Plane] += (double)(edep.total_charge_in_plane); 
 	  }
 	}
       }

@@ -79,42 +79,12 @@ namespace sim
 
   };
 
-  struct deposit{
-    float energy;
-    float charge;
-  };
-
-  class MCEdep {
-  public:
-    MCEdep(){ Clear(); }
-    /*
-    short x;
-    short y;
-    short z;
-    */
+  struct MCEdep {
     sim::UniquePosition pos;
     geo::PlaneID pid;
-    std::vector<sim::deposit> deps;
-    std::map<unsigned short,sim::MCEdepHit> mchits;
-    void Clear() {
-      //x=y=z=kINVALID_SHORT;
-      pos._x = pos._y = pos._z = 0;
-      mchits.clear();
-    }
-  };
-
-  struct PlaneIndex{
-    static std::map<geo::PlaneID, size_t> create_map()
-        {
-          art::ServiceHandle<geo::Geometry> geom;
-          std::map<geo::PlaneID, size_t> m;
-          size_t i = 0;
-          for(auto const& pid : geom->PlaneIDs()){
-            m[pid] = i;
-            i++;
-          }
-          return m;
-        }
+    float total_charge_in_plane = 0.;
+    float total_energy = 0.;
+    unsigned int n_deposits = 0;
   };
 
   class MCRecoEdep {

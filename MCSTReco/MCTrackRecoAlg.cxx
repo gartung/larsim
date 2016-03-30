@@ -23,12 +23,10 @@ namespace sim {
   }
 
   std::unique_ptr<std::vector<sim::MCTrack>> MCTrackRecoAlg::Reconstruct(MCRecoPart& part_v,
-				   MCRecoEdep& edep_v)
+				   MCRecoEdep const& edep_v)
   {
     auto result = std::make_unique<std::vector<sim::MCTrack>>();
     auto& mctracks = *result;
-    PlaneIndex p;
-    auto pindex = p.create_map();
 
     for(size_t i=0; i<part_v.size(); ++i) {
       auto const& mini_part = part_v[i];
@@ -177,23 +175,10 @@ namespace sim {
 	      LineDist < 0.1){
 
 	    //dEdx Calculation 
-	    int npid = 0;
-	    double engy = 0;
-	    
-	    for(auto const& pid_energy : edep.deps){
-	      engy += pid_energy.energy;
-	      npid++;
-	    }
-
-	    if(npid != 0){
-	      engy /= npid;}
-	    else{engy = 0;}
-	    
+	    const double engy = edep.total_energy / edep.n_deposits;
 	    step_dedx += engy;
 	    
-          auto q_i = pindex.find(edep.pid);
-          if(q_i != pindex.end())
-            step_dqdx[edep.pid.Plane] += (double)(edep.deps[pindex[edep.pid]].charge);
+            step_dqdx[edep.pid.Plane] += (double)(edep.total_charge_in_plane);
 	  }
 	}
 	
