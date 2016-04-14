@@ -17,13 +17,13 @@
 // LArSoft
 #include "SimulationBase/MCTruth.h"
 #include "SimulationBase/MCParticle.h"
-#include "Utilities/DetectorProperties.h"
-#include "Utilities/LArProperties.h"
-#include "Geometry/Geometry.h"
+#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
+#include "lardata/DetectorInfoServices/LArPropertiesService.h"
+#include "larcore/Geometry/Geometry.h"
 
 #include "MCRecoPart.h"
 #include "MCRecoEdep.h"
-#include "MCBase/MCTrack.h"
+#include "lardata/MCBase/MCTrack.h"
 
 // STL
 #include <set>

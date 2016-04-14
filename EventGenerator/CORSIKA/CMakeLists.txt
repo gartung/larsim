@@ -4,11 +4,11 @@ cet_find_library( IFDH NAMES ifdh PATHS ENV IFDHC_LIB NO_DEFAULT_PATH )
 include_directories( $ENV{IFDHC_FQ_DIR}/inc )
 art_make( BASENAME_ONLY
           MODULE_LIBRARIES 
-                        SummaryData
-                        Geometry
-                        Geometry_service
+                        larcore_SummaryData
+                        larcore_Geometry
+                        larcore_Geometry_Geometry_service
                         SeedService_service # artextensions
-                        Simulation
+                        larsim_Simulation
                         ${SIMULATIONBASE}
                         ${ART_FRAMEWORK_CORE}
                         ${ART_FRAMEWORK_PRINCIPAL}

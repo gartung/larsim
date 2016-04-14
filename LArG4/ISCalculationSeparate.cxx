@@ -11,10 +11,10 @@
 #include "Geant4/G4LossTableManager.hh"
 #include "Geant4/G4EmSaturation.hh"
 
-#include "LArG4/ISCalculationSeparate.h"
-#include "Utilities/LArProperties.h"
-#include "Simulation/LArG4Parameters.h"
-#include "Simulation/LArVoxelCalculator.h"
+#include "larsim/LArG4/ISCalculationSeparate.h"
+#include "lardata/DetectorInfoServices/LArPropertiesService.h"
+#include "larsim/Simulation/LArG4Parameters.h"
+#include "larsim/Simulation/LArVoxelCalculator.h"
 
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "cetlib/exception.h"
@@ -35,7 +35,7 @@ namespace larg4{
   void ISCalculationSeparate::Initialize()
   {
     art::ServiceHandle<sim::LArG4Parameters> lgpHandle;
-    art::ServiceHandle<util::LArProperties>  larpHandle;
+    auto const* larpHandle = lar::providerFrom<detinfo::LArPropertiesService>();
 
     double density       = larpHandle->Density(larpHandle->Temperature());
     fEfield              = larpHandle->Efield();

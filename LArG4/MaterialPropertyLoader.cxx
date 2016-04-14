@@ -10,8 +10,8 @@
 
 
 
-#include "LArG4/MaterialPropertyLoader.h"
-#include "Utilities/LArProperties.h"
+#include "larsim/LArG4/MaterialPropertyLoader.h"
+#include "lardata/DetectorInfoServices/LArPropertiesService.h"
 #include "Geant4/G4Material.hh"
 #include "Geant4/G4MaterialPropertiesTable.hh"
 #include "Geant4/G4LogicalSkinSurface.hh"
@@ -232,7 +232,7 @@ if(Material=="G10"){
 
   void MaterialPropertyLoader::GetPropertiesFromServices()
   {
-    art::ServiceHandle<util::LArProperties>   LarProp;
+    auto const* LarProp = lar::providerFrom<detinfo::LArPropertiesService>();
     
     // wavelength dependent quantities
 

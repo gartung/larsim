@@ -29,11 +29,11 @@
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 
 // LArSoft code
-#include "Utilities/DetectorProperties.h"
-#include "Utilities/TimeService.h"
-#include "LArG4/LArVoxelReadout.h"
-#include "LArG4/ParticleListAction.h"
-#include "SpaceCharge/SpaceCharge.h"
+#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
+#include "lardata/DetectorInfoServices/DetectorClocksService.h"
+#include "larsim/LArG4/LArVoxelReadout.h"
+#include "larsim/LArG4/ParticleListAction.h"
+#include "larevt/SpaceCharge/SpaceCharge.h"
 
 namespace larg4 {
   
@@ -47,7 +47,7 @@ namespace larg4 {
     // Initialize values for the electron-cluster calculation.
     ClearSimChannels();
 
-    art::ServiceHandle<util::TimeService> ts;
+    auto const* ts = lar::providerFrom<detinfo::DetectorClocksService>();
     fClock = ts->TPCClock();
 
     // the standard name contains cryostat and TPC;
@@ -130,7 +130,7 @@ namespace larg4 {
     // to get more precise range and fluctuate it randomly.  Probably doesn't matter much
       
     if (fArgon39DecayRate > 0){
-      art::ServiceHandle<util::DetectorProperties> detprop;
+      auto const* detprop = lar::providerFrom<detinfo::DetectorPropertiesService>();
       double samplerate  = fClock.TickPeriod(); // in ns/tick
       int readwindow = detprop->NumberTimeSamples(); // in clock ticks
       double timewindow = samplerate*readwindow;
@@ -374,7 +374,7 @@ namespace larg4 {
                                                  Radio_t radiological /* = notradiological */,
                                                  unsigned int tickmax /* = 4096 */)
   {
-    art::ServiceHandle<util::TimeService> time_service;
+    auto const* time_service = lar::providerFrom<detinfo::DetectorClocksService>();
     
     // This routine gets called frequently, once per every particle
     // traveling through every voxel. Use whatever tricks we can to

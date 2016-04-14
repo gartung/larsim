@@ -12,12 +12,12 @@
 
 
 
-#include "LArG4/OpDetSensitiveDetector.h"
-#include "LArG4/OpDetPhotonTable.h"
-#include "LArG4/OpDetLookup.h"
-#include "Simulation/SimPhotons.h"
+#include "larsim/LArG4/OpDetSensitiveDetector.h"
+#include "larsim/LArG4/OpDetPhotonTable.h"
+#include "larsim/LArG4/OpDetLookup.h"
+#include "larsim/Simulation/SimPhotons.h"
 #include "Geant4/G4SDManager.hh"
-#include "Utilities/DetectorProperties.h"
+#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 
 namespace larg4{
 
@@ -32,7 +32,7 @@ namespace larg4{
     fTheOpDetLookup        = OpDetLookup::Instance();
     fThePhotonTable        = OpDetPhotonTable::Instance();
     
-    art::ServiceHandle<util::DetectorProperties> det;
+    auto const* det = lar::providerFrom<detinfo::DetectorPropertiesService>();
     //fGlobalTimeOffset = det->ConvertTicksToTDC(0) * det->SamplingRate();
   }
 

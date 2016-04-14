@@ -5,26 +5,23 @@ include_directories ( $ENV{GEANT4_FQ_DIR}/include )
 include_directories ( $ENV{XERCES_C_INC} )
 include_directories ( $ENV{CRYHOME}/src )
 
-art_make_library( LIBRARY_NAME MergeSimSources
+art_make_library( LIBRARY_NAME larsim_LArG4
 		  	     SOURCE MergeSimSources.cxx
 			     LIBRARIES
-			                Simulation
+			                larsim_Simulation
  					${FHICLCPP}
 )
 
 art_make( BASENAME_ONLY
-          LIBRARY_NAME  LArG4
+          LIBRARY_NAME  larsim_LArG4
           LIB_LIBRARIES 
-                        PhotonPropagation
-                        PhotonVisibilityService_service
+                        larsim_PhotonPropagation
+                        larsim_PhotonPropagation_PhotonVisibilityService_service
 			
-                        SpaceCharge_service
-                        Utilities
-                        TimeService_service
-                        LArProperties_service
-                        DetectorProperties_service
-                        Geometry
-                        Geometry_service
+                        larevt_SpaceCharge_SpaceCharge_service
+                        lardata_Utilities
+                        larcore_Geometry
+                        larcore_Geometry_Geometry_service
                         ${SIMULATIONBASE}
                         ${G4BASE}
                         ${ART_FRAMEWORK_CORE}
@@ -50,11 +47,11 @@ art_make( BASENAME_ONLY
                         ${ROOT_GEOM}
                         ${CLHEP}
                         ${G4_LIB_LIST}
-           MODULE_LIBRARIES LArG4
-                        SpaceCharge_service
-                        Simulation
-                        Geometry
-                        Geometry_service
+           MODULE_LIBRARIES larsim_LArG4
+                        larevt_SpaceCharge_SpaceCharge_service
+                        larsim_Simulation
+                        larcore_Geometry
+                        larcore_Geometry_Geometry_service
                         SeedService_service # artextensions
                         ${SIMULATIONBASE}
                         ${ART_FRAMEWORK_SERVICES_REGISTRY}

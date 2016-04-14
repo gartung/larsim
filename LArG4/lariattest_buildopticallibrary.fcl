@@ -93,7 +93,7 @@ services.user.PhotonVisibilityService.NZ: 25
 services.user.LArFFT: ""
 
 # set quantum efficiency supressed scint yield to 0.03 * 24000 
-services.user.LArProperties.ScintYield: 40000
+services.user.LArPropertiesService.ScintYield: 40000
 
 # enable optical physics in LArG4
 services.user.LArG4Parameters.EnabledPhysics: [ "Em", 
@@ -111,9 +111,9 @@ services.user.LArG4Parameters.UseCustomPhysics: true
 
 #enable extra materialproperties (including tpb WLS)
 
-services.user.LArProperties.LoadExtraMatProperties: true
-services.user.LArProperties.SimpleBoundaryProcess: false
-services.user.LArProperties.SimpleScintillation: false
+services.user.LArPropertiesService.LoadExtraMatProperties: true
+services.user.LArPropertiesService.SimpleBoundaryProcess: false
+services.user.LArPropertiesService.SimpleScintillation: false
 
 ##### Parameter changes for the generator (lightsource) #####
 

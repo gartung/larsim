@@ -3,9 +3,9 @@ include_directories ( $ENV{CRYHOME}/src )
 
 art_make( BASENAME_ONLY
           MODULE_LIBRARIES 
-                        SummaryData
-                        Geometry
-                        Geometry_service
+                        larcore_SummaryData
+                        larcore_Geometry
+                        larcore_Geometry_Geometry_service
                         SeedService_service # artextensions
                         ${EVENTGENERATORBASECRY}
                         ${CRY}

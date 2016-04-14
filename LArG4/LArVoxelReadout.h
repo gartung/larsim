@@ -50,13 +50,13 @@
 #include "Geant4/G4PVPlacement.hh"
 #include "Geant4/globals.hh"
 
-#include "Simulation/SimChannel.h"
-#include "Geometry/Geometry.h"
-#include "Geometry/TPCGeo.h"
-#include "Utilities/LArProperties.h"
-#include "Utilities/TimeService.h"
-#include "Simulation/LArG4Parameters.h"
-#include "LArG4/IonizationAndScintillation.h"
+#include "larsim/Simulation/SimChannel.h"
+#include "larcore/Geometry/Geometry.h"
+#include "larcore/Geometry/TPCGeo.h"
+#include "lardata/DetectorInfoServices/LArPropertiesService.h"
+#include "lardata/DetectorInfoServices/DetectorClocksService.h"
+#include "larsim/Simulation/LArG4Parameters.h"
+#include "larsim/LArG4/IonizationAndScintillation.h"
 
 
 // Forward declarations
@@ -214,12 +214,12 @@ namespace larg4 {
     std::vector<std::vector<ChannelMap_t>>    fChannelMaps; ///< Maps of cryostat, tpc to channel data
     art::ServiceHandle<geo::Geometry>         fGeoHandle;  ///< Handle to the Geometry service
     art::ServiceHandle<sim::LArG4Parameters>  fLgpHandle;  ///< Handle to the LArG4 parameters service
-    art::ServiceHandle<util::LArProperties>   fLarpHandle; ///< Handle to the LArProperties parameters service
+    auto const* fLarpHandle = lar::providerFrom<detinfo::LArPropertiesService>(); ///< Handle to the LArProperties parameters service
     unsigned int                              fTPC;        ///< which TPC this LArVoxelReadout corresponds to
     unsigned int                              fCstat;      ///< and in which cryostat (if bSingleTPC is true)
     bool                                      bSingleTPC;  ///< true if this readout is associated with a single TPC
 
-    ::util::ElecClock                         fClock;      ///< TPC electronics clock
+    ::detinfo::ElecClock                         fClock;      ///< TPC electronics clock
   };
 
 }

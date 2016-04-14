@@ -3,11 +3,10 @@
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
 
 art_make( NO_PLUGINS
-          LIBRARY_NAME  Simulation
-          LIB_LIBRARIES LArVoxelCalculator_service
-	                LArG4Parameters_service
-			DetectorProperties_service
-	                Utilities
+          LIBRARY_NAME  larsim_Simulation
+          LIB_LIBRARIES larsim_Simulation_LArVoxelCalculator_service
+	                larsim_Simulation_LArG4Parameters_service
+	                lardata_Utilities
 	                ${SIMULATIONBASE}
                         ${ART_FRAMEWORK_CORE}
 			${ART_FRAMEWORK_PRINCIPAL}

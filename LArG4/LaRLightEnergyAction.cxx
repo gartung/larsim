@@ -6,7 +6,7 @@
 // Name is a reminescence of LA(small cap. R)TF case. Capitalization will change accordingly
 ////////////////////////////////////////////////////////////////////////
 
-#include "LArG4/LaRLightEnergyAction.h"
+#include "larsim/LArG4/LaRLightEnergyAction.h"
 
 #include "messagefacility/MessageLogger/MessageLogger.h"
 

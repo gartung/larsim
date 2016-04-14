@@ -8,10 +8,10 @@
 /// to make the various simulation lists, ie ParticleList, LArVoxelList, etc
 ////////////////////////////////////////////////////////////////////////
 
-#include "Simulation/SimListUtils.h"
-#include "Simulation/SimChannel.h"
-#include "Simulation/LArG4Parameters.h"
-#include "Utilities/DetectorProperties.h"
+#include "larsim/Simulation/SimListUtils.h"
+#include "larsim/Simulation/SimChannel.h"
+#include "larsim/Simulation/LArG4Parameters.h"
+#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 
 // Framework includes
 #include "art/Framework/Principal/Event.h"
@@ -36,7 +36,7 @@ namespace sim{
   sim::LArVoxelList SimListUtils::GetLArVoxelList(const art::Event& evt, std::string moduleLabel)
   {
     art::ServiceHandle<sim::LArG4Parameters> lgp;
-    art::ServiceHandle<util::DetectorProperties> detprop;
+    auto const* detprop = lar::providerFrom<detinfo::DetectorPropertiesService>();
 
     // get the sim::SimChannels
     std::vector<const sim::SimChannel*> sccol;

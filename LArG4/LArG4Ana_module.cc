@@ -28,10 +28,10 @@
 #include "Geant4/G4SystemOfUnits.hh"
 #include "Geant4/G4ios.hh"
 // LArSoft Includes
-#include "MCCheater/BackTracker.h"
-#include "Simulation/ParticleList.h"
-#include "Simulation/sim.h"
-#include "Geometry/Geometry.h"
+#include "larsim/MCCheater/BackTracker.h"
+#include "larsim/Simulation/ParticleList.h"
+#include "larsim/Simulation/sim.h"
+#include "larcore/Geometry/Geometry.h"
 
 // ROOT includes
 #include "TH1.h"

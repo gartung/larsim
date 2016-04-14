@@ -102,18 +102,18 @@
 #include "Geant4/G4ParticleTypes.hh"
 #include "Geant4/G4EmProcessSubType.hh"
 
-#include "LArG4/IonizationAndScintillation.h"
-#include "LArG4/OpFastScintillation.hh"
-#include "PhotonPropagation/PhotonVisibilityService.h"
-#include "LArG4/OpDetPhotonTable.h"
-#include "Simulation/SimPhotons.h"
-#include "Simulation/LArG4Parameters.h"
-#include "Geometry/Geometry.h"
-#include "Geometry/CryostatGeo.h"
-#include "Geometry/OpDetGeo.h"
+#include "larsim/LArG4/IonizationAndScintillation.h"
+#include "larsim/LArG4/OpFastScintillation.hh"
+#include "larsim/PhotonPropagation/PhotonVisibilityService.h"
+#include "larsim/LArG4/OpDetPhotonTable.h"
+#include "larsim/Simulation/SimPhotons.h"
+#include "larsim/Simulation/LArG4Parameters.h"
+#include "larcore/Geometry/Geometry.h"
+#include "larcore/Geometry/CryostatGeo.h"
+#include "larcore/Geometry/OpDetGeo.h"
 
-#include "Utilities/LArProperties.h"
-#include "Utilities/DetectorProperties.h" 
+#include "lardata/DetectorInfoServices/LArPropertiesService.h"
+#include "lardata/DetectorInfoServices/DetectorPropertiesService.h" 
 
 #include "art/Framework/Services/Optional/RandomNumberGenerator.h"
 int counter_photons=0;
@@ -149,7 +149,7 @@ namespace larg4{
 	YieldFactor=1.0;
         ExcitationRatio = 1.0;
 	
-	art::ServiceHandle<util::LArProperties> larp;
+	auto const* larp = lar::providerFrom<detinfo::LArPropertiesService>();
 	
         scintillationByParticleType = larp->ScintByParticleType();
 
@@ -161,7 +161,7 @@ namespace larg4{
         }
 
         BuildThePhysicsTable();
-        art::ServiceHandle<util::DetectorProperties> det;                 
+        auto const* det = lar::providerFrom<detinfo::DetectorPropertiesService>();                 
       //  fGlobalTimeOffset = det->ConvertTicksToTDC(0) * det->SamplingRate();
 
         emSaturation = NULL;
@@ -180,7 +180,7 @@ namespace larg4{
     scintillationByParticleType = rhs.GetScintillationByParticleType();
     emSaturation                = rhs.GetSaturation();
 
-    art::ServiceHandle<util::DetectorProperties> det;                 
+    auto const* det = lar::providerFrom<detinfo::DetectorPropertiesService>();                 
    // fGlobalTimeOffset = det->ConvertTicksToTDC(0) * det->SamplingRate();
 
     BuildThePhysicsTable();
