@@ -11,9 +11,9 @@
 
 
 #include "larsim/LArG4/MaterialPropertyLoader.h"
-#include "lardata/DetectorInfoServices/LArPropertiesService.h"
+#include "lardata/lardata/DetectorInfoServices/LArPropertiesService.h"
 
-#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
+#include "lardata/lardata/DetectorInfoServices/DetectorPropertiesService.h"
 
 #include "Geant4/G4Material.hh"
 #include "Geant4/G4MaterialPropertiesTable.hh"
@@ -139,7 +139,7 @@ std::cout<< "Added property " <<Property<<" to material table " << Material<<std
 if(Material=="Copper"){
 		std::cout<< "copper foil surface set "<<volume->GetName()<<std::endl;
 		const G4int num3 = 12;
-  		G4double Ephoton3[num3] = {1.77*eV, 2.0675*eV, 2.481*eV, 2.819*eV, 2.953*eV, 3.1807*eV, 3.54*eV, 4.135*eV, 4.962*eV, 5.39*eV, 7.*eV,15.*eV};
+  		G4double Ephoton3[num3] = {1.77*CLHEP::eV, 2.0675*CLHEP::eV, 2.481*CLHEP::eV, 2.819*CLHEP::eV, 2.953*CLHEP::eV, 3.1807*CLHEP::eV, 3.54*CLHEP::eV, 4.135*CLHEP::eV, 4.962*CLHEP::eV, 5.39*CLHEP::eV, 7.*CLHEP::eV,15.*CLHEP::eV};
 		G4double Reflectivity_refl2[num3] ={0.43,0.40145,0.221,0.181,0.165,0.143,0.137,0.126,0.1609,0.1609,0.0,0.0};//measurements at Cracow University of Technology
   		G4MaterialPropertiesTable* reflspt2 = new G4MaterialPropertiesTable(); 
   		reflspt2->AddProperty("REFLECTIVITY", Ephoton3, Reflectivity_refl2, num3);
@@ -152,7 +152,7 @@ if(Material=="Copper"){
 if(Material=="G10"){
 		std::cout<< "G10 surface set "<<volume->GetName()<<std::endl;
 		const G4int num4 = 12;
-  		G4double Ephoton4[num4] = {1.77*eV, 2.0675*eV, 2.481*eV, 2.819*eV, 2.953*eV, 3.1807*eV, 3.54*eV, 4.135*eV, 4.962*eV, 5.39*eV,6.2*eV,15.0*eV};
+  		G4double Ephoton4[num4] = {1.77*CLHEP::eV, 2.0675*CLHEP::eV, 2.481*CLHEP::eV, 2.819*CLHEP::eV, 2.953*CLHEP::eV, 3.1807*CLHEP::eV, 3.54*CLHEP::eV, 4.135*CLHEP::eV, 4.962*CLHEP::eV, 5.39*CLHEP::eV,6.2*CLHEP::eV,15.0*CLHEP::eV};
 		G4double Reflectivity_refl3[num4] = {0.393,0.405,0.404,0.352,0.323,.243,0.127,0.065,0.068,0.068, 0.0, 0.0};//measurements at Cracow University of Technology- need to be rescaled
   		G4MaterialPropertiesTable* reflspt3 = new G4MaterialPropertiesTable(); 
   		reflspt3->AddProperty("REFLECTIVITY", Ephoton4, Reflectivity_refl3, num4);
@@ -165,7 +165,7 @@ if(Material=="G10"){
 	if(Material=="vm2000"){
 		std::cout<< "reflector  "<<volume->GetName()<<std::endl;
 		const G4int num2 = 12;
-  		G4double Ephoton2[num2] = {1.77*eV, 2.0675*eV, 2.481*eV, 2.819*eV, 2.953*eV, 3.1807*eV, 3.54*eV, 4.135*eV, 4.962*eV, 5.39*eV,6.2*eV,15.0*eV};
+  		G4double Ephoton2[num2] = {1.77*CLHEP::eV, 2.0675*CLHEP::eV, 2.481*CLHEP::eV, 2.819*CLHEP::eV, 2.953*CLHEP::eV, 3.1807*CLHEP::eV, 3.54*CLHEP::eV, 4.135*CLHEP::eV, 4.962*CLHEP::eV, 5.39*CLHEP::eV,6.2*CLHEP::eV,15.0*CLHEP::eV};
 		G4double Reflectivity_refl[num2]  = {0.83, 0.83,0.83,0.83,0.83,0.28,0.035,0.02,0.16,0.16,0.0,0.0};//VM2000 data arXiv:1304.6117, rescaled - needs to be checked!,  
   		G4MaterialPropertiesTable* reflspt = new G4MaterialPropertiesTable(); 
   		reflspt->AddProperty("REFLECTIVITY", Ephoton2, Reflectivity_refl, num2);
@@ -236,8 +236,8 @@ if(Material=="G10"){
   void MaterialPropertyLoader::GetPropertiesFromServices()
   {
 
-    const detinfo::LArProperties* LarProp = lar::providerFrom<detinfo::LArPropertiesService>();
-    const detinfo::DetectorProperties* DetProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+    auto const* LarProp = lar::providerFrom<detinfo::LArPropertiesService>();
+    auto const* DetProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
 
     
     // wavelength dependent quantities
@@ -246,17 +246,17 @@ if(Material=="G10"){
     SetMaterialProperty( "LAr", "SLOWCOMPONENT", LarProp->SlowScintSpectrum(), 1  );
     SetMaterialProperty( "LAr", "RINDEX",        LarProp->RIndexSpectrum(),    1  );
 
-    SetMaterialProperty( "LAr", "ABSLENGTH",     LarProp->AbsLengthSpectrum(), cm );
-    SetMaterialProperty( "LAr", "RAYLEIGH",      LarProp->RayleighSpectrum(),  cm );
+    SetMaterialProperty( "LAr", "ABSLENGTH",     LarProp->AbsLengthSpectrum(), CLHEP::cm );
+    SetMaterialProperty( "LAr", "RAYLEIGH",      LarProp->RayleighSpectrum(),  CLHEP::cm );
 std::cout<<"extra material properties -------------- "<<LarProp->ExtraMatProperties()<<std::endl;
    if(LarProp->ExtraMatProperties()){
 
 
 std::cout<<"LOADING TPB PROPERTIES !!!!!"<<std::endl;
  SetMaterialProperty( "TPB", "RINDEX",        LarProp->RIndexSpectrum(),    1  );
- SetMaterialProperty( "TPB", "WLSABSLENGTH",        LarProp->TpbAbs(),    m  );
+ SetMaterialProperty( "TPB", "WLSABSLENGTH",        LarProp->TpbAbs(),    CLHEP::m  );
  SetMaterialProperty( "TPB", "WLSCOMPONENT",        LarProp->TpbEm(),    1  );
- SetMaterialConstProperty( "TPB", "WLSTIMECONSTANT",        LarProp->TpbTimeConstant(),    ns  );
+ SetMaterialConstProperty( "TPB", "WLSTIMECONSTANT",        LarProp->TpbTimeConstant(),    CLHEP::ns  );
  SetMaterialProperty( "vm2000", "RINDEX",        LarProp->RIndexSpectrum(),    1  );
    // SetReflectances("TPB", LarProp->SurfaceTpbReflectances(), LarProp->SurfaceReflectanceTpbDiffuseFractions());
 }

@@ -45,7 +45,7 @@
 #include "larsim/LArG4/CustomPhysicsFactory.hh"
 #include "larsim/LArG4/OpBoundaryProcessSimple.hh"
 
-#include "lardata/DetectorInfoServices/LArPropertiesService.h"
+#include "lardata/lardata/DetectorInfoServices/LArPropertiesService.h"
 
 #include "Geant4/G4ParticleDefinition.hh"
 #include "Geant4/G4ProcessManager.hh"

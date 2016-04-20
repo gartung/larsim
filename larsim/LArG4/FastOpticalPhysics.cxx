@@ -50,7 +50,7 @@
 
 #include "larsim/LArG4/OpFastScintillation.hh"
 
-#include "lardata/DetectorInfoServices/LArPropertiesService.h"
+#include "lardata/lardata/DetectorInfoServices/LArPropertiesService.h"
 
 
 #include "messagefacility/MessageLogger/MessageLogger.h"
@@ -189,10 +189,9 @@ simplesci=true;
     fTheCerenkovProcess->SetMaxNumPhotonsPerStep(700);
     fTheCerenkovProcess->SetMaxBetaChangePerStep(10.0);
     fTheCerenkovProcess->SetTrackSecondariesFirst(false);
-    
+     bool CerenkovEnabled = larp->CerenkovLightEnabled();
 
-    const detinfo::LArProperties* larp = lar::providerFrom<detinfo::LArPropertiesService>();
->>>>>>> origin/develop:larsim/LArG4/FastOpticalPhysics.cxxset();
+
     while( (*aParticleIterator)() ){
       G4ParticleDefinition* particle = aParticleIterator->value();
       G4ProcessManager* pmanager = particle->GetProcessManager();
