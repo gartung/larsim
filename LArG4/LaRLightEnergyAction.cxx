@@ -126,9 +126,10 @@ tpc_test=tpc2;
 	const G4StepPoint* preStepPoint = step->GetPreStepPoint();
 	const G4StepPoint* postStepPoint = step->GetPostStepPoint();
 	const G4ThreeVector position = preStepPoint->GetPosition();
-
-
-
+ //mf::LogWarning("LaRLightEnergyAction")<<" close to photodet "<< postStepPoint->GetPhysicalVolume()->GetName()<<" "<< preStepPoint->GetPhysicalVolume()->GetName()<<std::endl;
+  
+//mf::LogWarning("LaRLightEnergyAction")<<" step length "<<step->GetStepLength()<<std::endl;
+if ( postStepPoint->GetPhysicalVolume()->GetName().contains("TPBETL") ||  preStepPoint->GetPhysicalVolume()->GetName().contains("TPBETL")) mf::LogWarning("LaRLightEnergyAction")<<" IN  tpb LAYER ON ETL "<< postStepPoint->GetPhysicalVolume()->GetName()<<" step "<<step->GetStepLength()/CLHEP::cm<<std::endl;	
 	if (step->GetTrack()->GetDefinition()->GetPDGEncoding()==0){
 		tmppos.clear();
 
@@ -152,8 +153,8 @@ tpc_test=tpc2;
 		}
 
 
- 
-		if ( postStepPoint->GetPhysicalVolume()->GetName()=="volArgon_cap_L_PV" && ((postStepPoint->GetPosition()[2]/cm)>90.0 ||(postStepPoint->GetPosition()[2]/cm)<0.0)){
+		 
+		if ( postStepPoint->GetPhysicalVolume()->GetName()=="volArgon_cap_L_PV" && ((postStepPoint->GetPosition()[2]/CLHEP::cm)>90.0 ||(postStepPoint->GetPosition()[2]/CLHEP::cm)<0.0)){
 			//step->GetTrack()->SetTrackStatus(fStopAndKill);
 			//ktrack1++;
 			}//if in argon cap behind TPC - killing track
@@ -163,8 +164,8 @@ tpc_test=tpc2;
 if(step->GetTrack()->GetVolume()->GetName()==tpc_test || step->GetTrack()->GetVolume()->GetName()==tpc_big){ 
 		
 
-			 energy_deposit_step+=step->GetTotalEnergyDeposit();
-			//mf::LogWarning("LaRLightEnergyAction")<<"energy deposit step filled!!!!!!!!! "<<energy_deposit_step<<" change event "<<change_event<<" tpc name "<<tpc_big<<std::endl;
+			 energy_deposit_step+=step->GetTotalEnergyDeposit()/CLHEP::MeV;
+//			mf::LogWarning("LaRLightEnergyAction")<<"energy deposit step filled!!!!!!!!! "<<energy_deposit_step<<" change event "<<change_event<<" tpc name "<<tpc_big<<std::endl;
 //wspolrzedne z geometry, MCparticle, trajectory, get energy deposit 
 	}
 			
