@@ -32,6 +32,9 @@ namespace sim {
   public:
     AuxDetIDE();
     
+    //constructor for IDEs applying G4 offset...
+    AuxDetIDE(AuxDetIDE const&, int);
+
     int   trackID;               ///< Geant4 supplied track ID
     float energyDeposited;       ///< total energy deposited for this track ID and time
     float entryX;                ///< Entry position X of particle
@@ -64,23 +67,38 @@ namespace sim {
   public:
     /// Default constructor (invalid, empty data)
     AuxDetSimChannel();
-    
+
   private:
-    uint32_t                    fAuxDetID;   ///< geo->AuxDet(auxDetID), integer used to retrieve AuxDetGeo object
-    std::vector<sim::AuxDetIDE> fAuxDetIDEs; ///< one sim::AuxDetIDE for each G4 track id
+    uint32_t                    fAuxDetID;          ///< geo->AuxDet(auxDetID), integer used to retrieve AuxDetGeo objec   
+    uint32_t                    fAuxDetSensitiveID; ///< integer used to retrieve AuxDetSensitiveGeo object
+    std::vector<sim::AuxDetIDE> fAuxDetIDEs;        ///< one sim::AuxDetIDE for each G4 track id
 
 #ifndef __GCCXML__
   public:
 
+    AuxDetSimChannel(uint32_t inputAuxDetID, 
+		     uint32_t inputAuxDetSensitiveID);
+    
     /// Constructor: copies from the specified IDE vector
-    AuxDetSimChannel(uint32_t inputAuxDetID, const std::vector<sim::AuxDetIDE>& inputAuxDetIDEs);
+    AuxDetSimChannel(uint32_t inputAuxDetID, 
+		     const std::vector<sim::AuxDetIDE>& inputAuxDetIDEs,
+		     uint32_t inputAuxDetSensitiveID=0);
     
     /// Constructor: moves data from the specified IDE vector
-    AuxDetSimChannel(uint32_t inputAuxDetID, std::vector<sim::AuxDetIDE>&& inputAuxDetIDEs);
+    AuxDetSimChannel(uint32_t inputAuxDetID, 
+		     std::vector<sim::AuxDetIDE>&& inputAuxDetIDEs,
+		     uint32_t inputAuxDetSensitiveID=0);
+
+    std::pair<int,int> MergeAuxDetSimChannel(const AuxDetSimChannel&, 
+					     int);
 
     ///@name Getters
     ///@{
-    uint32_t AuxDetID() const;
+    uint32_t AuxDetID()          const;
+    uint32_t AuxDetSensitiveID() const;
+
+    bool operator<  (const AuxDetSimChannel& other)     const;
+    bool operator== (const AuxDetSimChannel& other)     const;
 
     std::vector<sim::AuxDetIDE> const& AuxDetIDEs() const;
     ///@}
@@ -94,9 +112,10 @@ namespace sim {
 
 #ifndef __GCCXML__
 
-inline bool sim::AuxDetIDE::operator<  (const AuxDetIDE& other) const { return trackID < other.trackID;  }
-inline bool sim::AuxDetIDE::operator== (const AuxDetIDE& other) const { return other.trackID == trackID; }
-inline uint32_t  sim::AuxDetSimChannel::AuxDetID()              const { return fAuxDetID;                }
+inline bool      sim::AuxDetIDE::operator<  (const AuxDetIDE& other) const { return trackID < other.trackID;  }
+inline bool      sim::AuxDetIDE::operator== (const AuxDetIDE& other) const { return other.trackID == trackID; }
+inline uint32_t  sim::AuxDetSimChannel::AuxDetID()                   const { return fAuxDetID;                }
+inline uint32_t  sim::AuxDetSimChannel::AuxDetSensitiveID()          const { return fAuxDetSensitiveID;       }
 inline std::vector<sim::AuxDetIDE> const& sim::AuxDetSimChannel::AuxDetIDEs() const { return fAuxDetIDEs; }
 #endif
 

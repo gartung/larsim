@@ -43,6 +43,9 @@
 #include "cetlib/exception.h"
 #include "cetlib/search_path.h"
 
+// art extensions
+#include "artextensions/SeedService/SeedService.hh"
+
 // LArSoft Includes
 #include "LArG4/LArVoxelReadoutGeometry.h"
 #include "LArG4/PhysicsList.h"
@@ -90,10 +93,13 @@
 
 // ROOT Includes
 
+
 // C++ Includes
 #include <iostream>
 #include <cstring>
 #include <sys/stat.h>
+#include "TGeoManager.h"
+
 
 // Forward declarations
 class G4RunManager;
@@ -120,10 +126,13 @@ namespace larg4 {
     /// produce the detector response.
     void produce (art::Event& evt); 
     void beginJob();
+    void beginRun(art::Run& run);
+    void FillInterestingVolumes(std::set<std::string> const& vol_names);
+    bool KeepParticle(simb::MCParticle const& part) const;
 
   private:
 
-    g4b::G4Helper*             fG4Help;             ///< G4 interface object					   
+    g4b::G4Helper*             fG4Help;             ///< G4 interface object                                           
     larg4::LArVoxelListAction* flarVoxelListAction; ///< Geant4 user action to accumulate LAr voxel information.
     larg4::ParticleListAction* fparticleListAction; ///< Geant4 user action to particle information.		   
 
@@ -134,7 +143,16 @@ namespace larg4 {
  bool                       fdumpSimChannels;    ///< Whether each event's sim::Channel will be displayed.
     bool                       fUseLitePhotons;
     int                        fSmartStacking;      ///< Whether to instantiate and use class to 
-                                                    ///< dictate how tracks are put on stack.	
+
+                                                    ///< dictate how tracks are put on stack. 
+bool fLarLightEnergyAction; ///< used in LArIAT, by default false for the sake of transparency  
+std::string fTPCLariat; ///< used in LArIAT, by default volTPC for the sake of transparency, not used if larlightenergyaction not set
+std::string fTPCTest; ///< used in LArIAT, by default volTPC for the sake of transparency, not used if larlightenergyaction not set       
+    std::vector<std::string>   fInputLabels;
+
+    std::vector<std::string>   fKeepParticlesInVolumes; ///<Only write particles that have trajectories through these volumes
+    std::vector<std::pair<TGeoVolume const*, TGeoCombiTrans*>> fGeoVolumePairs; ///< Volumes and transformations for fKeepParticlesInVolumes
+
 
   };
 
@@ -151,16 +169,27 @@ namespace larg4 {
     , fG4PhysListName        (pset.get< std::string >("G4PhysListName","larg4::PhysicsList"))
     , fdumpParticleList      (pset.get< bool        >("DumpParticleList")                   )
     , fSmartStacking         (pset.get< int         >("SmartStacking",0)                    )
+    , fLarLightEnergyAction         (pset.get< bool>("LarLightEnergyAction",false))
+    , fKeepParticlesInVolumes        (pset.get< std::vector< std::string > >("KeepParticlesInVolumes",{}))
+
   {
     LOG_DEBUG("LArG4") << "Debug: LArG4()";
-
-    // get the random number seed, use a random default if not specified
-    // in the configuration file.
-    unsigned int seed = pset.get< unsigned int >("Seed", sim::GetRandomNumberSeed());
+if(fLarLightEnergyAction){
+    fTPCLariat=pset.get< std::string >("TPCName1","volTPCActive_PV");
+    fTPCTest=pset.get< std::string >("TPCName2","volBeamBox_PV");
+	}
     // setup the random number service for Geant4, the "G4Engine" label is a
-    // special tag setting up a global engine for use by Geant4/CLHEP
-    createEngine(seed, "G4Engine");
+    // special tag setting up a global engine for use by Geant4/CLHEP;
+    // obtain the random seed from SeedService,
+    // unless overridden in configuration with key "Seed"
+    art::ServiceHandle<artext::SeedService>()
+      ->createEngine(*this, "G4Engine", pset, "Seed");
 
+    //get a list of generators to use, otherwise, we'll end up looking for anything that's
+    //made an MCTruth object
+    bool useInputLabels = pset.get_if_present< std::vector<std::string> >("InputLabels",fInputLabels);
+    if(!useInputLabels) fInputLabels.resize(0);
+    
     art::ServiceHandle<sim::LArG4Parameters> lgp;
     fUseLitePhotons = lgp->UseLitePhotons();
 
@@ -229,8 +258,10 @@ namespace larg4 {
     // The techniques used in this UserAction are not to be repeated
     // as in general they are a very bad idea, ie they take a const
     // pointer and jump through hoops to change it
-    larg4::LaRLightEnergyAction *llea = new larg4::LaRLightEnergyAction(fSmartStacking);
+   if (fLarLightEnergyAction){
+	 larg4::LaRLightEnergyAction *llea = new larg4::LaRLightEnergyAction(fSmartStacking, fTPCLariat, fTPCTest);
     uaManager->AddAndAdoptAction(llea);
+	}
 
     // remove IonizationAndScintillationAction for now as we are ensuring
     // the Reset for each G4Step within the G4SensitiveVolumes
@@ -254,10 +285,73 @@ namespace larg4 {
       fG4Help->GetRunManager()->SetUserAction(stacking_action);
     }
 
+    
+
+  
   }
 
-  //----------------------------------------------------------------------
+  void LArG4::beginRun(art::Run& run){
+    //Fill interesting volumes object
+    std::set<std::string> volnameset(fKeepParticlesInVolumes.begin(), fKeepParticlesInVolumes.end());
+    FillInterestingVolumes(volnameset);
+  }
+  
+  void LArG4::FillInterestingVolumes(std::set<std::string> const& vol_names) {
+    auto const& geom = *art::ServiceHandle<geo::Geometry>();
+  
+    std::vector<std::vector<TGeoNode const*>> node_paths
+      = geom.FindAllVolumePaths(vol_names);
+    //for each interesting volume, follow the node path and collect
+    //total rotations and translations
+    for (size_t iVolume = 0; iVolume < node_paths.size(); ++iVolume) {
+      std::vector<TGeoNode const*> path = node_paths[iVolume];
+      
+      TGeoTranslation* pTransl = new TGeoTranslation(0.,0.,0.);
+      TGeoRotation* pRot = new TGeoRotation();
+      for (TGeoNode const* node: path) {
+	TGeoTranslation thistranslate(*node->GetMatrix());
+	TGeoRotation thisrotate(*node->GetMatrix());
+	pTransl->Add(&thistranslate);
+	*pRot=*pRot * thisrotate;
+      }
+      
+      //for some reason, pRot and pTransl don't have tr and rot bits set correctly
+      //make new translations and rotations so bits are set correctly
+      TGeoTranslation* pTransl2 = new TGeoTranslation(pTransl->GetTranslation()[0],
+							pTransl->GetTranslation()[1],
+						      pTransl->GetTranslation()[2]);
+      double phi=0.,theta=0.,psi=0.;
+      pRot->GetAngles(phi,theta,psi);
+      TGeoRotation* pRot2 = new TGeoRotation();
+      pRot2->SetAngles(phi,theta,psi);
+      
+      TGeoCombiTrans* pTransf = new TGeoCombiTrans(*pTransl2,*pRot2);
 
+      fGeoVolumePairs.emplace_back(node_paths[iVolume].back()->GetVolume(), pTransf);
+
+    }
+
+  } // FillInterestingVolumes()
+    
+  bool LArG4::KeepParticle(simb::MCParticle const& part) const {
+    // if no volume in the list, keep everything
+    if (fKeepParticlesInVolumes.empty()) return true;
+    // check every point in the trajectory
+    const int nPoints = (int) part.NumberTrajectoryPoints();
+    for (int iPoint = 0; iPoint < nPoints; ++iPoint) {
+      TLorentzVector const& pos = part.Position(iPoint);
+      double const master[3] = { pos.X(), pos.Y(), pos.Z() };
+      double local[3];
+      for(unsigned int j=0;j<fGeoVolumePairs.size();j++){
+        // transform the point to relative to the volume
+        fGeoVolumePairs[j].second->MasterToLocal(master, local);
+        // containment check
+        if (fGeoVolumePairs[j].first->Contains(local)) return true;
+      } // for volumes
+
+    } // for trajectory points
+    return false;
+  } // LArG4::KeepParticle()
 
   void LArG4::produce(art::Event& evt)
 
@@ -287,7 +381,8 @@ namespace larg4 {
 
     // Clear the detected photon table
 
-    OpDetPhotonTable::Instance()->ClearTable(geom->NOpChannels());
+    OpDetPhotonTable::Instance()->ClearTable(geom->NOpDets());
+
 
     // reset the track ID offset as we have a new collection of interactions
 
@@ -299,8 +394,14 @@ namespace larg4 {
 
     std::vector< art::Handle< std::vector<simb::MCTruth> > > mclists;
 
-    evt.getManyByType(mclists);
-
+    if(fInputLabels.size()==0)
+      evt.getManyByType(mclists);
+    else{
+      mclists.resize(fInputLabels.size());
+      for(size_t i=0; i<fInputLabels.size(); i++)
+	evt.getByLabel(fInputLabels[i],mclists[i]);
+    }
+    
     // Need to process Geant4 simulation for each interaction separately.
 
     for(size_t mcl = 0; mcl < mclists.size(); ++mcl){
@@ -321,19 +422,14 @@ namespace larg4 {
 
         
 
-        partCol->reserve(partCol->size() + particleList.size()); // not very useful here...
-
-        for(auto pitr = particleList.begin(); pitr != particleList.end(); ++pitr){
-
-          // copy the particle so that it isnt const
-
-          simb::MCParticle p(*(*pitr).second);
-
+        for(auto const& partPair: particleList) {
+	  simb::MCParticle const& p = *(partPair.second);
+	  if (!KeepParticle(p)) continue;
           partCol->push_back(p);
+          util::CreateAssn(*this, evt, *partCol, mct, *tpassn);
+        }//for
 
-          util::CreateAssn(*this, evt, *(partCol.get()), mct, *(tpassn.get()));
 
-        }
 
         // Has the user request a detailed dump of the output objects?
 
@@ -592,41 +688,34 @@ namespace larg4 {
     for(unsigned int a = 0; a < geom->NAuxDets(); ++a){
 
 
-      // N.B. this name convention is used when creating the 
-      //      AuxDetReadout SD in AuxDetReadoutGeometry       
+      // there should always be at least one senstive volume because 
+      // we make one for the full aux det if none are specified in the 
+      // gdml file - see AuxDetGeo.cxx
+      for(size_t sv = 0; sv < geom->AuxDet(a).NSensitiveVolume(); ++sv){
 
-      std::stringstream name;
+	// N.B. this name convention is used when creating the 
+	//      AuxDetReadout SD in AuxDetReadoutGeometry       
+	std::stringstream name;
+	name << "AuxDetSD_AuxDet" << a << "_" << sv;
+	G4VSensitiveDetector* sd = sdManager->FindSensitiveDetector(name.str().c_str());
+	if ( !sd ){
+	  throw cet::exception("LArG4") << "Sensitive detector '"
+					<< name
+					<< "' does not exist\n";
+	}
 
-      name << "AuxDetSD_AuxDet" << a;
-      G4VSensitiveDetector* sd = sdManager->FindSensitiveDetector(name.str().c_str());
+	// Convert the G4VSensitiveDetector* to a AuxDetReadout*.
+	larg4::AuxDetReadout *auxDetReadout = dynamic_cast<larg4::AuxDetReadout*>(sd);
 
-      if ( !sd ){
+	LOG_DEBUG("LArG4") << "now put the AuxDetSimTracks in the event";
 
-        throw cet::exception("LArG4") << "Sensitive detector '"
-
-                                    << name
-
-                                    << "' does not exist\n";
-
+	const sim::AuxDetSimChannel adsc = auxDetReadout->GetAuxDetSimChannel();
+	adCol->push_back(adsc);
+	auxDetReadout->clear();
       }
-
-      //Convert the G4VSensitiveDetector* to a AuxDetReadout*.
-
-      larg4::AuxDetReadout *auxDetReadout = dynamic_cast<larg4::AuxDetReadout*>(sd);
-
-      LOG_DEBUG("LArG4") << "now put the AuxDetSimTracks in the event";
-
-      const sim::AuxDetSimChannel adsc = auxDetReadout->GetAuxDetSimChannel();
-
-      adCol->push_back(adsc);
-
-      auxDetReadout->clear();
-
-        
-
-    } //Loop over AuxDets
-
-        
+	
+    } // Loop over AuxDets
+	
 
     if (fdumpSimChannels) {
 

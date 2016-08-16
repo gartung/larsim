@@ -24,7 +24,7 @@ namespace larg4 {
   //--------------------------------------------------
   OpDetLookup::OpDetLookup()
   {
-    fTheTopChannel=0;
+    fTheTopOpDet=0;
   }
 
   //--------------------------------------------------
@@ -37,16 +37,16 @@ namespace larg4 {
   }
 
   //--------------------------------------------------
-  int OpDetLookup::GetChannel(std::string TheName)
+  int OpDetLookup::GetOpDet(std::string TheName)
   {
-    return fTheChannelMap[TheName];
+    return fTheOpDetMap[TheName];
   }
 
   //--------------------------------------------------
-  int OpDetLookup::GetChannel(G4VPhysicalVolume* TheVolume)
+  int OpDetLookup::GetOpDet(G4VPhysicalVolume* TheVolume)
   {
     std::string TheName = TheVolume->GetName();
-    return GetChannel(TheName);
+    return GetOpDet(TheName);
   }
 
 
@@ -55,42 +55,39 @@ namespace larg4 {
   int OpDetLookup::FindClosestOpDet(G4VPhysicalVolume* vol, double& distance)
   {
     art::ServiceHandle<geo::Geometry> geom;
-    int    ChannelCount = 0;
+    int    OpDetCount = 0;
     
     double MinDistance = UINT_MAX;
-    int    ClosestChannel   = -1;
-    
-    for(size_t c=0; c!=geom->Ncryostats(); c++)
+    int    ClosestOpDet   = -1;
+  for (auto& x: fTheOpDetMap) {
+    std::cout <<" opdet name opdetlookup "<< x.first << ": " << x.second << '\n';
+  }
+    for(size_t o=0; o!=geom->NOpDets(); o++) {
+      double xyz[3];
+      geom->OpDetGeoFromOpDet(o).GetCenter(xyz);
+	    
+      CLHEP::Hep3Vector DetPos(xyz[0],xyz[1],xyz[2]);
+      CLHEP::Hep3Vector ThisVolPos = vol->GetTranslation();
+	    
+      ThisVolPos/=cm;
+	    
+      	  std::cout<<"Det: " << xyz[0]<< " " <<xyz[1]<< " " << xyz[2]<<std::endl;
+          std::cout<<"Vol: " << ThisVolPos.x()<< " " <<ThisVolPos.y() << " " <<ThisVolPos.z()<<std::endl;
+      double Distance = (DetPos-ThisVolPos).mag();
+      if(Distance < MinDistance)
       {
-	for(size_t o=0; o!=geom->NOpDet(c); o++)
-	  {
-	    double xyz[3];
-	    geom->Cryostat(c).OpDet(o).GetCenter(xyz);
-	    
-	    CLHEP::Hep3Vector DetPos(xyz[0],xyz[1],xyz[2]);
-	    CLHEP::Hep3Vector ThisVolPos = vol->GetTranslation();
-	    
-	    ThisVolPos/=cm;
-	    
-	    //	    std::cout<<"Det: " << xyz[0]<< " " <<xyz[1]<< " " << xyz[2]<<std::endl;
-	    //    std::cout<<"Vol: " << ThisVolPos.x()<< " " <<ThisVolPos.y() << " " <<ThisVolPos.z()<<std::endl;
-    
-	    double Distance = (DetPos-ThisVolPos).mag();
-	    if(Distance < MinDistance)
-	      {
-		MinDistance = Distance;
-		ClosestChannel  = geom->OpDetCryoToOpChannel(o, c);
-	      }
-	    ChannelCount++;
-	  }
+        MinDistance = Distance;
+        ClosestOpDet  =  o;
       }
-    if(ClosestChannel<0) 
+      OpDetCount++;
+    }
+    if(ClosestOpDet<0) 
       {
 	throw cet::exception("OpDetLookup Error") << "No nearby OpDet found!\n"; 
       }
     
     distance = MinDistance;
-    return ClosestChannel;
+    return ClosestOpDet;
   }
 
 
@@ -98,20 +95,20 @@ namespace larg4 {
   void OpDetLookup::AddPhysicalVolume(G4VPhysicalVolume * volume)
   {
   
-    // mf::LogInfo("Optical") <<"G4 placing sensitive opdet"<<std::endl;
     
     std::stringstream VolName("");
     double Distance     = 0;
 
-    int NearestDetChannel = FindClosestOpDet(volume, Distance);
+    int NearestOpDet = FindClosestOpDet(volume, Distance);
     
     VolName.flush();
-    VolName << volume->GetName() << "_" << NearestDetChannel;
+    VolName << volume->GetName() << "_" << NearestOpDet;
+
     volume->SetName(VolName.str().c_str());
     
-    fTheChannelMap[VolName.str()] = NearestDetChannel;
+    fTheOpDetMap[VolName.str()] = NearestOpDet;
 
-    // mf::LogInfo("Optical") << "Found closest volume: " << VolName.str().c_str() << " Channel : " << fTheChannelMap[VolName.str()]<<"  distance : " <<Distance<<std::endl; 
+     mf::LogInfo("Optical") << "Found closest volume: " << VolName.str().c_str() << " OpDet : " << fTheOpDetMap[VolName.str()]<<"  distance : " <<Distance<<std::endl; 
      
   }
 
@@ -119,7 +116,7 @@ namespace larg4 {
   //--------------------------------------------------
   int OpDetLookup::GetN()
   {
-    return fTheTopChannel;
+    return fTheTopOpDet;
   }
   
 }

@@ -106,6 +106,7 @@ namespace larg4
     G4ThreeVector fPlaneNormal;
     std::vector<G4ThreeVector> fWireDirections;
     std::vector<double> fDPRatios;
+    std::vector<double> fPlaneTransmittances;
   };
   
 

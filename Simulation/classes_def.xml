@@ -23,7 +23,8 @@
  <class name="sim::SimChannel"               ClassVersion="14"              	 >
   <version ClassVersion="14" checksum="2917495953"/>
  </class>
- <class name="sim::AuxDetSimChannel"         ClassVersion="11"                   >
+ <class name="sim::AuxDetSimChannel"         ClassVersion="12"                   >
+  <version ClassVersion="12" checksum="3670394285"/>
   <version ClassVersion="11" checksum="4004990893"/>
   <version ClassVersion="10" checksum="999879376"/>
  </class>
@@ -54,11 +55,11 @@
  <class name="art::Wrapper< std::vector<sim::SimChannel>   >"		    	 />
  <class name="art::Wrapper< std::vector<sim::BeamGateInfo> >"		    	 />
  <class name="art::Wrapper< std::vector<sim::AuxDetSimChannel>  >"               />
-<!---Remove the following lines once LBNE no longer uses files containing
-     LBNE10ktPhotons.  11 September 2013 brebel-->
- <class name="sim::LBNE10ktPhotons"                                              />
- <class name="std::vector<sim::LBNE10ktPhotons>"                                 />
- <class name="art::Wrapper< std::vector<sim::LBNE10ktPhotons>  >"                />
+<!---Remove the following lines once DUNE no longer uses files containing
+     DUNE10ktPhotons.  11 September 2013 brebel-->
+ <class name="sim::DUNE10ktPhotons"                                              />
+ <class name="std::vector<sim::DUNE10ktPhotons>"                                 />
+ <class name="art::Wrapper< std::vector<sim::DUNE10ktPhotons>  >"                />
 
  <ioread 
     version="[-13]" 

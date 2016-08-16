@@ -8,6 +8,8 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include <limits> // std::numeric_limits
+#include <utility>
+#include <stdexcept>
 
 #include "Simulation/SimChannel.h"
 #include "Simulation/sim.h"
@@ -27,14 +29,24 @@ namespace sim{
     , z		  (util::kBogusD)
   {}
 
+  //-------------------------------------------------
+  IDE::IDE(sim::IDE const& ide,int offset)
+    : trackID     (ide.trackID+offset)
+    , numElectrons(ide.numElectrons)
+    , energy      (ide.energy)
+    , x           (ide.x)
+    , y           (ide.y)
+    , z           (ide.z)
+  {}
+
   // Default constructor
   //-------------------------------------------------
   SimChannel::SimChannel() 
-    : fChannel(0)
+    : fChannel(raw::InvalidChannelID)
   {}
 
   //-------------------------------------------------
-  SimChannel::SimChannel(uint32_t channel)
+  SimChannel::SimChannel(raw::ChannelID_t channel)
     : fChannel(channel)
   {}
 
@@ -248,5 +260,35 @@ namespace sim{
 
     return trackIDEs;
   }
+
+  //-----------------------------------------------------------------------
+  // Merge the collection of IDEs from one sim channel to another.
+  // Requires an agreed upon offset for G4 trackID
+  std::pair<int,int> SimChannel::MergeSimChannel(const SimChannel& channel, int offset)
+  {
+    if( this->Channel() != channel.Channel() )
+      throw std::runtime_error("ERROR SimChannel Merge: Trying to merge different channels!");
+
+    std::pair<int,int> range_trackID(std::numeric_limits<int>::max(),
+				     std::numeric_limits<int>::min());
+    
+    for(auto const& tdc : channel.TDCIDEMap()){
+
+      for(auto const& ide : tdc.second){
+
+	this->fTDCIDEs[tdc.first].emplace_back(ide,offset);
+	if( ide.trackID+offset < range_trackID.first  )
+	  range_trackID.first = ide.trackID+offset;
+	if( ide.trackID+offset > range_trackID.second )
+	  range_trackID.second = ide.trackID+offset;
+
+      }//end loop over IDEs
+
+    }//end loop over TDCIDEMap
+
+    return range_trackID;
+    
+  }
+  
 
 }

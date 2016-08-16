@@ -14,11 +14,11 @@
 #include "art/Framework/Services/Registry/ActivityRegistry.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "art/Framework/Services/Registry/ServiceMacros.h"
+#include "PhotonPropagation/PhotonLibrary.h"
 #include "Simulation/PhotonVoxels.h"
 
 ///General LArSoft Utilities
 namespace phot{
-  class PhotonLibrary;
   
   class PhotonVisibilityService {
   public:
@@ -29,11 +29,13 @@ namespace phot{
     
     double GetQuenchingFactor(double dQdx);
     
-    double DistanceToOpDet(                 double* xyz, unsigned int OpChannel );
-    double SolidAngleFactor(                double* xyz, unsigned int OpChannel );
-    float GetVisibility(                    double* xyz, unsigned int OpChannel, bool wantReflected=false );         
-    
-    const std::vector<float>* GetAllVisibilities( double* xyz, bool wantReflected=false ) const;
+
+    double DistanceToOpDet(                 double* xyz, unsigned int OpDet );
+    double SolidAngleFactor(                double* xyz, unsigned int OpDet );
+    float GetVisibility(                    double* xyz, unsigned int OpChannel,bool wantReflected );         
+
+    const std::vector<float>* GetAllVisibilities( double* xyz, bool  wantReflected) const;
+
     
     void LoadLibrary() const;
     void StoreLibrary();
@@ -42,11 +44,11 @@ namespace phot{
     void StoreLightProd(    int  VoxID,  double  N  );
     void RetrieveLightProd( int& VoxID,  double& N ) const;
     
-    
-    void SetLibraryEntry(   int VoxID, int OpChannel, float N, bool wantReflected=false);
-    float GetLibraryEntry( int VoxID, int OpChannel, bool wantReflected=false) const;
-    
-    const std::vector<float>* GetLibraryEntries( int VoxID, bool wantReflected=false ) const;
+
+    void SetLibraryEntry(   int VoxID, int OpChannel, float N,bool wantReflected);
+    float GetLibraryEntry( int VoxID, int OpChannel,bool wantReflected) const;
+    const std::vector<float>* GetLibraryEntries( int VoxID,bool wantReflected ) const;
+
 
     
     bool IsBuildJob() const { return fLibraryBuildJob; }
@@ -54,7 +56,8 @@ namespace phot{
     bool UseParameterization() const {return fParameterization;}
 
     sim::PhotonVoxelDef GetVoxelDef() const {return fVoxelDef; }
-
+    int NOpChannels();
+    
   private:
     
     int    fCurrentVoxel;

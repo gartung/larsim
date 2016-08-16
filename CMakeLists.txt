@@ -31,12 +31,11 @@ set(CMAKE_MODULE_PATH $ENV{ART_DIR}/Modules
 include(CetCMakeEnv)
 cet_cmake_env()
 
-set_install_root()
-
 # -Wno-unused-variable needed because of CLHEP
 cet_set_compiler_flags(DIAGS CAUTIOUS
   WERROR
   NO_UNDEFINED
+  ALLOW_DEPRECATIONS
   EXTRA_FLAGS -pedantic -Wno-unused-local-typedefs -Wno-unused-variable
 )
 
@@ -48,7 +47,8 @@ find_ups_product( lardata v1_00_00 )
 find_ups_product( larevt v1_00_00 )
 find_ups_product( nutools v1_00_00 )
 find_ups_product( art v1_09_00 )
-find_ups_product( cetbuildtools v3_10_00 )
+find_ups_product( cetbuildtools v4_09_00 )
+find_ups_product( artextensions v1_00_01 )
 find_ups_geant4( geant4 v4_9_6 )
 find_ups_product( postgresql v9_1_5 )
 
@@ -113,6 +113,10 @@ add_subdirectory(Simulation)
 add_subdirectory(TriggerAlgo)
 add_subdirectory(SimFilters)
 add_subdirectory(MCSTReco)
+add_subdirectory(MCDumpers)
+
+# tests
+add_subdirectory(test)
 
 # ups - table and config files
 add_subdirectory(ups)

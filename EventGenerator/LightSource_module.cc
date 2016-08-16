@@ -66,6 +66,9 @@
 #include "art/Framework/Core/ModuleMacros.h"
 #include "cetlib/exception.h"
 
+// art extensions
+#include "artextensions/SeedService/SeedService.hh"
+
 // nutools includes
 #include "SimulationBase/MCTruth.h"
 #include "SimulationBase/MCParticle.h"
@@ -153,13 +156,20 @@ namespace evgen {
     double              fY;              // central y position of source
     double              fZ;              // central z position of source
     double              fT;              // central t position of source
+	int					fManual;		 //manual mode
     double              fSigmaX;         // x width
     double              fSigmaY;         // y width
     double              fSigmaZ;         // z width
     double              fSigmaT;         // t width
     double              fP;              // central momentm of photon 
     double              fSigmaP;         // mom width;
-
+	double 				fTheta;			 // theta, only in manual mode
+	double				fPhi;			 // phi, manual mode
+	double				fSpreadTheta;	 // spread theta, fraction +/-, manual mode (MANUAL==1)
+	double				fSpreadPhi;		 // spread phi, fraction +/-, only in manual  mode
+    double              fX1;              // central x position of source, manual
+    double              fY1;              // central y position of source, manual
+    double              fZ1;              // central z position of source, manual
     // Number of photons per event
     int                fN;              // number of photons per event
     
@@ -182,10 +192,18 @@ namespace evgen{
     fPosDist      =     (pset.get<int >("PosDist")     );
     fPDist        =     (pset.get<int >("PDist")       );
     fTDist        =     (pset.get<int >("TDist")       );
-    unsigned int seed = pset.get< unsigned int >("Seed", evgb::GetRandomNumberSeed());
-
-    
-    createEngine(seed);
+    fTheta      =     (pset.get<double >("Theta"),0.5     );
+    fPhi        =     (pset.get<double >("Phi"),1.0       );
+    fSpreadTheta        =     (pset.get<double >("SpreadTheta"),0.1       );
+    fSpreadPhi        =     (pset.get<double >("SpreadPhi"),0.1       );
+    fX1        =     (pset.get<double >("LX"),3.0       );
+    fY1        =     (pset.get<double >("LY"),0.0       );
+    fZ1        =     (pset.get<double >("LZ"),44.0       );
+    fManual        =     (pset.get<int >("Manual"),0       );
+    // create a default random engine; obtain the random seed from SeedService,
+    // unless overridden in configuration with key "Seed"
+    art::ServiceHandle<artext::SeedService>()
+      ->createEngine(*this, pset, "Seed");
 
     // load optional parameters in function
     produces< sumdata::RunData, art::InRun >();
@@ -454,7 +472,11 @@ namespace evgen{
 	x[1] = fY + fSigmaY*(2.0*flat.fire()-1.0);
 	x[2] = fZ + fSigmaZ*(2.0*flat.fire()-1.0);
       }
-      
+	if(fManual==1){
+	x[0] = fX1;
+	x[1] = fY1;
+	x[2] = fZ1;
+	}   
       // Choose time
       double t;
       if (fTDist == kGAUS) {
@@ -472,10 +494,17 @@ namespace evgen{
 	
 
       // Choose angles
+
       double costh = 2 * flat.fire() - 1;
       double sinth = pow(1-pow(costh,2),0.5);
       double phi   = 2 * M_PI * flat.fire();
-      
+
+	  if(fManual==1){
+      costh = sin(fTheta+(fTheta*fSpreadTheta*(flat.fire()-0.5)));
+      sinth = pow(1-pow(costh,2),0.5);
+      phi   = fPhi+(fPhi*fSpreadPhi*(flat.fire()-0.5));
+
+	 }      
       // Generate momentum 4-vector
       
       fShotMom = TLorentzVector( p*sinth*cos(phi), 

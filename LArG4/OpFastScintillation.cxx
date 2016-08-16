@@ -117,11 +117,16 @@
 
 #include "art/Framework/Services/Optional/RandomNumberGenerator.h"
 
+
 #include "TH1.h"
 #include "TF1.h"
 #include "TROOT.h"
 #include "TStyle.h"
 #include "TMath.h"
+
+
+int counter_photons=0;
+double energy_deposited1=0.0;//FIXME, REMOVE ME, I SHOULDN'T BE HERE, I'M JUST A TEST VARIABLE!
 
 namespace larg4{
 
@@ -325,7 +330,9 @@ OpFastScintillation::PostStepDoIt(const G4Track& aTrack, const G4Step& aStep)
 	double MeanNumberOfPhotons = larg4::IonizationAndScintillation::Instance()->NumberScintillationPhotons();
         RecordPhotonsProduced(aStep, MeanNumberOfPhotons);
 
-	
+	energy_deposited1+=larg4::IonizationAndScintillation::Instance()->EnergyDeposit();
+	//std::cout<<"mean number of photons "<<MeanNumberOfPhotons<<std::endl;
+
 	if (verboseLevel>0) {
 	  G4cout << "\n Exiting from OpFastScintillation::DoIt -- NumberOfSecondaries = " 
 		 << aParticleChange.GetNumberOfSecondaries() << G4endl;
@@ -369,6 +376,7 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
   G4MaterialPropertiesTable* aMaterialPropertiesTable =
     aMaterial->GetMaterialPropertiesTable();
 
+
   double xyz[3];
   xyz[0]=x0[0]/cm;
   xyz[1]=x0[1]/cm;
@@ -376,7 +384,11 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
 
   // Get the visibility vector for this point
   const std::vector<float>* Visibilities = nullptr;
-  if(!pvs->UseParameterization())Visibilities = pvs->GetAllVisibilities(xyz);
+
+
+
+  if(!pvs->UseParameterization())Visibilities = pvs->GetAllVisibilities(xyz,false);//FIXME and make use of added capability of storing reflected light in library  separately
+
 
 
   G4MaterialPropertyVector* Fast_Intensity = 
@@ -569,8 +581,7 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
 
         for(int i = 0; i < 6; i++)
         {
-          geo->OpChannelToCryoOpDet(200*i,o,c);
-          geo->Cryostat(c).OpDet(o).GetCenter(OpDetCenter);
+          geo->OpDetGeoFromOpDet(200*i).GetCenter(OpDetCenter);
           if(std::abs(xyz[0] - OpDetCenter[0])< 231) 
           {
             CageId = i;
@@ -580,10 +591,9 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
 
         if(CageId == -1) break;
               
-        for(int OpChan= 200*CageId; OpChan < 200*CageId + 200; OpChan++)
+        for(int OpDet= 200*CageId; OpDet < 200*CageId + 200; OpDet++)
         {
-          geo->OpChannelToCryoOpDet(OpChan,o,c);
-          geo->Cryostat(c).OpDet(o).GetCenter(OpDetCenter);
+          geo->OpDetGeoFromOpDet(OpDet).GetCenter(OpDetCenter);
 
           if(Num > 0) 
           {
@@ -620,7 +630,7 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
             G4int DetThisPMT = G4int(G4Poisson(normalizedvisibility*Num));
             if(DetThisPMT>0)
             {
-              DetectedNum[OpChan] = DetThisPMT;
+              DetectedNum[OpDet] = DetThisPMT;
             }
           }
        }
@@ -656,12 +666,23 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
 	  }
 	else
     {
-	  for(size_t OpChan=0; OpChan!=Visibilities->size(); OpChan++)
+
+
+	  for(size_t OpDet=0; OpDet!=Visibilities->size(); OpDet++)
       {
-		G4int DetThisPMT = G4int(G4Poisson(Visibilities->at(OpChan) * Num));
+		G4int DetThisPMT = G4int(G4Poisson(Visibilities->at(OpDet) * Num));
+
+
+
+
+
+//std::cout<<xyz[0]<<" "<<xyz[1]<<" "<<xyz[2]<<" photons number "<<Num<<" "<<Visibilities->at(OpDet)<<" "<<G4Poisson(Visibilities->at(OpDet) * Num)<<std::endl;
+
+
+
 		if(DetThisPMT>0) 
         {
-		    DetectedNum[OpChan]=DetThisPMT;
+		    DetectedNum[OpDet]=DetThisPMT;
 		    //   mf::LogInfo("OpFastScintillation") << "FastScint: " <<
 		    //   //   it->second<<" " << Num << " " << DetThisPMT;  
         }

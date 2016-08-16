@@ -63,8 +63,11 @@ namespace larg4 {
 
     // make the histograms
     art::ServiceHandle< art::TFileService> tfs;
-
-    fElectronsPerStep   = tfs->make<TH1F>("electronsPerStep", ";Electrons;Steps", 
+fTree = tfs->make<TTree>("ionscinttree","scinttree");
+fTree->Branch("fTrkID",&fTrkID,"fTrkID/I");
+fTree->Branch("photons_nr",&photons_nr,"photons_nr/I");
+fTree->Branch("electrons_nr",&electrons_nr,"electrons_nr/I"); 
+  fElectronsPerStep   = tfs->make<TH1F>("electronsPerStep", ";Electrons;Steps", 
 					  500, 0., 5000.);			
     fPhotonsPerStep   	= tfs->make<TH1F>("photonsPerStep", ";Photons;Steps", 	
 					  500, 0., 5000.);			
@@ -83,7 +86,10 @@ namespace larg4 {
 					  
     fElectronsVsPhotons = tfs->make<TH2F>("electronsVsPhotons", ";Photons;Electrons",
 					  500, 0., 5000., 500, 0., 5000.);
-
+	track1=0;
+	photons_nr=0;
+	electrons_nr=0;
+	//track2=0;
     return;
   }
 
@@ -100,10 +106,13 @@ namespace larg4 {
 
     if(fStepNumber==step->GetTrack()->GetCurrentStepNumber() && fTrkID==step->GetTrack()->GetTrackID())
       return;
-    
+    bool filltree=false;
     fStepNumber=step->GetTrack()->GetCurrentStepNumber(); 
     fTrkID=step->GetTrack()->GetTrackID();
-
+    if(fTrkID!=track1){
+	filltree=true;
+	track1=fTrkID;
+	}
     fStep = step;
 
     // reset the calculator
@@ -137,7 +146,15 @@ namespace larg4 {
       fPhotonsPerLength  ->Fill(fISCalc->NumberScintillationPhotons()*1.e-3/(totstep.mag()/cm));
       fElectronsPerEDep  ->Fill(fISCalc->NumberIonizationElectrons()*1.e-3/fISCalc->EnergyDeposit());
       fPhotonsPerEDep    ->Fill(fISCalc->NumberScintillationPhotons()*1.e-3/fISCalc->EnergyDeposit());
+      photons_nr+=NumberScintillationPhotons();
+	electrons_nr+=NumberIonizationElectrons();
 
+	if(filltree){
+
+	fTree->Fill();
+	photons_nr=0;
+	electrons_nr=0;
+	}
     } // end if the energy deposition is non-zero
 
     return;

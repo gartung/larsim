@@ -51,7 +51,7 @@ namespace phot {
 
   private:
       std::string fAltXAxis;
-      
+      int         fOpDet;
   };
   
 }
@@ -76,6 +76,7 @@ namespace phot {
   void PhotonLibraryAnalyzer::reconfigure(fhicl::ParameterSet const& pset)
   {
       fAltXAxis = pset.get<std::string>("alt_x_axis");
+      fOpDet    = pset.get<int>("opdet");
   }
 
   //----------------------------------------------------------------------------
@@ -84,13 +85,13 @@ namespace phot {
   {
     mf::LogInfo("PhotonLibraryAnalyzer")<<"Analyzing photon library - begin"<<
       std::endl;
-
+    std::cout<<"Analyzing photon library - begin"<<std::endl;
     
     art::ServiceHandle<art::TFileService> tfs;
     art::ServiceHandle<PhotonVisibilityService> pvs;
     art::ServiceHandle<geo::Geometry> geom;
 
-    int NOpDet = geom->NOpDet();
+    int NOpDet = pvs->NOpChannels();
 
     sim::PhotonVoxelDef TheVoxelDef = pvs->GetVoxelDef();
     TVector3 Steps = TheVoxelDef.GetSteps();
@@ -103,6 +104,8 @@ namespace phot {
     int XSteps = int(Steps[0]);
     int YSteps = int(Steps[1]);
     int ZSteps = int(Steps[2]);
+    std::cout <<"steps "<<XSteps<< " "<<YSteps<<" "<<ZSteps<<  "UpperCorner: " << UpperCorner[0] << " " << UpperCorner[1] << " " << UpperCorner[2] << "\n"
+                                         << "LowerCorner: " << LowerCorner[0] << " " << LowerCorner[1] << " " << LowerCorner[2]<<std::endl;
 
     TH3D *FullVolume = tfs->make<TH3D>("FullVolume","FullVolume", 
                                        XSteps,LowerCorner[0],UpperCorner[0],
@@ -167,8 +170,7 @@ namespace phot {
 
       }
     
-  mf::LogInfo("PhotonLibraryAnalyzer")<<"Analyzing photon library - running through voxels "<<
-    std::endl;
+  mf::LogInfo("PhotonLibraryAnalyzer")<<"Analyzing photon library - running through voxels "<<std::endl;
 
   int reportnum=10000;
 
@@ -185,15 +187,20 @@ namespace phot {
   for(int i=0; i!=TheVoxelDef.GetNVoxels(); ++i)
     {
       if(i%reportnum==0) std::cout<<"Photon library analyzer at voxel " << i<<std::endl;
-    
+    std::cout<<"Photon library analyzer at voxel " << i<<std::endl;
       std::vector<int> Coords = TheVoxelDef.GetVoxelCoords(i);
-                
-      const std::vector<float>* Visibilities = pvs->GetLibraryEntries(i);
+                std::cout<<"Photon library analyzer at voxel " << i<<" "<<Coords[0]<<" "<<Coords[1]<<" "<<Coords[2]<<std::endl;
+      const std::vector<float>* Visibilities = pvs->GetLibraryEntries(i,false);
       
       float TotalVis=0;
-      for(size_t ichan=0; ichan!=Visibilities->size(); ++ichan)
-      {
-	TotalVis+=Visibilities->at(ichan);	
+      if (fOpDet < 0) {
+        for(size_t ichan=0; ichan!=Visibilities->size(); ++ichan)
+        {
+          TotalVis+=Visibilities->at(ichan);	
+        }
+      }
+      else {
+        TotalVis = Visibilities->at(fOpDet);
       }
       
       VisByN->Fill(Visibilities->size());
@@ -211,7 +218,8 @@ namespace phot {
       XProjection->Fill(Coords[newX], Coords[newY], TotalVis);
       YProjection->Fill(Coords[0], Coords[2], TotalVis);
       ZProjection->Fill(Coords[0], Coords[1], TotalVis);
-     
+     std::cout<<"Photon library analyzer at voxel " << i<<" x "<<Coords[0]<<" y "<<Coords[1]<<" z "<<Coords[2]<<" "<<TotalVis<<std::endl;
+
     }
   
   mf::LogInfo("PhotonLibraryAnalyzer")<<"Analyzing photon library - end"<<

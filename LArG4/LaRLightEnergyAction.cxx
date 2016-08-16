@@ -55,6 +55,7 @@ G4bool test1=false;
 G4bool tracktest=false;
 G4double refl_all=0;//> all reflections count
 G4String processn;//> number of physical process
+<<<<<<< HEAD
 G4String thePrePVname1;
 G4String thePostPVname1;
 
@@ -62,12 +63,18 @@ G4String thePostPVname1;
 // in temporary velocity bug fix. -wforeman
 double globalTime, velocity_G4, velocity_step;
 
+=======
+G4String tpc_big;
+G4String tpc_test;
+>>>>>>> feature/pawel_optical
 namespace larg4 {
 
   //----------------------------------------------------------------------------
   // Constructor.
-  LaRLightEnergyAction::LaRLightEnergyAction(int trkOption)
+  LaRLightEnergyAction::LaRLightEnergyAction(int trkOption, std::string tpc1, std::string tpc2)
   {
+tpc_big=tpc1;
+tpc_test=tpc2;
   }
 
   //----------------------------------------------------------------------------
@@ -111,20 +118,29 @@ namespace larg4 {
 		if(eventnumber_fast!=evnr){
 			change_event=true;
 			evnr=eventnumber_fast;
+<<<<<<< HEAD
 	//		mf::LogWarning("LaRLightEnergyAction")<<"--------------EVENT NUMBER"<<evnr<<std::endl;
+=======
+			//mf::LogWarning("LaRLightEnergyAction")<<"--------------EVENT NUMBER"<<evnr<<std::endl;
+>>>>>>> feature/pawel_optical
 		}
 
 	}
 	else{
 		change_event=true;
 		evnr=eventnumber_fast;
+<<<<<<< HEAD
 	//	mf::LogWarning("LaRLightEnergyAction")<<" EVENT NUMBER laRlight energyaction "<<evnr<<std::endl;	
+=======
+		//mf::LogWarning("LaRLightEnergyAction")<<" EVENT NUMBER laRlight energyaction "<<evnr<<std::endl;	
+>>>>>>> feature/pawel_optical
 	}
 	if(change_event==true){
 		energy_deposit_step=0.;
 
 
 	}
+<<<<<<< HEAD
 
         // Temporary fix for problem where  DeltaTime on the first step
         // of optical photon propagation is calculated incorrectly. -wforeman
@@ -139,6 +155,16 @@ namespace larg4 {
            globalTime - step->GetDeltaTime() + step->GetStepLength()/velocity_G4);
         }
 
+=======
+  
+	const G4StepPoint* preStepPoint = step->GetPreStepPoint();
+	const G4StepPoint* postStepPoint = step->GetPostStepPoint();
+	const G4ThreeVector position = preStepPoint->GetPosition();
+ //mf::LogWarning("LaRLightEnergyAction")<<" close to photodet "<< postStepPoint->GetPhysicalVolume()->GetName()<<" "<< preStepPoint->GetPhysicalVolume()->GetName()<<std::endl;
+  
+//mf::LogWarning("LaRLightEnergyAction")<<" step length "<<step->GetStepLength()<<std::endl;
+if ( postStepPoint->GetPhysicalVolume()->GetName().contains("TPBETL") ||  preStepPoint->GetPhysicalVolume()->GetName().contains("TPBETL")) mf::LogWarning("LaRLightEnergyAction")<<" IN  tpb LAYER ON ETL "<< postStepPoint->GetPhysicalVolume()->GetName()<<" step "<<step->GetStepLength()/CLHEP::cm<<std::endl;	
+>>>>>>> feature/pawel_optical
 	if (step->GetTrack()->GetDefinition()->GetPDGEncoding()==0){
 		tmppos.clear();
 
@@ -162,20 +188,27 @@ namespace larg4 {
 		}
 
 
+<<<<<<< HEAD
  
 		if ( step->GetPostStepPoint()->GetPhysicalVolume()->GetName()=="volArgon_cap_L_PV" && ((step->GetPostStepPoint()->GetPosition()[2]/cm)>90.0 ||(step->GetPostStepPoint()->GetPosition()[2]/cm)<0.0)){
 			step->GetTrack()->SetTrackStatus(fStopAndKill);
 			ktrack1++;
+=======
+		 
+		if ( postStepPoint->GetPhysicalVolume()->GetName()=="volArgon_cap_L_PV" && ((postStepPoint->GetPosition()[2]/CLHEP::cm)>90.0 ||(postStepPoint->GetPosition()[2]/CLHEP::cm)<0.0)){
+			//step->GetTrack()->SetTrackStatus(fStopAndKill);
+			//ktrack1++;
+>>>>>>> feature/pawel_optical
 			}//if in argon cap behind TPC - killing track
 	}//if opticalphoton - check
 
 
-if(step->GetTrack()->GetVolume()->GetName()=="volBeamBox_PV" || step->GetTrack()->GetVolume()->GetName()=="volTPCActive_PV"){ 
+if(step->GetTrack()->GetVolume()->GetName()==tpc_test || step->GetTrack()->GetVolume()->GetName()==tpc_big){ 
 		
 
-			 energy_deposit_step+=step->GetTotalEnergyDeposit();
-			//mf::LogWarning("LaRLightEnergyAction")<<"energy deposit step filled!!!!!!!!! "<<energy_deposit_step<<" change event "<<change_event<<std::endl;
-
+			 energy_deposit_step+=step->GetTotalEnergyDeposit()/CLHEP::MeV;
+//			mf::LogWarning("LaRLightEnergyAction")<<"energy deposit step filled!!!!!!!!! "<<energy_deposit_step<<" change event "<<change_event<<" tpc name "<<tpc_big<<std::endl;
+//wspolrzedne z geometry, MCparticle, trajectory, get energy deposit 
 	}
 			
     

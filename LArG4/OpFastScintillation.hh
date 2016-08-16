@@ -264,7 +264,7 @@ protected:
         G4bool scintillationByParticleType;
 
 private:
-
+	
         G4double single_exp(G4double t, G4double tau2);
         G4double bi_exp(G4double t, G4double tau1, G4double tau2);
 

@@ -10,7 +10,7 @@ standard_lightsource_filemode:
                                 #  in the TFileService
 
  PosDist:            0          # Flags specifying random distribution
- PDist:              0          #   0 = Uniform
+ PDist:              1          #   0 = Uniform
  TDist:              0          #   1 = Gaussian
 
  # Location of file supplying light source configuration per event

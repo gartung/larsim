@@ -52,6 +52,7 @@ namespace phot{
     Int_t     Voxel;
     Int_t     OpChannel;
     Float_t   Visibility;
+    Float_t   ReflVisibility;
    // std::string gdmlFileName;
     Float_t   ReflVisibility;
 
@@ -59,12 +60,14 @@ namespace phot{
     tt->Branch("OpChannel",  &OpChannel,  "OpChannel/I");
     tt->Branch("Visibility", &Visibility, "Visibility/F");
  //   tt->Branch("", &gdmlFileName, "gdmlFileName");
-    if(storeReflected)
+
+     if(storeReflected)
     { tt->Branch("ReflVisibility", &ReflVisibility, "ReflVisibility/F");
       if (fLookupTable.size() != fReflLookupTable.size())
           throw cet::exception(" Photon Library ") << "Reflected light lookup table is different size than Direct table \n"
 				  << "this should not be happening. ";
     }						
+
 
     for(size_t ivox=0; ivox!=fLookupTable.size(); ++ivox)
       {
@@ -77,6 +80,10 @@ namespace phot{
 		Visibility = fLookupTable[ivox][ichan];
 		if(storeReflected)
 		  ReflVisibility = fReflLookupTable[ivox][ichan];
+
+		
+    Float_t   ReflVisibility;	      
+
 		tt->Fill();
 	      }
 	  }	
@@ -85,7 +92,7 @@ namespace phot{
 
   //------------------------------------------------------------
   
-  void PhotonLibrary::StoreLibraryToFile2(std::string LibraryFile, int Nx, int Ny, int Nz, int Nv, std::string gdmlfile)
+  void PhotonLibrary::StoreLibraryToFile2(std::string LibraryFile, int Nx, int Ny, int Nz, int Nv, std::string gdmlfile,bool storeReflected)
   {
     mf::LogInfo("PhotonLibrary") << "Writing extended photon library to input file: " << LibraryFile.c_str()<<std::endl;
 
@@ -97,6 +104,7 @@ namespace phot{
     Int_t     Voxel;
     Int_t     OpChannel;
     Float_t   Visibility;
+    Float_t   ReflVisibility;
     Int_t     nx;
     Int_t     ny;
     Int_t     nz;
@@ -115,7 +123,13 @@ namespace phot{
     tt->Branch("Voxels_z",      &nz,"nz/I");
     tt->Branch("Voxels_total",  &nv,"nv/I");
     tt->Branch("file_path", filepath, "filepath/C");
- 
+     if(storeReflected)
+    { tt->Branch("ReflVisibility", &ReflVisibility, "ReflVisibility/F");
+      if (fLookupTable.size() != fReflLookupTable.size())
+          throw cet::exception(" Photon Library ") << "Reflected light lookup table is different size than Direct table \n"
+				  << "this should not be happening. ";
+    }						
+
 
     for(size_t ivox=0; ivox!=fLookupTable.size(); ++ivox)
       {
@@ -131,7 +145,10 @@ namespace phot{
 		nz=Nz;
 		nv=Nx*Ny*Nz;
 		// gdmlfilepath=const Char_t("file");
+		if(storeReflected)
+		ReflVisibility = fReflLookupTable[ivox][ichan];
 		tt->Fill();
+	      
 	      }
 	  }	
       }
@@ -143,7 +160,7 @@ namespace phot{
   {
     fLookupTable.clear();
     fReflLookupTable.clear();
-    
+
     fNVoxels     = NVoxels;
     fNOpChannels = NOpChannels;
 
@@ -160,14 +177,13 @@ namespace phot{
 
   //------------------------------------------------------------
 
-  void PhotonLibrary::LoadLibraryFromFile(std::string LibraryFile, size_t NVoxels, size_t NOpChannels,bool getReflected)
+
+  void PhotonLibrary::LoadLibraryFromFile(std::string LibraryFile, size_t NVoxels,bool getReflected=false)
+
   {
     fLookupTable.clear();
     
     mf::LogInfo("PhotonLibrary") << "Reading photon library from input file: " << LibraryFile.c_str()<<std::endl;
-
-    fNVoxels     = NVoxels;
-    fNOpChannels = NOpChannels;
 
     TFile *f = nullptr;
     TTree *tt = nullptr;
@@ -197,40 +213,64 @@ namespace phot{
     Int_t     Voxel;
     Int_t     OpChannel;
     Float_t   Visibility;
-    Float_t   ReflVisibility; 
-    
-    fLookupTable.resize(NVoxels);    
 
-    mf::LogInfo("PhotonLibrary") <<"Photon lookup table size : "<<  NVoxels << " voxels,  " << NOpChannels<<" channels";
-
-
-    for(size_t ivox=0; ivox!=NVoxels; ivox++)
-      {
-	fLookupTable[ivox].resize(NOpChannels,0);
-      }
-    
+    Float_t   ReflVisibility;
     tt->SetBranchAddress("Voxel",      &Voxel);
     tt->SetBranchAddress("OpChannel",  &OpChannel);
     tt->SetBranchAddress("Visibility", &Visibility);
     if(getReflected)
         tt->SetBranchAddress("ReflVisibility", &ReflVisibility);
+
+
+
     
+    fNVoxels     = NVoxels;
+    fNOpChannels = 1;      // Minimum default, overwritten by library reading
+
+    
+    fLookupTable.resize(NVoxels); 
+
     size_t NEntries = tt->GetEntries();
 
-    for(size_t i=0; i!=NEntries; ++i)
-      {
-	tt->GetEntry(i);
-	if((Voxel<0)||(Voxel>=int(NVoxels))||(OpChannel<0)||(OpChannel>=int(NOpChannels)))
-	  {
-           //      mf::LogError("PhotonLibrary")<<"Error building photon library, entry out of range: " << Voxel<< " " << OpChannel;
-	  }
-	else
-	  {
-	    fLookupTable[Voxel].at(OpChannel) = Visibility;
+    for(size_t i=0; i!=NEntries; ++i) {
+      tt->GetEntry(i);
+
+      // Set # of optical channels to 1 more than largest one seen
+      if (OpChannel >= (int)fNOpChannels)
+        fNOpChannels = OpChannel+1;
+
+      // Expand this voxel's vector if needed
+      if (fLookupTable[Voxel].size() < fNOpChannels){
+        fLookupTable[Voxel].resize(fNOpChannels, 0);
+
+	}
+
+
+        if(getReflected){
+		if (fReflLookupTable[Voxel].size() < fNOpChannels) fReflLookupTable[Voxel].resize(fNOpChannels,0);
+	}
+      // Set the visibility at this optical channel
+      fLookupTable[Voxel].at(OpChannel) = Visibility;
 	    if(getReflected)
 	      fReflLookupTable[Voxel].at(OpChannel) = ReflVisibility;
-	  }
-      }
+    }
+
+    // Go through the table and fill in any missing 0's
+    for(size_t ivox=0; ivox!=NVoxels; ivox++)
+    {
+      if (fLookupTable[ivox].size() < fNOpChannels)
+	fLookupTable[ivox].resize(fNOpChannels,0);
+       if(getReflected){
+		if (fReflLookupTable[Voxel].size() < fNOpChannels) fReflLookupTable[Voxel].resize(fNOpChannels,0);
+	}
+
+    }
+    
+
+    
+    mf::LogInfo("PhotonLibrary") <<"Photon lookup table size : "<<  NVoxels << " voxels,  " << fNOpChannels<<" channels";
+
+
 
     try
       {
@@ -274,7 +314,15 @@ namespace phot{
       
       }
   }
+  //----------------------------------------------------
 
+  void PhotonLibrary::SetReflCount(size_t Voxel, size_t OpChannel, float Count) 
+  { 
+    if(/*(Voxel<0)||*/(Voxel>=fNVoxels))
+      mf::LogError("PhotonLibrary")<<"Error - attempting to set count in voxel " << Voxel<<" which is out of range"; 
+    else
+      fReflLookupTable[Voxel].at(OpChannel) = Count; 
+  }
   //----------------------------------------------------
 
   void PhotonLibrary::SetReflCount(size_t Voxel, size_t OpChannel, float Count) 
@@ -296,8 +344,8 @@ namespace phot{
     else 
       return &(fLookupTable[Voxel]);
   }
-
   //----------------------------------------------------
+
 
   const std::vector<float>* PhotonLibrary::GetReflCounts(size_t Voxel) const
   { 

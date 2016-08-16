@@ -72,11 +72,7 @@ namespace phot{
 
     if(fTheLibrary == 0) {
       fTheLibrary = new PhotonLibrary();
-
-      art::ServiceHandle<geo::Geometry> geom;
-
-      size_t NVoxels = GetVoxelDef().GetNVoxels();
-      size_t NOpChannels = geom->NOpChannels();
+	art::ServiceHandle<geo::Geometry> geom;
 
     geo_file=std::string(geom->GDMLFile());
 
@@ -92,17 +88,25 @@ namespace phot{
 	  mf::LogInfo("PhotonVisibilityService") << "PhotonVisibilityService Loading photon library from file "
 						 << LibraryFileWithPath
 						 << std::endl;
-	  fTheLibrary->LoadLibraryFromFile(LibraryFileWithPath, NVoxels, NOpChannels,fStoreReflected);
+
+	  size_t NVoxels = GetVoxelDef().GetNVoxels();
+	  fTheLibrary->LoadLibraryFromFile(LibraryFileWithPath, NVoxels,fStoreReflected);
+
 	}
       }
       else {
+        art::ServiceHandle<geo::Geometry> geom;
+
+        size_t NOpDets = geom->NOpDets();
+        size_t NVoxels = GetVoxelDef().GetNVoxels();
 	mf::LogInfo("PhotonVisibilityService") << " Vis service running library build job.  Please ensure " 
 					       << " job contains LightSource, LArG4, SimPhotonCounter"<<std::endl;
-					       	mf::LogInfo("PhotonVisibilityService")<<"extended library info "<<fExtendedLibraryInfo<<std::endl;
 
-	 fTheLibrary->CreateEmptyLibrary(NVoxels, NOpChannels);
+	fTheLibrary->CreateEmptyLibrary(NVoxels, NOpDets);
+
        	 mf::LogInfo("PhotonVisibilityService")<<"writing standard library -> extended library info val is "<<fExtendedLibraryInfo<<std::endl;
 	 	
+
       }
     }
   }
@@ -118,9 +122,11 @@ namespace phot{
 	mf::LogInfo("PhotonVisibilityService") << " Vis service "
 					       << " Storing Library entries to file..." <<std::endl;
 	
-	if( fExtendedLibraryInfo==true) fTheLibrary->StoreLibraryToFile2(fLibraryFile,fNx,fNy,fNz,fNx*fNy*fNz,geo_file);
+
+		if( fExtendedLibraryInfo==true) fTheLibrary->StoreLibraryToFile2(fLibraryFile,fNx,fNy,fNz,fNx*fNy*fNz,geo_file,fStoreReflected);
 	else{
-	fTheLibrary->StoreLibraryToFile(fLibraryFile,fStoreReflected);
+	 fTheLibrary->StoreLibraryToFile(fLibraryFile,fStoreReflected);
+
        	 mf::LogInfo("PhotonVisibilityService")<<"writing standard library -> extended library info val is "<<fExtendedLibraryInfo<<std::endl;
 	 	}
       }
@@ -137,10 +143,11 @@ namespace phot{
  mf::LogInfo("PhotonVisibilityService") << "gdml file path "<<geo_file<<std::endl;
     // Library details
     fLibraryBuildJob      = p.get< bool        >("LibraryBuildJob"     );
-    fParameterization     = p.get< bool        >("LBNE10ktParameterization", false);
+    fParameterization     = p.get< bool        >("DUNE10ktParameterization", false);
     fLibraryFile          = p.get< std::string >("LibraryFile"         );
     fDoNotLoadLibrary     = p.get< bool        >("DoNotLoadLibrary"    );
     fStoreReflected     = p.get< bool          >("StoreReflected"    );
+
     // Voxel parameters
     fUseCryoBoundary      = p.get< bool        >("UseCryoBoundary"     );
     fExtendedLibraryInfo     = p.get< bool        >("ExtendedLibraryInfo"    );
@@ -198,22 +205,19 @@ namespace phot{
   {
     int VoxID = fVoxelDef.GetVoxelID(xyz);
     return GetLibraryEntries(VoxID,wantReflected);
-  }
+
+
+}
+
 
 
   //------------------------------------------------------
 
   // Get distance to optical detector OpDet
-  double PhotonVisibilityService::DistanceToOpDet( double* xyz, unsigned int OpChannel )
+  double PhotonVisibilityService::DistanceToOpDet( double* xyz, unsigned int OpDet )
   {
     art::ServiceHandle<geo::Geometry> geom;
- 
-    // Find the right OpDet
-    unsigned int c=0, o=0;
-    geom->OpChannelToCryoOpDet(OpChannel, o, c);
-
-    // Get its coordinates
-    return geom->Cryostat(c).OpDet(o).DistanceToPoint(xyz);
+    return geom->OpDetGeoFromOpDet(OpDet).DistanceToPoint(xyz);
       
   }
 
@@ -222,17 +226,10 @@ namespace phot{
 
 
   // Get the solid angle reduction factor for planar optical detector OpDet
-  double PhotonVisibilityService::SolidAngleFactor( double* xyz, unsigned int OpChannel )
+  double PhotonVisibilityService::SolidAngleFactor( double* xyz, unsigned int OpDet )
   {
     art::ServiceHandle<geo::Geometry> geom;
-   
-    // Find the right OpDet
-    unsigned int c=0, o=0;
-    geom->OpChannelToCryoOpDet(OpChannel, o, c);
-    
-    double CosTheta = geom->Cryostat(c).OpDet(o).CosThetaFromNormal(xyz);
-
-    return CosTheta;
+    return geom->OpDetGeoFromOpDet(OpDet).CosThetaFromNormal(xyz);
   }
 
   //------------------------------------------------------
@@ -264,9 +261,6 @@ namespace phot{
   }
   
 
-  
-  
-  //------------------------------------------------------
 
   void PhotonVisibilityService::SetLibraryEntry(int VoxID, int OpChannel, float N, bool wantReflected)
   {
@@ -278,7 +272,9 @@ namespace phot{
    else
       fTheLibrary->SetReflCount(VoxID,OpChannel, N); 
      
-    mf::LogDebug("PhotonVisibilityService") << " PVS logging " << VoxID << " " << OpChannel<<std::endl;
+
+    mf::LogDebug("PhotonVisibilityServiceOpLib") << " PVS logging " << VoxID << " " << OpChannel<<std::endl;
+
   }
 
   //------------------------------------------------------
@@ -308,6 +304,14 @@ namespace phot{
      return fTheLibrary->GetReflCount(VoxID, Channel); 
   }
 
+  //------------------------------------------------------
+  int PhotonVisibilityService::NOpChannels()
+  {
+    if(fTheLibrary == 0)
+      LoadLibrary();
+    
+    return fTheLibrary->NOpChannels();
+  }
 
 } // namespace
 

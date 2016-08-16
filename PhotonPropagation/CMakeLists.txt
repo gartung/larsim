@@ -5,6 +5,7 @@ art_make( BASENAME_ONLY
 	                RawData
 	                Geometry
 	                Geometry_service
+			
                         ${ART_FRAMEWORK_CORE}
 			${ART_FRAMEWORK_PRINCIPAL}
 			${ART_FRAMEWORK_SERVICES_REGISTRY}
@@ -17,6 +18,7 @@ art_make( BASENAME_ONLY
 			${MF_UTILITIES}
 			${FHICLCPP}
 			${CETLIB}
+			${Boost_SYSTEM_LIBRARY}
 			${ROOT_BASIC_LIB_LIST}
                         ${ROOT_EG}
           SERVICE_LIBRARIES PhotonPropagation
@@ -25,6 +27,7 @@ art_make( BASENAME_ONLY
 	                RawData
 	                Geometry
 	                Geometry_service
+			
                         ${ART_FRAMEWORK_CORE}
 			${ART_FRAMEWORK_PRINCIPAL}
 			${ART_FRAMEWORK_SERVICES_REGISTRY}
@@ -41,7 +44,7 @@ art_make( BASENAME_ONLY
           MODULE_LIBRARIES PhotonPropagation
                            PhotonVisibilityService_service
                         Simulation
-                  			${ROOT_BASIC_LIB_LIST}
+                  	${ROOT_BASIC_LIB_LIST}
                         Geometry
       	                Geometry_service
                         

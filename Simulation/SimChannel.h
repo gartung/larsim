@@ -19,6 +19,7 @@
 #include <stdint.h>
 
 #include "SimpleTypesAndConstants/geo_types.h"
+#include "SimpleTypesAndConstants/RawTypes.h" // raw::ChannelID_t
 
 namespace sim {
 
@@ -36,6 +37,9 @@ namespace sim {
     
     IDE();
 
+    //constructor for IDEs applying G4 offset...
+    IDE(IDE const&, int);
+    
     int    trackID;      ///< Geant4 supplied track ID
     double numElectrons; ///< total number of electrons for this track ID and time
     double energy;       ///< total energy deposited for this track ID and time
@@ -53,14 +57,14 @@ namespace sim {
     
   private:
     
-    uint32_t                                            fChannel; ///< electronics channel associated with these sim::Electrons
+    raw::ChannelID_t                                    fChannel; ///< electronics channel associated with these sim::Electrons
     std::map< unsigned short, std::vector< sim::IDE > > fTDCIDEs; ///< vector of IDE structs for each TDC with signal
 
 
 #ifndef __GCCXML__
   public:
 
-    explicit SimChannel(uint32_t channel);
+    explicit SimChannel(raw::ChannelID_t channel);
 
     // method to add ionization electrons and energy to this channel
     void AddIonizationElectrons(int trackID,
@@ -71,7 +75,7 @@ namespace sim {
 
     
     
-    uint32_t Channel() const;
+    raw::ChannelID_t Channel() const;
 
     // method to return a collection of IDE structs for all geant4
     // track ids represented between startTDC and endTDC
@@ -89,8 +93,11 @@ namespace sim {
     std::vector<sim::TrackIDE> TrackIDEs(unsigned int startTDC,
 					 unsigned int endTDC) const;
     
-    bool operator< (const SimChannel& other)     const;
+    bool operator<  (const SimChannel& other)     const;
+    bool operator== (const SimChannel& other)     const;
 
+    std::pair<int,int> MergeSimChannel(const SimChannel&, int);
+    
     //@{
     /**
 	  * @brief Dumps the full content of the SimChannel into a stream
@@ -114,9 +121,10 @@ namespace sim {
 
 #ifndef __GCCXML__
 
-inline bool sim::SimChannel::operator< (const sim::SimChannel& other)                       const { return fChannel < other.Channel(); }
+inline bool sim::SimChannel::operator<  (const sim::SimChannel& other)                       const { return fChannel < other.Channel(); }
+inline bool sim::SimChannel::operator== (const sim::SimChannel& other)                       const { return fChannel == other.Channel(); }
 inline const std::map<unsigned short, std::vector<sim::IDE> >& sim::SimChannel::TDCIDEMap() const { return fTDCIDEs; }
-inline uint32_t sim::SimChannel::Channel()                                                  const { return fChannel; }
+inline raw::ChannelID_t sim::SimChannel::Channel()                                          const { return fChannel; }
 
 
 // -----------------------------------------------------------------------------

@@ -12,12 +12,12 @@ standard_photonvisibilityservice:
   DoNotLoadLibrary: false
 	
   LibraryBuildJob: false
+
   ExtendedLibraryInfo: false	
-  LibraryFile: "PhotonPropagation/LibraryData/lib8984855.root"	 
- # LibraryFile: "PhotonPropagation/LibraryData/uboone_photon_library_v4.root"
-  StoreReflected:  false 	
- 	
- 	
+   StoreReflected:  false 	
+
+  LibraryFile: "PhotonPropagation/LibraryData/uboone_photon_library_v4.root"
+
 
  #These are not used when usecryoboundary=true	
   XMin: -120
@@ -38,7 +38,7 @@ standard_photonvisibilityservice_buildlib:
   UseCryoBoundary: true
 
   DoNotLoadLibrary: true
-
+StoreReflected: false
   LibraryBuildJob: true
   ExtendedLibraryInfo: false
   StoreReflected:  false 		
@@ -62,7 +62,7 @@ standard_photonvisibilityservice_par:
   NY: 1
   NZ: 1
   UseCryoBoundary: false
-  LBNE10ktParameterization: true
+  DUNE10ktParameterization: true
   DoNotLoadLibrary: true
 
   LibraryBuildJob: false

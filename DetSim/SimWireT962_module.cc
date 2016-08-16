@@ -47,7 +47,6 @@ extern "C" {
 #include <bitset>
 
 // Framework includes
-// Framework includes
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Core/EDProducer.h"
 #include "art/Framework/Principal/Event.h"
@@ -59,6 +58,9 @@ extern "C" {
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "cetlib/search_path.h"
 #include "cetlib/exception.h"
+
+// art extensions
+#include "artextensions/SeedService/SeedService.hh"
 
 #include "CLHEP/Random/RandFlat.h"
 #include "CLHEP/Random/RandGaussQ.h"
@@ -150,11 +152,10 @@ namespace detsim{
     std::string compression(pset.get< std::string >("CompressionType"));
     if(compression.compare("Huffman") == 0) fCompression = raw::kHuffman;    
 
-    // get the random number seed, use a random default if not specified    
-    // in the configuration file.  
-    unsigned int seed = pset.get< unsigned int >("Seed", sim::GetRandomNumberSeed());
-
-    createEngine(seed);
+    // create a default random engine; obtain the random seed from SeedService,
+    // unless overridden in configuration with key "Seed"
+    art::ServiceHandle<artext::SeedService>()
+      ->createEngine(*this, pset, "Seed");
   }
 
   //-------------------------------------------------
@@ -253,6 +254,7 @@ namespace detsim{
   void SimWireT962::produce(art::Event& evt)
   {
     //std::cout << "in SimWireT962::produce " << std::endl;
+    art::ServiceHandle<util::TimeService> ts;
 
     // get the geometry to be able to figure out signal types and chan -> plane mappings
     art::ServiceHandle<geo::Geometry> geo;
@@ -298,8 +300,12 @@ namespace detsim{
 	const sim::SimChannel* sc = channels[chan];
 
 	// loop over the tdcs and grab the number of electrons for each
-	for(size_t t = 0; t < fChargeWork.size(); ++t) 
-	  fChargeWork[t] = sc->Charge(t);      
+	for(size_t t = 0; t < fChargeWork.size(); ++t){
+	  int tdc = ts->TPCTick2TDC(t);
+	  if (tdc < 0) continue;
+	  if (tdc >= int(fChargeWork.size())) continue;
+	  fChargeWork[t] = sc->Charge(tdc);
+	}
 
         // Convolve charge with appropriate response function 
 	if(geo->SignalType(chan) == geo::kInduction)        

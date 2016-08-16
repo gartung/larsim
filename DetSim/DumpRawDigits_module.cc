@@ -27,7 +27,8 @@
 #include "SimpleTypesAndConstants/geo_types.h" // geo::View_t
 #include "RawData/raw.h" // raw::Uncompress()
 #include "RawData/RawDigit.h"
-#include "Filters/ChannelFilter.h"
+#include "CalibrationDBI/Interface/IChannelStatusService.h"
+#include "CalibrationDBI/Interface/IChannelStatusProvider.h"
 
 namespace {
   
@@ -161,10 +162,9 @@ namespace detsim {
       = evt.getValidHandle<std::vector<raw::RawDigit>>(fDetSimModuleLabel);
     
     // channel filter: create one only if requested
-    std::unique_ptr<filter::ChannelFilter> filter;
-    if (!bIgnoreFilters) {
-      filter.reset(new filter::ChannelFilter);
-    }
+    lariov::IChannelStatusProvider const* channelStatus = bIgnoreFilters
+      ? nullptr
+      : art::ServiceHandle<lariov::IChannelStatusService>()->GetProviderPtr();
     
     mf::LogInfo(fOutputCategory)
       << "The event contains " << Digits->size() << " raw digits";
@@ -179,17 +179,14 @@ namespace detsim {
     std::vector<float> DigitBuffer(fDigitsPerLine), LastBuffer;
     for (const raw::RawDigit& digits: *Digits) {
       // uncompress the digits
-      std::vector<short> ADCs(digits.Samples());
-      raw::Uncompress(digits.fADC, ADCs, digits.Compression());
-      // FIXME future:
-    //  raw::RawDigit::ADCvector_t ADCs(digits.Samples());
-    //  raw::Uncompress(digits.ADCs(), ADCs, digits.Compression());
+      raw::RawDigit::ADCvector_t ADCs(digits.Samples());
+      raw::Uncompress(digits.ADCs(), ADCs, digits.Compression());
       
       // print a header for the raw digits
       { // limit the scope of out:
         mf::LogVerbatim out(fOutputCategory);
         out << "  #" << digits.Channel() << ":";
-        if (filter && filter->BadChannel(digits.Channel())) {
+        if (channelStatus && channelStatus->IsBad(digits.Channel())) {
           out << " bad channel";
           continue;
         }

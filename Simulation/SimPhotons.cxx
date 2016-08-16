@@ -58,10 +58,10 @@ namespace sim
   {
   }
 
-  /// \todo: Remove this constructor when LBNE makes the next round of production
+  /// \todo: Remove this constructor when DUNE makes the next round of production
   ///        MC files - after 11 September 2013 brebel
   //----------------------------------------------------------------------------
-  LBNE10ktPhotons::LBNE10ktPhotons()
+  DUNE10ktPhotons::DUNE10ktPhotons()
   {
   }
 
@@ -83,6 +83,22 @@ namespace sim
   const SimPhotons SimPhotons::operator+(const SimPhotons &rhs) const
   {
     return SimPhotons(*this)+=rhs;
+  }
+
+  //----------------------------------------------------------------------------
+  SimPhotonsLite & SimPhotonsLite::operator+=(const SimPhotonsLite &rhs)
+  {
+
+    for(auto const& phot : rhs.DetectedPhotons)
+      this->DetectedPhotons[phot.first] += phot.second;
+	
+    return *this;
+  }
+
+  //----------------------------------------------------------------------------
+  const SimPhotonsLite SimPhotonsLite::operator+(const SimPhotonsLite &rhs) const
+  {
+    return SimPhotonsLite(*this)+=rhs;
   }
 
 }

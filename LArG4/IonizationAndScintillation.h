@@ -16,6 +16,7 @@
 
 #include "TH1.h"
 #include "TH2.h"
+#include "TTree.h"
 
 namespace larg4 {
 
@@ -56,6 +57,12 @@ namespace larg4 {
     TH1F*                 fElectronsPerEDep;   ///< histogram of electrons per MeV deposited
     TH1F*                 fPhotonsPerEDep;     ///< histogram of photons per MeV deposited
     TH2F*                 fElectronsVsPhotons; ///< histogram of electrons vs photons per step 
+	TTree* fTree;
+	int track1;
+	int track2;
+	int photons_nr;
+int electrons_nr;
+
   };
 
 } // namespace larg4

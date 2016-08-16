@@ -20,7 +20,8 @@ standard_largeantparameters:
  CosmogenicXSMNBiasOn:     0 # 0 is off. 1 works. 2 still in development.
  CosmogenicXSMNBiasFactor: 1 # Not more than 5-ish cuz of numerical instabilities.
  DisableWireplanes:        false #if set true, charge drift simulation does not run - used for optical sim jobs OR just when you don't wanna drift the e's.
- UseModBoxRecomb:          false   # use Modified Box recombination instead of Birks
+ UseModBoxRecomb:          true   # use Modified Box recombination instead of Birks
+ EnableSCE:                false   # enables simulation of space charge effect (for ionization electron drift)
 
  # The following parameters specify details of wireplanes or similar
  #  areas with optically parameterized transmissions (Ben J 2013)
@@ -40,8 +41,12 @@ standard_largeantparameters:
  #                                 [plane angle, pitch/mm, wire diameter/mm]
  #
  # This format is chosen to allow for future extensions to the model
- #  for, eg, LBNE wireplane development.
- #
+
+ OpticalParamParameters:   [ [ [30,  3, 0.15,0.97], 
+ 	 		       [-30, 3, 0.15,0.97],
+                               [0,   3, 0.15,0.97],
+                               [90,  3.5, 0.2,0.97],
+                               [0,   3.5, 0.2,0.97] ] ]	
  OpticalParamParameters:   [ [ [30,  3, 0.15], 
  	 		       [-30, 3, 0.15],
                                [0,   3, 0.15],
@@ -56,8 +61,8 @@ argoneut_largeantparameters:   @local::standard_largeantparameters
 # The following line is already in simulationservices_microboone.fcl
 # and so it should not also be included here, for clarity's sake.
 #microboone_largeantparameters: @local::standard_largeantparameters
-lbne35t_largeantparameters:    @local::standard_largeantparameters
-lbnefd_largeantparameters:   @local::standard_largeantparameters
+dune35t_largeantparameters:    @local::standard_largeantparameters
+dunefd_largeantparameters:   @local::standard_largeantparameters
 
 standard_larvoxelcalculator:
 {
@@ -78,7 +83,7 @@ argoneut_larvoxelcalculator:   @local::standard_larvoxelcalculator
 # The following line is already in simulationservices_microboone.fcl
 # and so it should not also be included here, for clarity's sake.
 #microboone_larvoxelcalculator: @local::standard_larvoxelcalculator
-lbne35t_larvoxelcalculator:    @local::standard_larvoxelcalculator
-lbnefd_larvoxelcalculator:     @local::standard_larvoxelcalculator
+dune35t_larvoxelcalculator:    @local::standard_larvoxelcalculator
+dunefd_larvoxelcalculator:     @local::standard_larvoxelcalculator
 
 END_PROLOG
