@@ -416,6 +416,8 @@ namespace larg4 {
     std::unique_ptr< art::Assns<simb::MCTruth, simb::MCParticle> > tpassn(new art::Assns<simb::MCTruth, simb::MCParticle>);
     std::unique_ptr< std::vector< sim::AuxDetSimChannel > > adCol (new  std::vector<sim::AuxDetSimChannel> );
 
+    const int PARTICLESPLIT=200000;
+    
     // Fetch the lists of LAr voxels and particles.
     art::ServiceHandle<sim::LArG4Parameters> lgp;
     art::ServiceHandle<geo::Geometry> geom;
@@ -445,15 +447,44 @@ namespace larg4 {
       art::Handle< std::vector<simb::MCTruth> > mclistHandle = mclists[mcl];
 
       for(size_t m = 0; m < mclistHandle->size(); ++m){
-        art::Ptr<simb::MCTruth> mct(mclistHandle, m);
+	art::Ptr<simb::MCTruth> mct(mclistHandle, m); 
 
+	sim::ParticleList particleList;
+	
         LOG_DEBUG("LArG4") << *(mct.get());
 
-        // The following tells Geant4 to track the particles in this interaction.
-        fG4Help->G4Run(mct);
+	// // The following tells Geant4 to track the particles in this interaction. 
+	//    fG4Help->G4Run(mct);
+        if(mct->NParticles()<=PARTICLESPLIT)
+        { //mct.push_back(const_cast<simb::MCTruth *> (mctest.get()) );
+         fG4Help->G4Run(mct); 
+         particleList =  fparticleListAction->YieldList(); 
+        }
+        else
+        {
+         for(int set=0;set<mct->NParticles()/PARTICLESPLIT;set++) 
+         {
+          simb::MCTruth mcloop;
+          mcloop.SetOrigin(simb::kSingleParticle);
+          mcloop.Reserve(PARTICLESPLIT);
+          for(int iP=0;iP<PARTICLESPLIT && set*PARTICLESPLIT+iP<mct->NParticles();iP++)
+          {
+            mcloop.Add(const_cast<simb::MCParticle& >(mct->GetParticle(set*PARTICLESPLIT+iP)));  
+	  }
+          fG4Help->G4Run(const_cast<const simb::MCTruth*>(&mcloop));
+	  
+	   sim::ParticleList newParticles = fparticleListAction->YieldList();
+	   for (auto const& pair: newParticles)
+	   particleList.Add(new simb::MCParticle(std::move(*(pair.second))));
+
+	  }
+	}
+
+	 
+    
 
         // receive the particle list
-        sim::ParticleList particleList = fparticleListAction->YieldList();
+       // sim::ParticleList particleList = fparticleListAction->YieldList();
         
         
         //for(auto const& partPair: particleList) {
@@ -462,7 +493,8 @@ namespace larg4 {
         while (iPartPair != particleList.end()) {
           simb::MCParticle& p = *(iPartPair->second);
           ++nGeneratedParticles;
-          
+	  
+	  
           // if the particle has been marked as dropped, we don't save it
           // (as of LArSoft ~v5.6 this does not ever happen because
           // ParticleListAction has already taken care of deleting them)
