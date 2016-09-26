@@ -44,7 +44,9 @@ extern "C" {
 // LArSoft includes
 #include "larcore/Geometry/Geometry.h"
 #include "larcore/Geometry/TPCGeo.h"
+
 #include "lardataobj/Simulation/SimChannel.h"
+
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 
 namespace geo { class Geometry; }
@@ -145,8 +147,10 @@ namespace larg {
     // geometry data.
     art::ServiceHandle<geo::Geometry> geom; 
     // detector specific properties
+
     const detinfo::DetectorProperties* detprop = lar::providerFrom<detinfo::DetectorPropertiesService>();
     
+
     // assumes all TPCs are the same
     double width  = 2 * geom->TPC(0).HalfWidth(); 
     double halfHeight = geom->TPC(0).HalfHeight(); 

@@ -23,7 +23,10 @@
 #include "canvas/Persistency/Common/Ptr.h"
 #include "canvas/Persistency/Common/PtrVector.h"
 #include "cetlib/exception.h"
+#include "LaRLightEnergyAction.h"
 
+#include "Geant4/G4SystemOfUnits.hh"
+#include "Geant4/G4ios.hh"
 // LArSoft Includes
 #include "larsim/MCCheater/BackTracker.h"
 #include "larsim/Simulation/ParticleList.h"
@@ -32,6 +35,7 @@
 
 // ROOT includes
 #include "TH1.h"
+#include "TMath.h"
 #include "TH2.h"
 #include "TProfile.h"
 #include "TLorentzVector.h"
@@ -71,6 +75,7 @@ namespace larg4 {
 
 
     TH1D *fPDGCodes;
+    TH1D *fEdep;
     TH1D *fPi0Momentum;
     TH1D *fnEnergy;
     TH1D *fnDist;
@@ -84,8 +89,13 @@ namespace larg4 {
     //    Int_t stringDim = 35;
 
     TTree *fTree;
+//added
+//TTree *fTree2;
     Int_t fTEvt;
+Float_t fTEnedep;
+Float_t fTDIST;
     Int_t fTSub;
+  //  Int_t fTRefl;;
     Int_t fTRun;
     Int_t fTPdg;
     Int_t fTID;
@@ -108,6 +118,7 @@ namespace larg4 {
     Float_t* fT4Termination; // Termination Coordinates
     Float_t* fT4Momentum;
     Float_t* fT4DMomentum;
+bool fill_tree;
   };
 
 } // namespace larg4
@@ -135,6 +146,8 @@ namespace larg4 {
     art::ServiceHandle<geo::Geometry> geo;
     
     fPDGCodes    = tfs->make<TH1D>("pdgcodes", ";PDG Code;",               5000, -2500, 2500);
+fEdep    = tfs->make<TH1D>("energy deposit", "edeposit",500, 0, 0.5);
+//fTRefl    = tfs->make<TH1D>("reflected photons", "reflphot",1000, 0, 10000);
     fPi0Momentum = tfs->make<TH1D>("pi0mom",   ";#pi^{0} Momentum (GeV);", 1000, 0.,    1000.);
 
     fTree = tfs->make<TTree>("MCTTree","MCTTree");
@@ -178,6 +191,10 @@ namespace larg4 {
     fTNds4 = fTNds*4; //  TTree/Branch requirement to store this.
 
     fTree->Branch("MCEvt", &fTEvt, "MCEvt/I");
+
+    fTree->Branch("MCEnedep", &fTEnedep, "MCEnedep/F");
+    //fTree->Branch("MCRefl", &fTRefl, "MCRefl/I");
+fTree->Branch("MCDIST", &fTDIST, "MCDIST/F");
     fTree->Branch("MCSub", &fTSub, "MCSub/I");
     fTree->Branch("MCRun", &fTRun, "MCRun/I");
     fTree->Branch("MCWt", &fTWeight, "MCWt/F");
@@ -201,6 +218,8 @@ namespace larg4 {
     fTree->Branch("MCMomentum", fT4Momentum, "MCMomentum[4]/F");
     fTree->Branch("MCDMomentum", fT4DMomentum, "MCDMomentum[MCNumDs4]/F");
   
+
+//fTree2->Branch("EvtID", &fTEvt, "EvtID/I");
   }
 
   //-----------------------------------------------------------------------
@@ -223,13 +242,76 @@ namespace larg4 {
     const sim::ParticleList& plist = bt->ParticleList();
     art::ServiceHandle<geo::Geometry> geom;
 
+//-----------------------------------------------------
+  // Define a "handle" to point to BackTracker.
+    // BackTracker is a tool connecting the tracks with the particles.
+
+ ////////////////////////////////////////////////////////////////////
+    //Determination of the electron energy at the beginning of the TPC
+    //JUST THE ELECTRON!!! IF IT MAKES BREMS,THOSE ARE NOT CONSIDERED!!!
+   // int tsize=plist.Particle(0)->Trajectory().size();
+int list_size=plist.size();
+    int tt=0;
+int tts=0;
+int tu=0;
+   // double en_ent=0.0;
+    //double en_ext=0.0;
+    double en_dep=0.0;
+double dist2=0.;
+std::vector<double> vec1;
+std::vector<double> pt1;
+std::vector<double> pt2;
+
+std::cout<<"analyzing trajectory  in list of size "<<list_size<<std::endl;
+
+bool first_entry=false;
+bool entry_test=false;
+vec1.clear();
+pt1.clear();
+pt2.clear();
+fTEnedep=0.;
+
+fTEnedep=energy_deposit_step;
+std::cout<<"ftenedep "<<fTEnedep<<std::endl;
+//fTRefl=phot_refl_ev;
+fTDIST=float(dist2);
+fEdep->Fill(fTEnedep);//MeV
+
+//evt.id().event(); 
+
+
+//-----------------------------------------------------
+
     // loop over all sim::SimChannels in the event and make sure there are no
     // sim::IDEs with trackID values that are not in the sim::ParticleList
     std::vector<const sim::SimChannel*> sccol;
     evt.getView(fG4ModuleLabel, sccol);
+ int temp_id=0;
+eventnumber_fast=int(evt.id().event());
+      fTEvt = eventnumber_fast;//evt.id().event(); 
+std::cout<<fTEvt<<" eventlarg4ana "<<eventnumber_fast<<std::endl;
+    if(fTEvt!=0){
+	if(fTEvt!=temp_id){
+			fill_tree=true;
+			temp_id=fTEvt;
+std::cout<<"g4anafillingtree "<<std::endl;
+			}
+	else fill_tree=false;
 
+		}
+    else{
+	fill_tree=true;
+std::cout<<"g4anafillingtree "<<std::endl;
+
+		}
+      if(fill_tree==true){
+		fTree->Fill();
+	std::cout<<"g4anafillingtree2 "<<std::endl;
+	}
+std::cout<<"g4anafillingtree_val "<<fill_tree<<std::endl;
     double totalCharge=0.0;
     double totalEnergy=0.0;
+   
     fnumChannels->Fill(sccol.size());
     for(size_t sc = 0; sc < sccol.size(); ++sc){
       double numIDEs=0.0;
@@ -314,7 +396,7 @@ namespace larg4 {
       for (unsigned int s = 0; s < geom->VolumeName(pvec[i]->EndPosition().Vect()).length(); ++s) 
 	*(fTTVolume+s) = geom->VolumeName(pvec[i]->EndPosition().Vect())[s];
 
-      fTEvt = evt.id().event(); 
+
       fTSub = evt.subRun();
       fTRun = evt.run();
       fTParentID = pvec[i]->Mother();
@@ -354,7 +436,10 @@ namespace larg4 {
       }
 
       fTWeight = pvec[i]->Weight();
-      fTree->Fill();
+     /* if(fill_tree==true){
+		fTree->Fill();
+	std::cout<<"g4anafillingtree2 "<<std::endl;
+	}*/
       
     } // end loop on particles in list 
     if(numpi0gamma == 2 && pi0loc > 0){

@@ -64,7 +64,7 @@ namespace larg4{
     const G4Track*           aTrack    = aStep->GetTrack(); 
     const G4DynamicParticle* aParticle = aTrack->GetDynamicParticle();
   
-    
+    mf::LogInfo("LArG4") <<"processing hits in opraramSD"<<std::endl;
     G4ThreeVector mom = aParticle->GetMomentumDirection();
     G4ThreeVector pos = aStep->GetPostStepPoint()->GetPosition();
     if(!fPhotonAlreadyCrossed[aTrack->GetTrackID()])

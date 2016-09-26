@@ -12,8 +12,9 @@ standard_photonvisibilityservice:
   DoNotLoadLibrary: false
 	
   LibraryBuildJob: false
- 		
-  #LibraryFile: "PhotonPropagation/LibraryData/lib8984855.root"	 
+StoreReflected: false
+
+  ExtendedLibraryInfo: false	
   LibraryFile: "PhotonPropagation/LibraryData/uboone_photon_library_v4.root"
 
  #These are not used when usecryoboundary=true	
@@ -35,7 +36,7 @@ standard_photonvisibilityservice_buildlib:
   UseCryoBoundary: true
 
   DoNotLoadLibrary: true
-
+StoreReflected: false
   LibraryBuildJob: true
  		
   LibraryFile: "PhotonPropagation/LibraryData/Not_A_Library.root"	 

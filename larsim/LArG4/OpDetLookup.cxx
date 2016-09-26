@@ -59,7 +59,9 @@ namespace larg4 {
     
     double MinDistance = UINT_MAX;
     int    ClosestOpDet   = -1;
-    
+  for (auto& x: fTheOpDetMap) {
+    std::cout <<" opdet name opdetlookup "<< x.first << ": " << x.second << '\n';
+  }
     for(size_t o=0; o!=geom->NOpDets(); o++) {
       double xyz[3];
       geom->OpDetGeoFromOpDet(o).GetCenter(xyz);
@@ -69,9 +71,8 @@ namespace larg4 {
 	    
       ThisVolPos/=CLHEP::cm;
 	    
-      //	    std::cout<<"Det: " << xyz[0]<< " " <<xyz[1]<< " " << xyz[2]<<std::endl;
-      //    std::cout<<"Vol: " << ThisVolPos.x()<< " " <<ThisVolPos.y() << " " <<ThisVolPos.z()<<std::endl;
-    
+      	  std::cout<<"Det: " << xyz[0]<< " " <<xyz[1]<< " " << xyz[2]<<std::endl;
+          std::cout<<"Vol: " << ThisVolPos.x()<< " " <<ThisVolPos.y() << " " <<ThisVolPos.z()<<std::endl;
       double Distance = (DetPos-ThisVolPos).mag();
       if(Distance < MinDistance)
       {
@@ -94,7 +95,6 @@ namespace larg4 {
   void OpDetLookup::AddPhysicalVolume(G4VPhysicalVolume * volume)
   {
   
-    // mf::LogInfo("Optical") <<"G4 placing sensitive opdet"<<std::endl;
     
     std::stringstream VolName("");
     double Distance     = 0;
@@ -103,11 +103,12 @@ namespace larg4 {
     
     VolName.flush();
     VolName << volume->GetName() << "_" << NearestOpDet;
+
     volume->SetName(VolName.str().c_str());
     
     fTheOpDetMap[VolName.str()] = NearestOpDet;
 
-    // mf::LogInfo("Optical") << "Found closest volume: " << VolName.str().c_str() << " OpDet : " << fTheOpDetMap[VolName.str()]<<"  distance : " <<Distance<<std::endl; 
+     mf::LogInfo("Optical") << "Found closest volume: " << VolName.str().c_str() << " OpDet : " << fTheOpDetMap[VolName.str()]<<"  distance : " <<Distance<<std::endl; 
      
   }
 

@@ -18,17 +18,22 @@ extern "C" {
 }
 
 // LArSoft includes
+
+
 #include "larcore/Geometry/Geometry.h"
 #include "larcore/Geometry/CryostatGeo.h"
 #include "larcore/Geometry/TPCGeo.h"
 #include "larcore/Geometry/PlaneGeo.h"
+
 #include "lardataobj/Simulation/sim.h"
 #include "lardataobj/Simulation/SimChannel.h"
 #include "lardataobj/RawData/RawDigit.h"
 #include "lardataobj/RawData/raw.h"
+
 #include "lardata/Utilities/LArFFT.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "lardata/DetectorInfoServices/DetectorClocksService.h"
+
 
 // ROOT includes
 #include <TMath.h>
@@ -195,7 +200,9 @@ namespace detsim{
     fShapeTimeConst   = p.get< std::vector<double> >("ShapeTimeConst");
 
 
+
     const detinfo::DetectorProperties* detprop = lar::providerFrom<detinfo::DetectorPropertiesService>();
+
     fSampleRate       = detprop->SamplingRate();
     fTriggerOffset    = detprop->TriggerOffset();
 
@@ -254,7 +261,9 @@ namespace detsim{
   void SimWireT962::produce(art::Event& evt)
   {
     //std::cout << "in SimWireT962::produce " << std::endl;
+
     const detinfo::DetectorClocks* ts = lar::providerFrom<detinfo::DetectorClocksService>();
+
 
     // get the geometry to be able to figure out signal types and chan -> plane mappings
     art::ServiceHandle<geo::Geometry> geo;
@@ -478,8 +487,10 @@ namespace detsim{
     art::ServiceHandle<art::TFileService> tfs;
     fIndFieldResp = tfs->make<TH1D>("InductionFieldResponse",";t (ns);Induction Response",fNTicks,0,fNTicks);
     fColFieldResp = tfs->make<TH1D>("CollectionFieldResponse",";t (ns);Collection Response",fNTicks,0,fNTicks);
+
     const detinfo::DetectorProperties* detprop = lar::providerFrom<detinfo::DetectorPropertiesService>();
     double driftvelocity=detprop->DriftVelocity(detprop->Efield(),detprop->Temperature())/1000.;  
+
     int nbinc = TMath::Nint(fCol3DCorrection*(std::abs(pitch))/(driftvelocity*fSampleRate)); ///number of bins //KP
   
     double integral = 0.;

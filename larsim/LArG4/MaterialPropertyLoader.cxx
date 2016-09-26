@@ -11,10 +11,14 @@
 
 
 #include "larsim/LArG4/MaterialPropertyLoader.h"
-#include "lardata/DetectorInfoServices/LArPropertiesService.h"
-#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
+#include "lardata/lardata/DetectorInfoServices/LArPropertiesService.h"
+
+#include "lardata/lardata/DetectorInfoServices/DetectorPropertiesService.h"
+
 #include "Geant4/G4Material.hh"
 #include "Geant4/G4MaterialPropertiesTable.hh"
+#include "Geant4/G4LogicalSkinSurface.hh"
+#include "Geant4/G4OpticalSurface.hh"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
 namespace larg4 {
@@ -67,10 +71,11 @@ namespace larg4 {
     std::map<std::string,bool> MaterialsSet;
     
     mf::LogInfo("MaterialPropertyLoader") << "UPDATING GEOMETRY";
-    
+    std::cout<< "-----------------------------UPDATING GEOMETRY"<<std::endl;
     // Loop over each material with a property vector and create a new material table for it
     for(std::map<std::string,std::map<std::string,std::map<double,double> > >::const_iterator i=fPropertyList.begin(); i!=fPropertyList.end(); i++){
       std::string Material=i->first;
+std::cout<<">>>>>>>>>>>>>>material set "<<Material<<std::endl;
       MaterialsSet[Material]=true;
       MaterialTables[Material]=new G4MaterialPropertiesTable;
     }
@@ -106,6 +111,8 @@ namespace larg4 {
 					      <<Property
 					      <<" to material table " 
 					      << Material;
+
+std::cout<< "Added property " <<Property<<" to material table " << Material<<std::endl;
       }
     }
     
@@ -128,6 +135,47 @@ namespace larg4 {
       G4LogicalVolume* volume = (*i);
       G4Material* TheMaterial = volume->GetMaterial();
       std::string Material = TheMaterial->GetName();
+
+if(Material=="Copper"){
+		std::cout<< "copper foil surface set "<<volume->GetName()<<std::endl;
+		const G4int num3 = 12;
+  		G4double Ephoton3[num3] = {1.77*CLHEP::eV, 2.0675*CLHEP::eV, 2.481*CLHEP::eV, 2.819*CLHEP::eV, 2.953*CLHEP::eV, 3.1807*CLHEP::eV, 3.54*CLHEP::eV, 4.135*CLHEP::eV, 4.962*CLHEP::eV, 5.39*CLHEP::eV, 7.*CLHEP::eV,15.*CLHEP::eV};
+		G4double Reflectivity_refl2[num3] ={0.43,0.40145,0.221,0.181,0.165,0.143,0.137,0.126,0.1609,0.1609,0.0,0.0};//measurements at Cracow University of Technology
+  		G4MaterialPropertiesTable* reflspt2 = new G4MaterialPropertiesTable(); 
+  		reflspt2->AddProperty("REFLECTIVITY", Ephoton3, Reflectivity_refl2, num3);
+ 		G4OpticalSurface* refl_opsurfc = new G4OpticalSurface("Surface copper",glisur,ground,dielectric_metal);
+ 		refl_opsurfc->SetMaterialPropertiesTable(reflspt2);
+   		refl_opsurfc -> SetPolish(0.2);
+		new G4LogicalSkinSurface("refl_surfacec",volume, refl_opsurfc);
+		}
+
+if(Material=="G10"){
+		std::cout<< "G10 surface set "<<volume->GetName()<<std::endl;
+		const G4int num4 = 12;
+  		G4double Ephoton4[num4] = {1.77*CLHEP::eV, 2.0675*CLHEP::eV, 2.481*CLHEP::eV, 2.819*CLHEP::eV, 2.953*CLHEP::eV, 3.1807*CLHEP::eV, 3.54*CLHEP::eV, 4.135*CLHEP::eV, 4.962*CLHEP::eV, 5.39*CLHEP::eV,6.2*CLHEP::eV,15.0*CLHEP::eV};
+		G4double Reflectivity_refl3[num4] = {0.393,0.405,0.404,0.352,0.323,.243,0.127,0.065,0.068,0.068, 0.0, 0.0};//measurements at Cracow University of Technology- need to be rescaled
+  		G4MaterialPropertiesTable* reflspt3 = new G4MaterialPropertiesTable(); 
+  		reflspt3->AddProperty("REFLECTIVITY", Ephoton4, Reflectivity_refl3, num4);
+ 		G4OpticalSurface* refl_opsurfg = new G4OpticalSurface("g10 Surface",glisur,ground,dielectric_metal);
+ 		refl_opsurfg->SetMaterialPropertiesTable(reflspt3);
+   		refl_opsurfg-> SetPolish(0.1);
+		new G4LogicalSkinSurface("refl_surfaceg",volume, refl_opsurfg);
+		}
+
+	if(Material=="vm2000"){
+		std::cout<< "reflector  "<<volume->GetName()<<std::endl;
+		const G4int num2 = 12;
+  		G4double Ephoton2[num2] = {1.77*CLHEP::eV, 2.0675*CLHEP::eV, 2.481*CLHEP::eV, 2.819*CLHEP::eV, 2.953*CLHEP::eV, 3.1807*CLHEP::eV, 3.54*CLHEP::eV, 4.135*CLHEP::eV, 4.962*CLHEP::eV, 5.39*CLHEP::eV,6.2*CLHEP::eV,15.0*CLHEP::eV};
+		G4double Reflectivity_refl[num2]  = {0.83, 0.83,0.83,0.83,0.83,0.28,0.035,0.02,0.16,0.16,0.0,0.0};//VM2000 data arXiv:1304.6117, rescaled - needs to be checked!,  
+  		G4MaterialPropertiesTable* reflspt = new G4MaterialPropertiesTable(); 
+  		reflspt->AddProperty("REFLECTIVITY", Ephoton2, Reflectivity_refl, num2);
+ 		G4OpticalSurface* refl_opsurf = new G4OpticalSurface("Reflector Surface",unified,groundfrontpainted,dielectric_dielectric);//groundfrontpainted
+ 		refl_opsurf->SetMaterialPropertiesTable(reflspt);
+		G4double sigma_alpha = 0.8;
+		refl_opsurf->SetSigmaAlpha(sigma_alpha);
+   		//refl_opsurf -> SetPolish(0.65);
+		new G4LogicalSkinSurface("refl_surface",volume, refl_opsurf);
+		}
       for(std::map<std::string,G4MaterialPropertiesTable*>::const_iterator j=MaterialTables.begin(); j!=MaterialTables.end(); j++){
 	if(Material==j->first){
 	  TheMaterial->SetMaterialPropertiesTable(j->second);
@@ -135,13 +183,17 @@ namespace larg4 {
 	  if(fBirksConstants[Material]!=0)
 	    TheMaterial->GetIonisation()->SetBirksConstant(fBirksConstants[Material]);
 	  volume->SetMaterial(TheMaterial);
+
+
+
+		
 	}
       }
     }
   }
 
 
-  void MaterialPropertyLoader::SetReflectances(std::string /*Material*/, std::map<std::string,std::map<double, double> > Reflectances,  std::map<std::string,std::map<double, double> >  DiffuseFractions)
+  void MaterialPropertyLoader::SetReflectances(std::string Material, std::map<std::string,std::map<double, double> > Reflectances,  std::map<std::string,std::map<double, double> >  DiffuseFractions)
   {
     std::map<double, double> ReflectanceToStore;
     std::map<double, double> DiffuseToStore;
@@ -152,6 +204,7 @@ namespace larg4 {
       {
 	std::string ReflectancePropName = std::string("REFLECTANCE_") + itMat->first;
 	ReflectanceToStore.clear();
+//std::cout<<"setting reflectance "<<ReflectancePropName<<std::endl;
 	for(std::map<double,double>::const_iterator itEn=itMat->second.begin();
 	    itEn!=itMat->second.end();
 	    ++itEn)	  
@@ -159,6 +212,7 @@ namespace larg4 {
 	    ReflectanceToStore[itEn->first]=itEn->second;
 	  }    
 	SetMaterialProperty("LAr", ReflectancePropName, ReflectanceToStore,1);
+//SetMaterialProperty("TPB", ReflectancePropName, ReflectanceToStore,1);
       }
 
  for(std::map<std::string,std::map<double,double> >::const_iterator itMat=DiffuseFractions.begin();
@@ -181,17 +235,31 @@ namespace larg4 {
 
   void MaterialPropertyLoader::GetPropertiesFromServices()
   {
-    const detinfo::LArProperties* LarProp = lar::providerFrom<detinfo::LArPropertiesService>();
-    const detinfo::DetectorProperties* DetProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+
+    auto const* LarProp = lar::providerFrom<detinfo::LArPropertiesService>();
+    auto const* DetProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+
     
     // wavelength dependent quantities
 
     SetMaterialProperty( "LAr", "FASTCOMPONENT", LarProp->FastScintSpectrum(), 1  );
     SetMaterialProperty( "LAr", "SLOWCOMPONENT", LarProp->SlowScintSpectrum(), 1  );
     SetMaterialProperty( "LAr", "RINDEX",        LarProp->RIndexSpectrum(),    1  );
+
     SetMaterialProperty( "LAr", "ABSLENGTH",     LarProp->AbsLengthSpectrum(), CLHEP::cm );
     SetMaterialProperty( "LAr", "RAYLEIGH",      LarProp->RayleighSpectrum(),  CLHEP::cm );
+std::cout<<"extra material properties -------------- "<<LarProp->ExtraMatProperties()<<std::endl;
+   if(LarProp->ExtraMatProperties()){
 
+
+std::cout<<"LOADING TPB PROPERTIES !!!!!"<<std::endl;
+ SetMaterialProperty( "TPB", "RINDEX",        LarProp->RIndexSpectrum(),    1  );
+ SetMaterialProperty( "TPB", "WLSABSLENGTH",        LarProp->TpbAbs(),    CLHEP::m  );
+ SetMaterialProperty( "TPB", "WLSCOMPONENT",        LarProp->TpbEm(),    1  );
+ SetMaterialConstProperty( "TPB", "WLSTIMECONSTANT",        LarProp->TpbTimeConstant(),    CLHEP::ns  );
+ SetMaterialProperty( "vm2000", "RINDEX",        LarProp->RIndexSpectrum(),    1  );
+   // SetReflectances("TPB", LarProp->SurfaceTpbReflectances(), LarProp->SurfaceReflectanceTpbDiffuseFractions());
+}
 
     // scalar properties
 

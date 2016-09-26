@@ -1,0 +1,38 @@
+# The parent line must be the first non-comment line in the file 
+# This line defines the product name and version
+<<<<<<< HEAD
+parent	larsim	v06_03_05
+defaultqual	e10
+=======
+
+parent	larsim	v05_08_00
+
+defaultqual	e9
+>>>>>>> origin/feature/pawel_optical
+#
+fcldir  product_dir job
+fwdir   product_dir G4
+#
+product         version
+larevt		v06_02_01
+marley		v0_9_5a
+genie_xsec      v2_10_6a 
+genie_phyopt    v2_10_6 
+larsoft_data    v1_01_00
+
+cetbuildtools	v5_04_03	-	only_for_build
+end_product_list
+
+  
+# e10  - with gcc 4.9.3 and -std=c++14
+qualifier	larevt	 	genie_xsec		genie_phyopt	marley		larsoft_data	notes
+e10:debug	e10:debug	defaultplusccmec	dkcharmtau	e10:debug	-nq-	
+e10:opt		e10:opt		defaultplusccmec	dkcharmtau	e10:opt		-nq-	
+e10:prof	e10:prof	defaultplusccmec	dkcharmtau	e10:prof	-nq-	
+end_qualifier_list
+
+# Preserve tabs and formatting in emacs and vi / vim:
+
+### Local Variables:
+### tab-width: 8
+### End:

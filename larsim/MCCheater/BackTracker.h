@@ -27,6 +27,7 @@
 
 #include "lardataobj/RecoBase/Hit.h"
 
+
 namespace recob{
   class SpacePoint;
 }

@@ -47,9 +47,11 @@
 #include "larsim/LArG4/CustomPhysicsFactory.hh"
 #include "larsim/LArG4/OpBoundaryProcessSimple.hh"
 #include "larsim/LArG4/IonizationAndScintillation.h"
+
 #include "larsim/LArG4/OpFastScintillation.hh"
 
-#include "lardata/DetectorInfoServices/LArPropertiesService.h"
+#include "lardata/lardata/DetectorInfoServices/LArPropertiesService.h"
+
 
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
@@ -105,7 +107,7 @@
 #include "Geant4/G4OpAbsorption.hh"
 #include "Geant4/G4OpWLS.hh"
 #include "Geant4/G4OpRayleigh.hh"
-
+#include "Geant4/G4Scintillation.hh"
 #include "Geant4/G4LossTableManager.hh"
 #include "Geant4/G4EmSaturation.hh"
 
@@ -166,26 +168,30 @@ namespace larg4 {
    //-----------------------------------------------------------  
   void FastOpticalPhysics::ConstructProcess()
     {
+    auto const* larp = lar::providerFrom<detinfo::LArPropertiesService>();
     // Add standard EM Processes
     LOG_DEBUG("FastOpticalPhysics") << "PROCESSES BEING CONSTRUCTED IN OPTICAL PHYSICS";
-    
+        bool simpleopticalphysics=false;
+        bool simplesci=false;
+simpleopticalphysics=larp->SimpleBoundary();
+simplesci=larp->SimpleScint();
+simpleopticalphysics=false;
+simplesci=true;
     fTheCerenkovProcess            = new G4Cerenkov("Cerenkov");
     fTheAbsorptionProcess          = new G4OpAbsorption();
     fTheRayleighScatteringProcess  = new G4OpRayleigh();
-    fTheBoundaryProcess            = new OpBoundaryProcessSimple();
-    fTheWLSProcess                 = new G4OpWLS();
-    fTheScintillationProcess       = new OpFastScintillation("FastScintillation");
+    if(simpleopticalphysics==false) fTheBoundaryProcess = new G4OpBoundaryProcess();
+   if(simpleopticalphysics==true) fTheBoundaryProcessSimple = new OpBoundaryProcessSimple();
+    //fTheWLSProcess                 = new G4OpWLS();
+   if(simplesci==true) fTheScintillationProcessFast       = new OpFastScintillation("FastScintillation");
+   if(simplesci==false) fTheScintillationProcess       = new G4Scintillation("Scintillation");
     
     fTheCerenkovProcess->SetMaxNumPhotonsPerStep(700);
     fTheCerenkovProcess->SetMaxBetaChangePerStep(10.0);
     fTheCerenkovProcess->SetTrackSecondariesFirst(false);
-    
-    const detinfo::LArProperties* larp = lar::providerFrom<detinfo::LArPropertiesService>();
-    bool CerenkovEnabled = larp->CerenkovLightEnabled();
-    
-    mf::LogInfo("FastOpticalPhysics") << "Cerenkov enabled : " << CerenkovEnabled;
+     bool CerenkovEnabled = larp->CerenkovLightEnabled();
 
-    aParticleIterator->reset();
+
     while( (*aParticleIterator)() ){
       G4ParticleDefinition* particle = aParticleIterator->value();
       G4ProcessManager* pmanager = particle->GetProcessManager();
@@ -196,19 +202,37 @@ namespace larg4 {
 	pmanager->SetProcessOrdering(fTheCerenkovProcess,idxPostStep);
 
       }
+if(simplesci==false){
       if (fTheScintillationProcess->IsApplicable(*particle)) {
 	pmanager->AddProcess(fTheScintillationProcess);
 	pmanager->SetProcessOrderingToLast(fTheScintillationProcess, idxAtRest);
 	pmanager->SetProcessOrderingToLast(fTheScintillationProcess, idxPostStep);
 
       }
+}
+
+if(simplesci==true){
+      if (fTheScintillationProcessFast->IsApplicable(*particle)) {
+	pmanager->AddProcess(fTheScintillationProcessFast);
+	pmanager->SetProcessOrderingToLast(fTheScintillationProcessFast, idxAtRest);
+	pmanager->SetProcessOrderingToLast(fTheScintillationProcessFast, idxPostStep);
+
+      }
+}
   
      if (particleName == "opticalphoton") {
        mf::LogInfo("FastOptical") << " AddDiscreteProcess to OpticalPhoton ";
        pmanager->AddDiscreteProcess(fTheAbsorptionProcess);
        pmanager->AddDiscreteProcess(fTheRayleighScatteringProcess);
-       pmanager->AddDiscreteProcess(fTheBoundaryProcess);
-       pmanager->AddDiscreteProcess(fTheWLSProcess);
+ if(simpleopticalphysics==true){
+ pmanager->AddDiscreteProcess(fTheBoundaryProcessSimple);
+std::cout<<" simple  boundary proces !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "<<std::endl;
+	}
+	   if(simpleopticalphysics==false){
+ pmanager->AddDiscreteProcess(fTheBoundaryProcess);
+std::cout<<" standard G4 boundary proces !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "<<std::endl;
+}
+     //  pmanager->AddDiscreteProcess(fTheWLSProcess);
      }
     }
     

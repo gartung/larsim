@@ -64,6 +64,7 @@ extern "C" {
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "lardata/Utilities/LArFFT.h"
 
+
 namespace art {
   class Event;
   class ParameterSet;
@@ -199,7 +200,9 @@ namespace detsim{
     fIndFieldRespAmp  = p.get< double              >("IndFieldRespAmp");
     fShapeTimeConst   = p.get< std::vector<double> >("ShapeTimeConst");
 
+
     const detinfo::DetectorProperties* detprop = lar::providerFrom<detinfo::DetectorPropertiesService>();
+
     fSampleRate       = detprop->SamplingRate();
     fTriggerOffset    = detprop->TriggerOffset();
     fNSamplesReadout  = detprop->NumberTimeSamples();
@@ -477,8 +480,10 @@ namespace detsim{
     art::ServiceHandle<art::TFileService> tfs;
     fIndFieldResp = tfs->make<TH1D>("InductionFieldResponse",";t (ns);Induction Response",fNTicks,0,fNTicks);
     fColFieldResp = tfs->make<TH1D>("CollectionFieldResponse",";t (ns);Collection Response",fNTicks,0,fNTicks);
+
     const detinfo::DetectorProperties* detprop = lar::providerFrom<detinfo::DetectorPropertiesService>();
     double driftvelocity=detprop->DriftVelocity(detprop->Efield(),detprop->Temperature())/1000.;  
+
     int nbinc = TMath::Nint(fCol3DCorrection*(std::abs(pitch))/(driftvelocity*fSampleRate)); ///number of bins //KP
   
     double integral = 0.;

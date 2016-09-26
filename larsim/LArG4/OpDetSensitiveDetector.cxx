@@ -18,6 +18,7 @@
 #include "lardataobj/Simulation/SimPhotons.h"
 #include "Geant4/G4SDManager.hh"
 
+
 namespace larg4{
 
 
@@ -31,6 +32,7 @@ namespace larg4{
     fTheOpDetLookup        = OpDetLookup::Instance();
     fThePhotonTable        = OpDetPhotonTable::Instance();
     
+
   }
 
   

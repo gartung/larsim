@@ -25,14 +25,7 @@
 #include "nutools/G4Base/G4Helper.h"
 #include "nutools/G4Base/ConvertMCTruthToG4.h"
 
-// C++ Includes
-#include <sstream> // std::ostringstream
-#include <vector> // std::ostringstream
-#include <map> // std::ostringstream
-#include <set> // std::ostringstream
-#include <iostream>
-// #include <cstring>
-#include <sys/stat.h>
+#include <cstring>
 
 // Framework includes
 #include "art/Framework/Core/EDProducer.h"
@@ -55,7 +48,10 @@
 #include "larsim/LArG4/LArVoxelReadoutGeometry.h"
 #include "larsim/LArG4/PhysicsList.h"
 #include "larsim/LArG4/ParticleListAction.h"
+
 #include "larsim/LArG4/G4BadIdeaAction.h"
+#include "larsim/larsim/LArG4/LaRLightEnergyAction.h"
+
 #include "larsim/LArG4/IonizationAndScintillationAction.h"
 #include "larsim/LArG4/OpDetSensitiveDetector.h"
 #include "larsim/LArG4/OpDetReadoutGeometry.h"
@@ -98,7 +94,14 @@
 #include "Geant4/globals.hh"
 
 // ROOT Includes
+
+
+// C++ Includes
+#include <iostream>
+#include <cstring>
+#include <sys/stat.h>
 #include "TGeoManager.h"
+
 
 // Forward declarations
 class G4RunManager;
@@ -107,6 +110,7 @@ class G4VisExecutive;
 
 ///Geant4 interface
 namespace larg4 {  
+
  
   // Forward declarations within namespace.
   class LArVoxelListAction;
@@ -170,26 +174,33 @@ namespace larg4 {
     void beginRun(art::Run& run);
 
   private:
+
     g4b::G4Helper*             fG4Help;             ///< G4 interface object                                           
     larg4::LArVoxelListAction* flarVoxelListAction; ///< Geant4 user action to accumulate LAr voxel information.
-    larg4::ParticleListAction* fparticleListAction; ///< Geant4 user action to particle information.                   
+    larg4::ParticleListAction* fparticleListAction; ///< Geant4 user action to particle information.		   
 
     std::string                fG4PhysListName;     ///< predefined physics list to use if not making a custom one
     std::string                fG4MacroPath;        ///< directory path for Geant4 macro file to be 
                                                     ///< executed before main MC processing.
     bool                       fCheckOverlaps;      ///< Whether to use the G4 overlap checker
     bool                       fdumpParticleList;   ///< Whether each event's sim::ParticleList will be displayed.
-    bool                       fdumpSimChannels;    ///< Whether each event's sim::Channel will be displayed.
+ bool                       fdumpSimChannels;    ///< Whether each event's sim::Channel will be displayed.
     bool                       fUseLitePhotons;
     int                        fSmartStacking;      ///< Whether to instantiate and use class to 
-                                                    ///< dictate how tracks are put on stack.        
+
+                                                    ///< dictate how tracks are put on stack. 
+bool fLarLightEnergyAction; ///< used in LArIAT, by default false for the sake of transparency  
+std::string fTPCLariat; ///< used in LArIAT, by default volTPC for the sake of transparency, not used if larlightenergyaction not set
+std::string fTPCTest; ///< used in LArIAT, by default volTPC for the sake of transparency, not used if larlightenergyaction not set       
     std::vector<std::string>   fInputLabels;
+
     std::vector<std::string>   fKeepParticlesInVolumes; ///<Only write particles that have trajectories through these volumes
+
     
     /// Configures and returns a particle filter
     std::unique_ptr<PositionInVolumeFilter> CreateParticleVolumeFilter
       (std::set<std::string> const& vol_names) const;
-    
+
   };
 
 } // namespace LArG4
@@ -207,10 +218,12 @@ namespace larg4 {
     , fdumpParticleList      (pset.get< bool        >("DumpParticleList",false)             )
     , fdumpSimChannels       (pset.get< bool        >("DumpSimChannels", false)             )
     , fSmartStacking         (pset.get< int         >("SmartStacking",0)                    )
+    , fLarLightEnergyAction         (pset.get< bool>("LarLightEnergyAction",false))
     , fKeepParticlesInVolumes        (pset.get< std::vector< std::string > >("KeepParticlesInVolumes",{}))
 
   {
     LOG_DEBUG("LArG4") << "Debug: LArG4()";
+
     art::ServiceHandle<art::RandomNumberGenerator> rng;
 
     if (pset.has_key("Seed")) {
@@ -218,6 +231,12 @@ namespace larg4 {
         << "The configuration of LArG4 module has the discontinued 'Seed' parameter.\n"
         "Seeds are now controlled by three parameters: 'GEANTSeed', 'PropagationSeed' and 'RadioSeed'.";
     }
+
+if(fLarLightEnergyAction){
+    fTPCLariat=pset.get< std::string >("TPCName1","volTPCActive_PV");
+    fTPCTest=pset.get< std::string >("TPCName2","volBeamBox_PV");
+	}
+
     // setup the random number service for Geant4, the "G4Engine" label is a
     // special tag setting up a global engine for use by Geant4/CLHEP;
     // obtain the random seed from LArSeedService,
@@ -255,8 +274,8 @@ namespace larg4 {
     if (fG4MacroPath.empty() || stat(fG4MacroPath.c_str(), &sb)!=0)
       // failed to resolve the file name
       throw cet::exception("NoG4Macro") << "G4 macro file "
-                                        << fG4MacroPath
-                                        << " not found!\n";
+					<< fG4MacroPath
+					<< " not found!";
 
   }
 
@@ -270,8 +289,10 @@ namespace larg4 {
   //----------------------------------------------------------------------
   void LArG4::beginJob()
   {
+
     art::ServiceHandle<geo::Geometry> geom;
     auto* rng = &*(art::ServiceHandle<art::RandomNumberGenerator>());
+
 
     fG4Help = new g4b::G4Helper(fG4MacroPath, fG4PhysListName);
     if(fCheckOverlaps) fG4Help->SetOverlapCheck(true);
@@ -314,10 +335,10 @@ namespace larg4 {
     // The techniques used in this UserAction are not to be repeated
     // as in general they are a very bad idea, ie they take a const
     // pointer and jump through hoops to change it
-    // 08-Apr-2014 WGS: It appears that with the shift to Geant 4.9.6 or
-    // above, there's no longer any need for the "Bad Idea Action" fix.
-    //    larg4::G4BadIdeaAction *bia = new larg4::G4BadIdeaAction(fSmartStacking);
-    //    uaManager->AddAndAdoptAction(bia);
+   if (fLarLightEnergyAction){
+	 larg4::LaRLightEnergyAction *llea = new larg4::LaRLightEnergyAction(fSmartStacking, fTPCLariat, fTPCTest);
+    uaManager->AddAndAdoptAction(llea);
+	}
 
     // remove IonizationAndScintillationAction for now as we are ensuring
     // the Reset for each G4Step within the G4SensitiveVolumes
@@ -327,8 +348,8 @@ namespace larg4 {
     // User-action class for accumulating particles and trajectories
     // produced in the detector.
     fparticleListAction = new larg4::ParticleListAction(lgp->ParticleKineticEnergyCut(),
-                                                        lgp->StoreTrajectories(),
-                                                        lgp->KeepEMShowerDaughters());
+							lgp->StoreTrajectories(),
+							lgp->KeepEMShowerDaughters());
     uaManager->AddAndAdoptAction(fparticleListAction);
 
     // UserActionManager is now configured so continue G4 initialization
@@ -340,6 +361,7 @@ namespace larg4 {
       G4UserStackingAction* stacking_action = new LArStackingAction(fSmartStacking);
       fG4Help->GetRunManager()->SetUserAction(stacking_action);
     }
+
     
 
   
@@ -399,36 +421,54 @@ namespace larg4 {
 
     }
     
+
     return std::make_unique<PositionInVolumeFilter>(std::move(GeoVolumePairs));
     
   } // CreateParticleVolumeFilter()
     
 
+
   void LArG4::produce(art::Event& evt)
+
   {
+
     LOG_DEBUG("LArG4") << "produce()";
 
     // loop over the lists and put the particles and voxels into the event as collections
+
     std::unique_ptr< std::vector<simb::MCParticle> > partCol  (new std::vector<simb::MCParticle  >);
+
     std::unique_ptr< std::vector<sim::SimChannel>  > scCol    (new std::vector<sim::SimChannel>);
+
     std::unique_ptr< std::vector<sim::SimPhotons>  > PhotonCol(new std::vector<sim::SimPhotons>);
+
     std::unique_ptr< std::vector<sim::SimPhotonsLite>  > LitePhotonCol(new std::vector<sim::SimPhotonsLite>);
+
     std::unique_ptr< art::Assns<simb::MCTruth, simb::MCParticle> > tpassn(new art::Assns<simb::MCTruth, simb::MCParticle>);
+
     std::unique_ptr< std::vector< sim::AuxDetSimChannel > > adCol (new  std::vector<sim::AuxDetSimChannel> );
 
     // Fetch the lists of LAr voxels and particles.
+
     art::ServiceHandle<sim::LArG4Parameters> lgp;
+
     art::ServiceHandle<geo::Geometry> geom;
 
     // Clear the detected photon table
+
     OpDetPhotonTable::Instance()->ClearTable(geom->NOpDets());
 
+
     // reset the track ID offset as we have a new collection of interactions
+
     fparticleListAction->ResetTrackIDOffset();
 
     //look to see if there is any MCTruth information for this
+
     //event
+
     std::vector< art::Handle< std::vector<simb::MCTruth> > > mclists;
+
     if(fInputLabels.size()==0)
       evt.getManyByType(mclists);
     else{
@@ -440,17 +480,21 @@ namespace larg4 {
     unsigned int nGeneratedParticles = 0;
     
     // Need to process Geant4 simulation for each interaction separately.
+
     for(size_t mcl = 0; mcl < mclists.size(); ++mcl){
 
       art::Handle< std::vector<simb::MCTruth> > mclistHandle = mclists[mcl];
 
       for(size_t m = 0; m < mclistHandle->size(); ++m){
+
         art::Ptr<simb::MCTruth> mct(mclistHandle, m);
 
         LOG_DEBUG("LArG4") << *(mct.get());
 
         // The following tells Geant4 to track the particles in this interaction.
+
         fG4Help->G4Run(mct);
+
 
         // receive the particle list
         sim::ParticleList particleList = fparticleListAction->YieldList();
@@ -471,6 +515,7 @@ namespace larg4 {
             continue;
           }
           partCol->push_back(std::move(p));
+
           util::CreateAssn(*this, evt, *partCol, mct, *tpassn);
           // FIXME workaround until https://cdcvs.fnal.gov/redmine/issues/12067
           // is solved and adopted in LArSoft, after which moving will suffice
@@ -480,148 +525,262 @@ namespace larg4 {
         } // while(particleList)
 
 
+
         // Has the user request a detailed dump of the output objects?
+
         if (fdumpParticleList){
+
           mf::LogInfo("LArG4") << "Dump sim::ParticleList; size()="
+
                                << particleList.size() << "\n"
+
                                << particleList;
+
         }
 
       }
 
     }// end loop over interactions
+
    
+
     // get the electrons from the LArVoxelReadout sensitive detector
+
     // Get the sensitive-detector manager.
+
     G4SDManager* sdManager = G4SDManager::GetSDMpointer();
+
     
+
     // Find the sensitive detector with the name "LArVoxelSD".
+
     OpDetSensitiveDetector *theOpDetDet = dynamic_cast<OpDetSensitiveDetector*>(sdManager->FindSensitiveDetector("OpDetSensitiveDetector"));
+
  
+
     // Store the contents of the detected photon table
+
     //
+
     if(theOpDetDet){
+
       if(!fUseLitePhotons){      
+
         LOG_DEBUG("Optical") << "Storing OpDet Hit Collection in Event";
+
         
-	std::vector<sim::SimPhotons>& ThePhotons = OpDetPhotonTable::Instance()->GetPhotons();
-	PhotonCol->reserve(ThePhotons.size());
-	for(auto& it : ThePhotons)
-	  PhotonCol->push_back(std::move(it));
+
+        std::vector<sim::SimPhotons>& ThePhotons = OpDetPhotonTable::Instance()->GetPhotons();
+
+        PhotonCol->reserve(ThePhotons.size());
+
+        for(auto& it : ThePhotons)
+
+          PhotonCol->push_back(std::move(it));
+
       }
+
       else{
+
         LOG_DEBUG("Optical") << "Storing OpDet Hit Collection in Event";
+
         
+
         std::map<int, std::map<int, int> > ThePhotons = OpDetPhotonTable::Instance()->GetLitePhotons();
+
         
+
         if(ThePhotons.size() > 0){
+
           LitePhotonCol->reserve(ThePhotons.size());
+
           for(auto const& it : ThePhotons){
+
             sim::SimPhotonsLite ph;
+
             ph.OpChannel = it.first;
+
             ph.DetectedPhotons = it.second;
+
             LitePhotonCol->push_back(ph);
+
           }
+
         }
+
       }
+
     }
+
       
+
     // only put the sim::SimChannels into the event once, not once for every
+
     // MCTruth in the event
 
     std::set<LArVoxelReadout*> ReadoutList; // to be cleared later on
+
     
+
     for(unsigned int c = 0; c < geom->Ncryostats(); ++c){
 
       // map to keep track of which channels we already have SimChannels for in scCol
+
       // remake this map on each cryostat as channels ought not to be shared between 
+
       // cryostats, just between TPC's
+
  
+
       std::map<unsigned int, unsigned int>  channelToscCol;
 
       unsigned int ntpcs =  geom->Cryostat(c).NTPC();
+
       for(unsigned int t = 0; t < ntpcs; ++t){
+
         std::string name("LArVoxelSD");
+
         std::ostringstream sstr;
+
         sstr << name << "_Cryostat" << c << "_TPC" << t;
 
         // try first to find the sensitive detector specific for this TPC;
+
         // do not bother writing on screen if there is none (yet)
+
         G4VSensitiveDetector* sd
+
           = sdManager->FindSensitiveDetector(sstr.str(), false);
+
         // if there is none, catch the general one (called just "LArVoxelSD")
+
         if (!sd) sd = sdManager->FindSensitiveDetector(name, false);
-        // If this didn't work, then a sensitive detector with
-        // the name "LArVoxelSD" does not exist.
+
+        //If this didn't work, then a sensitive detector with
+
+        //the name "LArVoxelSD" does not exist.
+
         if ( !sd ){
+
           throw cet::exception("LArG4") << "Sensitive detector for cryostat "
+
             << c << " TPC " << t << " not found (neither '"
+
             << sstr.str() << "' nor '" << name  << "' exist)\n";
+
         }
 
-        // Convert the G4VSensitiveDetector* to a LArVoxelReadout*.
+        //Convert the G4VSensitiveDetector* to a LArVoxelReadout*.
+
         LArVoxelReadout* larVoxelReadout = dynamic_cast<LArVoxelReadout*>(sd);
 
-        // If this didn't work, there is a "LArVoxelSD" detector, but
-        // it's not a LArVoxelReadout object.
+        //If this didn't work, there is a "LArVoxelSD" detector, but
+
+        //it's not a LArVoxelReadout object.
+
         if ( !larVoxelReadout ){
+
           throw cet::exception("LArG4") << "Sensitive detector '"
+
                                         << sd->GetName()
+
                                         << "' is not a LArVoxelReadout object\n";
+
         }
 
         LArVoxelReadout::ChannelMap_t& channels = larVoxelReadout->GetSimChannelMap(c, t);
+
         if (!channels.empty()) {
+
           LOG_DEBUG("LArG4") << "now put " << channels.size() << " SimChannels"
+
             " from C=" << c << " T=" << t << " into the event";
+
         }
 
         for(auto ch_pair: channels){
+
           sim::SimChannel& sc = ch_pair.second;
 
-          // push sc onto scCol but only if we haven't already put something in scCol for this channel.
-          // if we have, then merge the ionization deposits.  Skip the check if we only have one TPC
+          //push sc onto scCol but only if we haven't already put something in scCol for this channel.
+
+          //if we have, then merge the ionization deposits.  Skip the check if we only have one TPC
 
           if (ntpcs > 1) {
+
             unsigned int ichan = sc.Channel();
+
             std::map<unsigned int, unsigned int>::iterator itertest = channelToscCol.find(ichan);
+
             if (itertest == channelToscCol.end()) {
+
               channelToscCol[ichan] = scCol->size();
               scCol->emplace_back(std::move(sc));
+
             }
+
             else {
+
               unsigned int idtest = itertest->second;
+
               auto const& tdcideMap = sc.TDCIDEMap();
+
               for(auto const& tdcide : tdcideMap){
+
                  for(auto const& ide : tdcide.second){
+
                     double xyz[3] = {ide.x, ide.y, ide.z};
+
                     scCol->at(idtest).AddIonizationElectrons(ide.trackID,
+
                                         tdcide.first,
+
                                         ide.numElectrons,
+
                                         xyz,
+
                                         ide.energy);
+
                   } // end loop to add ionization electrons to  scCol->at(idtest)
+
                }// end loop over tdc to vector<sim::IDE> map
+
             } // end if check to see if we've put SimChannels in for ichan yet or not
+
           }
+
           else {
+
             scCol->emplace_back(std::move(sc));
+
           } // end of check if we only have one TPC (skips check for multiple simchannels if we have just one TPC)
+
         } // end loop over simchannels for this TPC
+
         // mark it for clearing
+
         ReadoutList.insert(const_cast<LArVoxelReadout*>(larVoxelReadout));
+
       } // end loop over tpcs
-    }// end loop over cryostats
+
+    }//end loop over cryostats
 
     for (LArVoxelReadout* larVoxelReadout: ReadoutList)
+
       larVoxelReadout->ClearSimChannels();
+
     
+
     
-    // only put the sim::AuxDetSimChannels into the event once, not once for every
-    // MCTruth in the event
+
+    //only put the sim::AuxDetSimChannels into the event once, not once for every
+
+    //MCTruth in the event
 
     adCol->reserve(geom->NAuxDets());
+
     for(unsigned int a = 0; a < geom->NAuxDets(); ++a){
+
 
       // there should always be at least one senstive volume because 
       // we make one for the full aux det if none are specified in the 
@@ -651,6 +810,7 @@ namespace larg4 {
       
     } // Loop over AuxDets
 	
+
     mf::LogInfo("LArG4")
       << "Geant4 simulated " << nGeneratedParticles << " MC particles, we keep "
       << partCol->size() << " .";
@@ -659,25 +819,42 @@ namespace larg4 {
       mf::LogVerbatim("DumpSimChannels")
         << "Event " << evt.id()
         << ": " << scCol->size() << " channels with signal";
+
       unsigned int nChannels = 0;
+
       for (const sim::SimChannel& sc: *scCol) {
+
          mf::LogVerbatim out("DumpSimChannels");
          out << " #" << nChannels << ": ";
+
         // dump indenting with "    ", but not on the first line
+
         sc.Dump(out, "  ");
+
         ++nChannels;
+
       } // for
+
     } // if dump SimChannels
+
     evt.put(std::move(scCol));
+
     
+
     evt.put(std::move(adCol));
+
     evt.put(std::move(partCol));
+
     if(!fUseLitePhotons) evt.put(std::move(PhotonCol));
+
     else evt.put(std::move(LitePhotonCol));
+
     evt.put(std::move(tpassn));
 
     return;
+
   } // LArG4::produce()
+
 
 } // namespace LArG4
 

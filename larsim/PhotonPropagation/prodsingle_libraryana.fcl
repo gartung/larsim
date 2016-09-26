@@ -90,6 +90,7 @@ outputs:
 }
 
 #manually setting parameters
+
 services.user.DetectorPropertiesService.ScintYield: 24000
 #(default in Utilities/larproperties.fcl number of photons per MeV of deposited energy)
 
@@ -112,6 +113,7 @@ services.user.DetectorPropertiesService.AbsLengthEnergies: [ 4, 5, 6, 7, 8, 9, 1
 #(default in Utilities/larproperties.fcl, energy in eV)
 
 services.user.DetectorPropertiesService.AbsLengthSpectrum: [ 2000., 2000., 2000., 2000., 2000., 2000., 2000., 2000. ]
+
 #(default in Utilities/larproperties.fcl, length in cm)
 
 physics.analyzers.pmtresponse.QuantumEfficiency: 1.00 #0.03
@@ -138,7 +140,9 @@ services.user.LArG4Parameters.EnabledPhysics: [ "Em",
 services.user.LArG4Parameters.UseCustomPhysics: true
 
 # disable cerenkov light
+
 services.user.DetectorPropertiesService.EnableCerenkovLight: false
+
 
 
 #17.5 < x < 238.8 cm (110.65 center)

@@ -42,8 +42,12 @@ standard_largeantparameters:
  #                                 [plane angle, pitch/mm, wire diameter/mm]
  #
  # This format is chosen to allow for future extensions to the model
- #  for, eg, DUNE wireplane development.
- #
+
+ OpticalParamParameters:   [ [ [30,  3, 0.15,0.97], 
+ 	 		       [-30, 3, 0.15,0.97],
+                               [0,   3, 0.15,0.97],
+                               [90,  3.5, 0.2,0.97],
+                               [0,   3.5, 0.2,0.97] ] ]	
  OpticalParamParameters:   [ [ [30,  3, 0.15], 
  	 		       [-30, 3, 0.15],
                                [0,   3, 0.15],

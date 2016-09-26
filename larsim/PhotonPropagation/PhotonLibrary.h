@@ -20,15 +20,23 @@ namespace phot{
     
 
     float GetCount(size_t Voxel, size_t OpChannel) const;
-    
     void SetCount(size_t Voxel, size_t OpChannel, float Count);
     
     /// Returns a pointer to NOpChannels() visibility values, one per channel
     float const* GetCounts(size_t Voxel) const;
 
+    float GetReflCount(size_t Voxel, size_t OpChannel);
+    void   SetReflCount(size_t Voxel, size_t OpChannel, float Count);
+    const std::vector<float>* GetReflCounts(size_t Voxel) const;
+
     
-    void StoreLibraryToFile(std::string LibraryFile);
-    void LoadLibraryFromFile(std::string LibraryFile, size_t NVoxels);
+
+    void LoadLibraryFromFile(std::string LibraryFile, size_t NVoxels,bool getReflected);
+
+   void StoreLibraryToFile(std::string LibraryFile,bool storeReflected);
+      void StoreLibraryToFile2(std::string LibraryFile, int Nx, int Ny, int Nz, int Nv, std::string
+    gdmlfile,bool storeReflected=false);
+
     void CreateEmptyLibrary(size_t NVoxels, size_t NChannels);
     
 
@@ -42,6 +50,8 @@ namespace phot{
     // fLookupTable[unchecked_index(Voxel, OpChannel)] = Count
     // for each voxel, all NChannels() channels are stored in sequence
     std::vector<float> fLookupTable;
+    std::vector<std::vector<float> > fReflLookupTable;
+
     size_t fNOpChannels;
     size_t fNVoxels;
     

@@ -1,10 +1,12 @@
 
 art_make( 
           
+
           LIB_LIBRARIES larevt_Filters
 	                lardataobj_RawData
 	                larcore_Geometry
 	                larcore_Geometry_Geometry_service
+
                         ${ART_FRAMEWORK_CORE}
 			${ART_FRAMEWORK_PRINCIPAL}
 			${ART_FRAMEWORK_SERVICES_REGISTRY}
@@ -26,6 +28,7 @@ art_make(
 	                lardataobj_RawData
 	                larcore_Geometry
 	                larcore_Geometry_Geometry_service
+
                         ${ART_FRAMEWORK_CORE}
 			${ART_FRAMEWORK_PRINCIPAL}
 			${ART_FRAMEWORK_SERVICES_REGISTRY}

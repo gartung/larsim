@@ -13,7 +13,9 @@
 
 #include "larsim/LArG4/ISCalculationSeparate.h"
 #include "lardata/DetectorInfoServices/LArPropertiesService.h"
+
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
+
 #include "larsim/Simulation/LArG4Parameters.h"
 #include "larsim/Simulation/LArVoxelCalculator.h"
 
@@ -36,8 +38,10 @@ namespace larg4{
   void ISCalculationSeparate::Initialize()
   {
     art::ServiceHandle<sim::LArG4Parameters> lgpHandle;
+
     const detinfo::LArProperties* larp = lar::providerFrom<detinfo::LArPropertiesService>();
     const detinfo::DetectorProperties* detprop = lar::providerFrom<detinfo::DetectorPropertiesService>();
+
 
     double density       = detprop->Density(detprop->Temperature());
     fEfield              = detprop->Efield();

@@ -115,8 +115,10 @@ namespace detsim{
     
     art::ServiceHandle<util::LArFFT> fFFT;
     int fNTicks = fFFT->FFTSize();
+
     fNBins=fNTicks/2+1;
     const detinfo::DetectorProperties* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+
     double samprate=detp->SamplingRate();
     double sampfreq=1./samprate *1e6; // in kHz   
     art::ServiceHandle<geo::Geometry> geo;

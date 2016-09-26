@@ -28,6 +28,7 @@
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 
 // LArSoft code
+
 #include "larsim/LArG4/LArVoxelReadout.h"
 #include "larsim/LArG4/ParticleListAction.h"
 #include "larevt/SpaceChargeServices/SpaceChargeService.h"
@@ -51,7 +52,9 @@ namespace larg4 {
     // Initialize values for the electron-cluster calculation.
     ClearSimChannels();
 
+
     const detinfo::DetectorClocks* ts = lar::providerFrom<detinfo::DetectorClocksService>();
+
     fClock = ts->TPCClock();
 
     // the standard name contains cryostat and TPC;
@@ -138,12 +141,14 @@ namespace larg4 {
     // to get more precise range and fluctuate it randomly.  Probably doesn't matter much
       
     if (fArgon39DecayRate > 0){
+
       // this must be always true, unless caller has been sloppy
       assert(fRadioGen); // No radiological decay random generator provided?!
       CLHEP::RandPoisson RadioProbRand(*fRadioGen);
       CLHEP::RandFlat PosAndDirRand(*fRadioGen);
-      
+
       auto const * detprop = lar::providerFrom<detinfo::DetectorPropertiesService>();
+
       double samplerate  = fClock.TickPeriod(); // in ns/tick
       int readwindow = detprop->NumberTimeSamples(); // in clock ticks
       double timewindow = samplerate*readwindow;
@@ -398,10 +403,13 @@ namespace larg4 {
                                                  Radio_t radiological /* = notradiological */,
                                                  unsigned int tickmax /* = 4096 */)
   {
+
     auto const * ts = lar::providerFrom<detinfo::DetectorClocksService>();
+
 
     // this must be always true, unless caller has been sloppy
     assert(fPropGen); // No propagation random generator provided?!
+
     
     CLHEP::RandGauss PropRand(*fPropGen);
 
