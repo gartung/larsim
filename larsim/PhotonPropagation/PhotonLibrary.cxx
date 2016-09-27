@@ -127,15 +127,26 @@ namespace phot{
     }						
 
 
-    for(size_t ivox=0; ivox!=fLookupTable.size(); ++ivox)
+
+    for(size_t ivox=0; ivox!= fNVoxels; ++ivox)
+
       {
-	for(size_t ichan=0; ichan!=fLookupTable.at(ivox).size(); ++ichan)
-	  {
-	    if(fLookupTable[ivox].at(ichan) > 0)
-	      {
-		Voxel      = ivox;
-		OpChannel  = ichan;
-		Visibility = fLookupTable[ivox][ichan];
+
+        for(size_t ichan=0; ichan!= fNOpChannels; ++ichan)
+
+          {
+
+            Visibility = uncheckedAccess(ivox, ichan);
+
+            if (Visibility > 0)
+
+              {
+
+                Voxel      = ivox;
+
+                OpChannel  = ichan;
+
+                // visibility is already set
 		nx=Nx;
 		ny=Ny;
 		nz=Nz;
@@ -143,12 +154,19 @@ namespace phot{
 		// gdmlfilepath=const Char_t("file");
 		if(storeReflected)
 		ReflVisibility = fReflLookupTable[ivox][ichan];
-		tt->Fill();
-	      
-	      }
-	  }	
+                tt->Fill();
+
+              }
+
+          }        
+
       }
+
   }
+
+
+
+
 
   //------------------------------------------------------------
 
@@ -323,7 +341,7 @@ namespace phot{
   const std::vector<float>* PhotonLibrary::GetReflCounts(size_t Voxel) const
   { 
     if(/*(Voxel<0)||*/(Voxel>=fNVoxels))
-      return EmptyList(); // FIXME!!! better to throw an exception!
+      return nullptr; 
     else 
       return &(fReflLookupTable[Voxel]);
   }

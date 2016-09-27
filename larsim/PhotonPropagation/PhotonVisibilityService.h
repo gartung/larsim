@@ -30,9 +30,10 @@ namespace phot{
 
     static double DistanceToOpDet(          double const* xyz, unsigned int OpDet );
     static double SolidAngleFactor(         double const* xyz, unsigned int OpDet );
-    float GetVisibility(                    double const* xyz, unsigned int OpChannel,,bool wantReflected ) const;         
+    float GetVisibility(                    double const* xyz, unsigned int OpChannel,bool wantReflected ) const;         
 
     float const* GetAllVisibilities( double const* xyz,bool  wantReflected ) const;
+    float const* GetAllVisibilities( double const* xyz ) const{return GetAllVisibilities(xyz,false ); };
 
     
     void LoadLibrary() const;
@@ -44,7 +45,8 @@ namespace phot{
 
     void SetLibraryEntry(   int VoxID, int OpChannel, float N,bool wantReflected);
     float GetLibraryEntry( int VoxID, int OpChannel,bool wantReflected) const;
-    float const* GetLibraryEntries( int VoxID,,bool wantReflected ) const;
+    float const* GetLibraryEntries( int VoxID, bool wantReflected ) const;
+    float const* GetLibraryEntries( int VoxID) const {return GetLibraryEntries( VoxID, false ); };
 
 
     

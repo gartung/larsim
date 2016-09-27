@@ -665,13 +665,13 @@ std::cout<<"551 Warning : null vis vector"<<std::endl;
 	  }
 	else
     {
-<<<<<<< HEAD
+
 	  for(size_t OpDet=0; OpDet!=NOpChannels; OpDet++)
       {
 		G4int DetThisPMT = G4int(G4Poisson(Visibilities[OpDet] * Num));
 
 
-std::cout<<xyz[0]<<" "<<xyz[1]<<" "<<xyz[2]<<" photons number "<<Num<<" "<<Visibilities->at(OpDet)<<" "<<G4Poisson(Visibilities->at(OpDet) * Num)<<std::endl;
+//std::cout<<xyz[0]<<" "<<xyz[1]<<" "<<xyz[2]<<" photons number "<<Num<<" "<<Visibilities-OpDet)<<" "<<G4Poisson(Visibilities->at(OpDet) * Num)<<std::endl;
 
 		if(DetThisPMT>0) 
         {

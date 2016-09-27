@@ -199,19 +199,13 @@ namespace phot{
   // Get a vector of the relative visibilities of each OpDet
   //  in the event to a point xyz
 
-<<<<<<< HEAD
-  float const* PhotonVisibilityService::GetAllVisibilities(double const* xyz) const
+
+  float const* PhotonVisibilityService::GetAllVisibilities(double const* xyz,bool wantReflected) const
   {
     size_t VoxID = fVoxelDef.GetVoxelID(xyz);
-    return GetLibraryEntries(VoxID);
-  }
-=======
-  const std::vector<float>* PhotonVisibilityService::GetAllVisibilities(double * xyz,bool wantReflected) const
-  {
-    int VoxID = fVoxelDef.GetVoxelID(xyz);
     return GetLibraryEntries(VoxID,wantReflected);
-}
->>>>>>> origin/feature/pawel_optical
+  }
+
 
 
   //------------------------------------------------------
@@ -237,11 +231,7 @@ namespace phot{
 
   //------------------------------------------------------
 
-<<<<<<< HEAD
-  float PhotonVisibilityService::GetVisibility(double const* xyz, unsigned int OpChannel) const
-=======
-  float PhotonVisibilityService::GetVisibility(double * xyz, unsigned int OpChannel,bool wantReflected)
->>>>>>> origin/feature/pawel_optical
+  float PhotonVisibilityService::GetVisibility(double const* xyz, unsigned int OpChannel,bool wantReflected) const
   {
     int VoxID = fVoxelDef.GetVoxelID(xyz);  
     return GetLibraryEntry(VoxID, OpChannel,wantReflected);
@@ -286,11 +276,8 @@ namespace phot{
 
   
 
-<<<<<<< HEAD
-  float const* PhotonVisibilityService::GetLibraryEntries(int VoxID) const
-=======
-  const std::vector<float>* PhotonVisibilityService::GetLibraryEntries(int VoxID,bool wantReflected) const
->>>>>>> origin/feature/pawel_optical
+
+ float const* PhotonVisibilityService::GetLibraryEntries(int VoxID,bool wantReflected) const
   {
     if(fTheLibrary == 0)
       LoadLibrary();
@@ -298,7 +285,7 @@ namespace phot{
     if(!wantReflected)
       return fTheLibrary->GetCounts(VoxID);
     else
-      return fTheLibrary->GetReflCounts(VoxID);
+      return fTheLibrary->GetCounts(VoxID);//FIXME
   }
 
   //------------------------------------------------------

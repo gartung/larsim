@@ -18,7 +18,7 @@
 #ifndef LArG4_LARLIGHTENERGYACTION_H
 #define LArG4_LARLIGHTENERGYACTION_H
 
-#include "G4Base/UserAction.h"
+#include "nutools/G4Base/UserAction.h"
 #include <cstring>
 #include "Geant4/globals.hh"
 #include <map>

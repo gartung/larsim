@@ -200,11 +200,11 @@ namespace phot{
   //  in the event to a point xyz
 
 
-  float const* PhotonVisibilityService::GetAllVisibilities PhotonVisibilityService::GetAllVisibilities(double * xyz,bool wantReflected) const
+  float const* PhotonVisibilityService::GetAllVisibilities(double const* xyz,bool wantReflected) const
   {
     size_t VoxID = fVoxelDef.GetVoxelID(xyz);
     return GetLibraryEntries(VoxID,wantReflected);
-}
+  }
 
 
 
@@ -285,8 +285,10 @@ namespace phot{
     if(!wantReflected)
       return fTheLibrary->GetCounts(VoxID);
     else
-      return fTheLibrary->GetReflCounts(VoxID);
+      return fTheLibrary->GetCounts(VoxID);//FIXME
   }
+
+
 
   //------------------------------------------------------
 

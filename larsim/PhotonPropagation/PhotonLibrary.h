@@ -72,6 +72,7 @@ namespace phot{
     
     /// Returns the number of optical channels in the specified tree
     static size_t ExtractNOpChannels(TTree* tree);
+
     
   };
 

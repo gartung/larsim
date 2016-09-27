@@ -190,7 +190,7 @@ namespace phot {
                 
 
       const float* Visibilities = pvs->GetLibraryEntries(i);
-
+      size_t NOpChannels = pvs->NOpChannels();
 
       
       float TotalVis=0;
