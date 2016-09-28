@@ -320,7 +320,7 @@ OpFastScintillation::PostStepDoIt(const G4Track& aTrack, const G4Step& aStep)
 	// singleton
 	larg4::IonizationAndScintillation::Instance()->Reset(&aStep);
 	double MeanNumberOfPhotons = larg4::IonizationAndScintillation::Instance()->NumberScintillationPhotons();
-std::cout<<" PHOTONS IN OPFASTSCINTILLATION "<<MeanNumberOfPhotons<<std::endl;
+//std::cout<<" PHOTONS IN OPFASTSCINTILLATION "<<MeanNumberOfPhotons<<std::endl;
         RecordPhotonsProduced(aStep, MeanNumberOfPhotons);
 	energy_deposited1+=larg4::IonizationAndScintillation::Instance()->EnergyDeposit();
 	//std::cout<<"mean number of photons "<<MeanNumberOfPhotons<<std::endl;

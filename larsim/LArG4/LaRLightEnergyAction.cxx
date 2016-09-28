@@ -162,7 +162,7 @@ tpc_test=tpc2;
 
 if(step->GetTrack()->GetVolume()->GetName()==tpc_test || step->GetTrack()->GetVolume()->GetName()==tpc_big){ 
 		
-
+			//if(postStepPoint->GetProcessDefinedStep()->GetProcessName()!="LArVoxelReadoutScoringProcess") mf::LogInfo("LaRLightEnergyAction")<<"PROCESS other than scoringprocess "<<postStepPoint->GetProcessDefinedStep()->GetProcessName()<<std::endl;
 			 energy_deposit_step+=step->GetTotalEnergyDeposit();
 			//mf::LogWarning("LaRLightEnergyAction")<<"energy deposit step filled!!!!!!!!! "<<energy_deposit_step<<" change event "<<change_event<<" tpc name "<<tpc_big<<std::endl;
 //wspolrzedne z geometry, MCparticle, trajectory, get energy deposit 

@@ -170,13 +170,14 @@ namespace larg4 {
     {
     auto const* larp = lar::providerFrom<detinfo::LArPropertiesService>();
     // Add standard EM Processes
-    LOG_DEBUG("FastOpticalPhysics") << "PROCESSES BEING CONSTRUCTED IN OPTICAL PHYSICS";
+    LOG_INFO("FastOpticalPhysics") << "PROCESSES BEING CONSTRUCTED IN OPTICAL PHYSICS";
         bool simpleopticalphysics=false;
         bool simplesci=false;
 simpleopticalphysics=larp->SimpleBoundary();
 simplesci=larp->SimpleScint();
-simpleopticalphysics=false;
-simplesci=true;
+    LOG_INFO("FastOpticalPhysics") << "simple scint and simple opt physics par. values"<< simplesci<<" "<<simpleopticalphysics<<std::endl;
+//simpleopticalphysics=false;
+//simplesci=true;
     fTheCerenkovProcess            = new G4Cerenkov("Cerenkov");
     fTheAbsorptionProcess          = new G4OpAbsorption();
     fTheRayleighScatteringProcess  = new G4OpRayleigh();
@@ -191,6 +192,9 @@ simplesci=true;
     fTheCerenkovProcess->SetTrackSecondariesFirst(false);
      bool CerenkovEnabled = larp->CerenkovLightEnabled();
 
+
+
+    aParticleIterator->reset();
 
     while( (*aParticleIterator)() ){
       G4ParticleDefinition* particle = aParticleIterator->value();
@@ -213,6 +217,7 @@ if(simplesci==false){
 
 if(simplesci==true){
       if (fTheScintillationProcessFast->IsApplicable(*particle)) {
+ mf::LogInfo("FastOpticalPhysics")<<"OPFASTSCINT ADDED TO PROCESS MANAGER "<<std::endl;
 	pmanager->AddProcess(fTheScintillationProcessFast);
 	pmanager->SetProcessOrderingToLast(fTheScintillationProcessFast, idxAtRest);
 	pmanager->SetProcessOrderingToLast(fTheScintillationProcessFast, idxPostStep);

@@ -47,14 +47,11 @@
 #include "larsim/LArG4/CustomPhysicsFactory.hh"
 #include "larsim/LArG4/OpBoundaryProcessSimple.hh"
 #include "larsim/LArG4/IonizationAndScintillation.h"
-<<<<<<< HEAD:LArG4/FastOpticalPhysics.cxx
-#include "lardata/DetectorInfoServices/LArPropertiesService.h"
-#include "larsim/LArG4/OpFastScintillation.hh"
-=======
+
 #include "larsim/LArG4/OpFastScintillation.hh"
 
-#include "lardata/DetectorInfoServices/LArPropertiesService.h"
->>>>>>> origin/develop:larsim/LArG4/FastOpticalPhysics.cxx
+#include "lardata/lardata/DetectorInfoServices/LArPropertiesService.h"
+
 
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
@@ -173,13 +170,14 @@ namespace larg4 {
     {
     auto const* larp = lar::providerFrom<detinfo::LArPropertiesService>();
     // Add standard EM Processes
-    LOG_DEBUG("FastOpticalPhysics") << "PROCESSES BEING CONSTRUCTED IN OPTICAL PHYSICS";
+    LOG_INFO("FastOpticalPhysics") << "PROCESSES BEING CONSTRUCTED IN OPTICAL PHYSICS";
         bool simpleopticalphysics=false;
         bool simplesci=false;
 simpleopticalphysics=larp->SimpleBoundary();
 simplesci=larp->SimpleScint();
-simpleopticalphysics=false;
-simplesci=true;
+    LOG_INFO("FastOpticalPhysics") << "simple scint and simple opt physics par. values"<< simplesci<<" "<<simpleopticalphysics<<std::endl;
+//simpleopticalphysics=false;
+//simplesci=true;
     fTheCerenkovProcess            = new G4Cerenkov("Cerenkov");
     fTheAbsorptionProcess          = new G4OpAbsorption();
     fTheRayleighScatteringProcess  = new G4OpRayleigh();
@@ -192,17 +190,9 @@ simplesci=true;
     fTheCerenkovProcess->SetMaxNumPhotonsPerStep(700);
     fTheCerenkovProcess->SetMaxBetaChangePerStep(10.0);
     fTheCerenkovProcess->SetTrackSecondariesFirst(false);
-    
-<<<<<<< HEAD:LArG4/FastOpticalPhysics.cxx
-    
-=======
-    const detinfo::LArProperties* larp = lar::providerFrom<detinfo::LArPropertiesService>();
->>>>>>> origin/develop:larsim/LArG4/FastOpticalPhysics.cxx
-    bool CerenkovEnabled = larp->CerenkovLightEnabled();
-    
-    mf::LogInfo("FastOpticalPhysics") << "Cerenkov enabled : " << CerenkovEnabled;
+     bool CerenkovEnabled = larp->CerenkovLightEnabled();
 
-    aParticleIterator->reset();
+
     while( (*aParticleIterator)() ){
       G4ParticleDefinition* particle = aParticleIterator->value();
       G4ProcessManager* pmanager = particle->GetProcessManager();
@@ -224,6 +214,7 @@ if(simplesci==false){
 
 if(simplesci==true){
       if (fTheScintillationProcessFast->IsApplicable(*particle)) {
+ mf::LogInfo("FastOpticalPhysics")<<"OPFASTSCINT ADDED TO PROCESS MANAGER "<<std::endl;
 	pmanager->AddProcess(fTheScintillationProcessFast);
 	pmanager->SetProcessOrderingToLast(fTheScintillationProcessFast, idxAtRest);
 	pmanager->SetProcessOrderingToLast(fTheScintillationProcessFast, idxPostStep);
