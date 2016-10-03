@@ -325,8 +325,8 @@ OpFastScintillation::PostStepDoIt(const G4Track& aTrack, const G4Step& aStep)
 	energy_deposited1+=larg4::IonizationAndScintillation::Instance()->EnergyDeposit();
 	//std::cout<<"mean number of photons "<<MeanNumberOfPhotons<<std::endl;
 	if (verboseLevel>0) {
-	  G4cout << "\n Exiting from OpFastScintillation::DoIt -- NumberOfSecondaries = " 
-		 << aParticleChange.GetNumberOfSecondaries() << G4endl;
+//	  G4cout << "\n Exiting from OpFastScintillation::DoIt -- NumberOfSecondaries = " 
+//		 << aParticleChange.GetNumberOfSecondaries() << G4endl;
 	}
 	
 	
@@ -564,7 +564,7 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
 	// if null pointer, this means no data for this voxel - in 
 	// this case do nothing.
 	//mf::LogInfo("OpFastScintillation")<<"Warning : null vis vector"<<std::endl;
-std::cout<<"551 Warning : null vis vector"<<std::endl;
+//std::cout<<"551 Warning : null vis vector"<<std::endl;
       }
     else
     {
