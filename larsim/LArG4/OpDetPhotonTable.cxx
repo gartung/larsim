@@ -17,6 +17,7 @@
 #include "larcore/Geometry/CryostatGeo.h"
 #include "larcore/Geometry/OpDetGeo.h"
 #include "lardataobj/Simulation/SimPhotons.h"
+#include "lardataobj/Simulation/SimOpChannel.h"
 
 namespace larg4 {
   OpDetPhotonTable * TheOpDetPhotonTable;
@@ -62,6 +63,39 @@ namespace larg4 {
       }
     }
   }
+
+  //--------------------------------------------------- cSimOpChannel population
+  //J Stock. 11 Oct 2016
+  void OpDetPhotonTable::AddSimOpChannel(sim::SimOpChannel soc){
+    int iChan = soc.Channel();
+    std::map<int,int> cOpChannelToSOCMap;
+    std::map<int, int>::iterator channelPosition = cOpChannelToSOCMap.find(iChan);
+    if (channelPosition == cOpChannelToSOCMap.end() ){
+      cOpChannelToSOCMap[iChan] = cSimOpChannelsCol.size();
+      cSimOpChannelsCol.emplace_back(std::move(soc));
+    }else{
+      unsigned int idtest = channelPosition->second;
+      auto const& timePDclockSDPsMap = soc.timePDclockSDPsMap();
+      for(auto const& timePDclockSDP : timePDclockSDPsMap){
+        for(auto const& sdp : timePDclockSDP.second){
+          double xyz[3] = {sdp.x, sdp.y, sdp.z};
+          cSimOpChannelsCol.at(idtest).AddScintillationPhotons(
+              sdp.trackID,
+              timePDclockSDP.first,
+              sdp.numPhotons,
+              xyz,
+              sdp.energy);
+        }//end sdp : timesdp.second
+      }//end const timesdp : timeSDPMap
+    }// if chanPos == cOpChan else
+    
+    
+    
+  }//END void OpDetPhotonTable::AdSimOpChannels
+
+  // cSimOpChannel return.
+  std::vector<sim::SimOpChannel >& OpDetPhotonTable::GetSimOpChannels() 
+  { return cSimOpChannelsCol; }
 
 
 

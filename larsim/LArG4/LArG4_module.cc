@@ -72,6 +72,7 @@
 #include "nutools/ParticleNavigation/ParticleList.h"
 #include "lardataobj/Simulation/SimPhotons.h"
 #include "lardataobj/Simulation/SimChannel.h"
+#include "lardataobj/Simulation/SimOpChannel.h"
 #include "lardataobj/Simulation/AuxDetSimChannel.h"
 #include "larcore/Geometry/Geometry.h"
 #include "nutools/G4Base/DetectorConstruction.h"
@@ -185,7 +186,7 @@ namespace larg4 {
                                                     ///< dictate how tracks are put on stack.        
     std::vector<std::string>   fInputLabels;
     std::vector<std::string>   fKeepParticlesInVolumes; ///<Only write particles that have trajectories through these volumes
-    
+
     /// Configures and returns a particle filter
     std::unique_ptr<PositionInVolumeFilter> CreateParticleVolumeFilter
       (std::set<std::string> const& vol_names) const;
@@ -240,10 +241,14 @@ namespace larg4 {
     fUseLitePhotons = lgp->UseLitePhotons();
 
     if(!fUseLitePhotons) produces< std::vector<sim::SimPhotons>     >();
-    else                 produces< std::vector<sim::SimPhotonsLite> >();
+    else{
+      produces< std::vector<sim::SimPhotonsLite> >();
+      produces< std::vector<sim::SimOpChannel>   >();
+    }
 
     produces< std::vector<simb::MCParticle> >();
     produces< std::vector<sim::SimChannel>  >();
+    produces< std::vector<sim::SimOpChannel>  >();
     produces< std::vector<sim::AuxDetSimChannel> >();
     produces< art::Assns<simb::MCTruth, simb::MCParticle> >();
 
@@ -409,12 +414,13 @@ namespace larg4 {
     LOG_DEBUG("LArG4") << "produce()";
 
     // loop over the lists and put the particles and voxels into the event as collections
-    std::unique_ptr< std::vector<simb::MCParticle> > partCol  (new std::vector<simb::MCParticle  >);
-    std::unique_ptr< std::vector<sim::SimChannel>  > scCol    (new std::vector<sim::SimChannel>);
-    std::unique_ptr< std::vector<sim::SimPhotons>  > PhotonCol(new std::vector<sim::SimPhotons>);
-    std::unique_ptr< std::vector<sim::SimPhotonsLite>  > LitePhotonCol(new std::vector<sim::SimPhotonsLite>);
+    std::unique_ptr< std::vector< simb::MCParticle > >    partCol       (new std::vector<simb::MCParticle  >);
+    std::unique_ptr< std::vector< sim::SimChannel > >     scCol         (new std::vector<sim::SimChannel>);
+    std::unique_ptr< std::vector< sim::SimOpChannel > >   cSimOpChannelCol (new std::vector<sim::SimOpChannel>);
+    std::unique_ptr< std::vector< sim::SimPhotons > >     PhotonCol     (new std::vector<sim::SimPhotons>);
+    std::unique_ptr< std::vector< sim::SimPhotonsLite > > LitePhotonCol (new std::vector<sim::SimPhotonsLite>);
     std::unique_ptr< art::Assns<simb::MCTruth, simb::MCParticle> > tpassn(new art::Assns<simb::MCTruth, simb::MCParticle>);
-    std::unique_ptr< std::vector< sim::AuxDetSimChannel > > adCol (new  std::vector<sim::AuxDetSimChannel> );
+    std::unique_ptr< std::vector< sim::AuxDetSimChannel > > adCol       (new  std::vector<sim::AuxDetSimChannel> );
 
     // Fetch the lists of LAr voxels and particles.
     art::ServiceHandle<sim::LArG4Parameters> lgp;
@@ -504,10 +510,10 @@ namespace larg4 {
       if(!fUseLitePhotons){      
         LOG_DEBUG("Optical") << "Storing OpDet Hit Collection in Event";
         
-	std::vector<sim::SimPhotons>& ThePhotons = OpDetPhotonTable::Instance()->GetPhotons();
-	PhotonCol->reserve(ThePhotons.size());
-	for(auto& it : ThePhotons)
-	  PhotonCol->push_back(std::move(it));
+    	  std::vector<sim::SimPhotons>& ThePhotons = OpDetPhotonTable::Instance()->GetPhotons();
+	      PhotonCol->reserve(ThePhotons.size());
+	      for(auto& it : ThePhotons)
+ 	      PhotonCol->push_back(std::move(it));
       }
       else{
         LOG_DEBUG("Optical") << "Storing OpDet Hit Collection in Event";
@@ -523,6 +529,7 @@ namespace larg4 {
             LitePhotonCol->push_back(ph);
           }
         }
+        *cSimOpChannelCol = OpDetPhotonTable::Instance()->GetSimOpChannels();
       }
     }
       
@@ -673,7 +680,10 @@ namespace larg4 {
     evt.put(std::move(adCol));
     evt.put(std::move(partCol));
     if(!fUseLitePhotons) evt.put(std::move(PhotonCol));
-    else evt.put(std::move(LitePhotonCol));
+    else{
+      evt.put(std::move(LitePhotonCol));
+      evt.put(std::move(cSimOpChannelCol));
+    }
     evt.put(std::move(tpassn));
 
     return;

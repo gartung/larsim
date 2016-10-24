@@ -2,6 +2,7 @@
 /// \file OpDetPhotonTable.h
 //
 /// \author  bjpjones@mit.edu
+//  Eddited by JStock <jason.stock@mines.sdsmt.edu>
 ////////////////////////////////////////////////////////////////////////
 // 
 // This class holds a collection of PMT hits to be stored
@@ -28,9 +29,12 @@
 //
 // Ben Jones, MIT, 11/10/12
 //
+//
+//Changes have been made to this object to include the SimOpChannels for use in the photonbacktracker
 
 #include "Geant4/G4PhysicalVolumeStore.hh"
 #include "Geant4/G4VPhysicalVolume.hh"
+#include "lardataobj/Simulation/SimOpChannel.h"
 #include <map>
 #include <memory>
 #include <exception>
@@ -58,23 +62,23 @@ namespace larg4 {
       sim::SimPhotons&               GetPhotonsForOpChannel(size_t opcannel);
       
       std::map<int, std::map<int, int> >   GetLitePhotons();
-      std::map<int, int>& GetLitePhotonsForOpChannel(int opcannel); 
+      std::map<int, int>&                  GetLitePhotonsForOpChannel(int opcannel); 
       void ClearTable(size_t nch=0);
+
+      void AddSimOpChannel(sim::SimOpChannel soc);
+      std::vector<sim::SimOpChannel>& GetSimOpChannels();
       
     protected:
       OpDetPhotonTable();
 
     private:
 
-      std::map<int, std::map<int,int> > fLitePhotons;
-
-      /**
-      // std::map<int, sim::SimPhotons* > fDetectedPhotons;
-      - Use a vector of SimPhotons instead of map
-      - Vector index = channel number
-      - Vector size is initialized @ ClearTable() call
-       */
+      std::map<int, std::map<int,int> >     fLitePhotons;
+      std::vector< sim::SimOpChannel >      cSimOpChannelsCol; //analogous to scCol for electrons
+      std::map<int, int>  cOpChannelToSOCMap; //Where each OpChan is in 
       std::vector<sim::SimPhotons> fDetectedPhotons;
+      std::vector<sim::SimOpChannel> cSimOpChannelsCol;
+
     };
 
 }

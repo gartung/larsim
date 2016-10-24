@@ -109,6 +109,7 @@
 #include "larsim/PhotonPropagation/PhotonVisibilityService.h"
 #include "larsim/LArG4/OpDetPhotonTable.h"
 #include "lardataobj/Simulation/SimPhotons.h"
+#include "lardataobj/Simulation/SimOpChannel.h"
 #include "larsim/Simulation/LArG4Parameters.h"
 #include "larcore/Geometry/Geometry.h"
 #include "larcore/Geometry/CryostatGeo.h"
@@ -552,6 +553,7 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
       }
     else
     {
+   //Begin If Use Parameterization   
 	 if(pvs->UseParameterization())
 	  {
         art::ServiceHandle<geo::Geometry> geo;
@@ -645,8 +647,8 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
          StepPhotonTable[itdetphot->first] = StepPhotons;
 	  }
     litefst->AddPhoton(&StepPhotonTable);
-	  }
-	else
+	  }//END USE PARAMATERIZATION
+	else //This is where the sim should happen now (Oct 2016).
     {
 	  for(size_t OpDet=0; OpDet!=NOpChannels; OpDet++)
       {
@@ -688,6 +690,27 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
             StepPhotons[ticks]++;
           }
          StepPhotonTable[itdetphot->first] = StepPhotons;
+         //Iterate over Step Photon Table to add photons to SimOpChannels.
+
+         sim::SimOpChannel tmpSOC(itdetphot->first);
+         int thisG4TrackID = (aStep.GetTrack())->GetTrackID();
+         CLHEP::Hep3Vector prePoint  = (aStep.GetPreStepPoint())->GetPosition();
+         CLHEP::Hep3Vector postPoint = (aStep.GetPostStepPoint())->GetPosition();
+         double xO=((prePoint.getX() + postPoint.getX())/2.0);
+         double yO=((prePoint.getY() + postPoint.getY())/2.0);
+         double zO=((prePoint.getZ() + postPoint.getZ())/2.0);
+         double* xyzPos = new double[3]{xO,yO,zO};
+         double energy=aStep.GetTotalEnergyDeposit();
+
+         //Loop over StepPhotons to get number of photons detected at each time for this channel and G4Step.
+         for(std::map<int,int>::iterator stepPhotonsIt = StepPhotons.begin(); stepPhotonsIt != StepPhotons.end(); ++stepPhotonsIt)
+         {
+           int photonTime = stepPhotonsIt->first;
+           int numPhotons = stepPhotonsIt->second;
+           tmpSOC.AddScintillationPhotons(thisG4TrackID, photonTime, numPhotons, xyzPos, energy);
+         }
+         //Add SOC to simchannels. (opdetphotonTABLE->instance().addSimOpChannel(sim::SimOpChannel soc)
+         litefst->AddSimOpChannel(tmpSOC);
         }
         litefst->AddPhoton(&StepPhotonTable);
       }
