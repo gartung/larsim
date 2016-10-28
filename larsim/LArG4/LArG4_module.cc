@@ -248,7 +248,6 @@ namespace larg4 {
 
     produces< std::vector<simb::MCParticle> >();
     produces< std::vector<sim::SimChannel>  >();
-    produces< std::vector<sim::SimOpChannel>  >();
     produces< std::vector<sim::AuxDetSimChannel> >();
     produces< art::Assns<simb::MCTruth, simb::MCParticle> >();
 

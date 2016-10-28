@@ -77,7 +77,6 @@ namespace larg4 {
       std::vector< sim::SimOpChannel >      cSimOpChannelsCol; //analogous to scCol for electrons
       std::map<int, int>  cOpChannelToSOCMap; //Where each OpChan is in 
       std::vector<sim::SimPhotons> fDetectedPhotons;
-      std::vector<sim::SimOpChannel> cSimOpChannelsCol;
 
     };
 
