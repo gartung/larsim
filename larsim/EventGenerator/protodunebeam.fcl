@@ -1,0 +1,19 @@
+BEGIN_PROLOG
+
+#no experiment specific configurations because SingleMuons is detector agnostic
+
+protodune_beam:
+{
+ module_type:  "ProtoDUNEBeam"
+ FileName:  "dummy.root"
+ TreeName:  "NTuples/GoodParticle"
+ StartEvent: 0
+ # From protoDUNE_gensingle.fcl
+ BeamX: 118.106 #_gensingle.fcl In cm
+ BeamY: 395.649 
+ BeamZ: -196.113
+ RotateXZ: -8.189 # In degrees
+ RotateYZ: 11.229 
+}
+
+END_PROLOG
