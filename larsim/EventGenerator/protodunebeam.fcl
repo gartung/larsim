@@ -1,7 +1,5 @@
 BEGIN_PROLOG
 
-#no experiment specific configurations because SingleMuons is detector agnostic
-
 protodune_beam:
 {
  module_type:  "ProtoDUNEBeam"
