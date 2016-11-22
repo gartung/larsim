@@ -216,8 +216,9 @@ void evgen::ProtoDUNEBeam::GenerateTrueEvent(simb::MCTruth &mcTruth){
   // Most things want the PDG code as an int, so make one.
   int intPDG = (int)fPDG;
   
-  // Get the position and momentum four vectors, remembering to convert MeV to GeV
-  TLorentzVector pos = ConvertCoordinates(fX,fY,fZ,correctedTime);
+  // Get the position four vector, converting mm to cm 
+  TLorentzVector pos = ConvertCoordinates(fX/10.,fY/10.,fZ/10.,correctedTime);
+  // Get momentum four vector, remembering to convert MeV to GeV
   TLorentzVector mom = MakeMomentumVector(fPx/1000.,fPy/1000.,fPz/1000.,intPDG);
 
   // Create the particle and add the starting position and momentum
