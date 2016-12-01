@@ -290,7 +290,7 @@ namespace evgen{
     else {
       p = fP0[i] + fSigmaP[i]*(2.0*flat.fire()-1.0);
     }
-
+std::cout<<"MOMENTUM IN SINGLEGEN "<<p<<" SET IN FCL "<<fP0[i]<<std::endl;
     static TDatabasePDG  pdgt;
     TParticlePDG* pdgp = pdgt.GetParticle(fPDG[i]);
     if (pdgp) m = pdgp->Mass();
@@ -357,7 +357,7 @@ namespace evgen{
 			p*std::sin(thyzrad),
 			p*std::cos(thxzrad)*std::cos(thyzrad),
 			std::sqrt(p*p+m*m));
- 
+ std::cout<<"ENERGY IN SINGLEGEN + direction, value is "<<pvec[3]<<std::endl;
     // set track id to -i as these are all primary particles and have id <= 0
     int trackid = -1*(i+1);
     std::string primary("primary");

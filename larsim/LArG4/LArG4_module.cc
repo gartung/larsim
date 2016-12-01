@@ -505,6 +505,7 @@ if(fLarLightEnergyAction){
         auto iPartPair = particleList.begin();
         while (iPartPair != particleList.end()) {
           simb::MCParticle& p = *(iPartPair->second);
+	std::cout<<"MC PARTICLE ENERGY IN LARG4 "<<p.E() <<std::endl;
           ++nGeneratedParticles;
           
           // if the particle has been marked as dropped, we don't save it
