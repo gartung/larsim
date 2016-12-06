@@ -196,7 +196,7 @@ void evgen::ProtoDUNEBeam::GenerateTrueEvent(simb::MCTruth &mcTruth){
 
   // Check we haven't exceeded the length of the input tree
   if(fEventNumber >= fInputTree->GetEntries()){
-    cet::exception("ProtoDUNEBeam") << "Requested entry " << fEventNumber 
+    throw cet::exception("ProtoDUNEBeam") << "Requested entry " << fEventNumber 
                                     << " but tree only has entries 0 to " 
                                     << fInputTree->GetEntries() - 1 << std::endl; 
   }
