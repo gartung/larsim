@@ -117,7 +117,12 @@ namespace larg4 {
                                   << "\n Drift velocity: "  << fDriftVelocity[0]
                                   <<" "<<fDriftVelocity[1]<<" "<<fDriftVelocity[2]
                                   << "\n Argon 39 Decay Rate: " << fArgon39DecayRate;
-  }
+
+    fSimEDepCol.clear();
+    if(fDontDriftThem)
+      fSimEDepCol.reserve(5000000);
+
+  }  
 
   //---------------------------------------------------------------------------------------
   // Called at the end of each event.
@@ -260,6 +265,8 @@ namespace larg4 {
       cryoData.resize(fGeoHandle->NTPC(cryo++));
       for (auto& channelsMap: cryoData) channelsMap.clear(); // each, a map
     } // for cryostats
+    fSimEDepCol.clear();
+
   } // LArVoxelReadout::ClearSimChannels()
 
   
@@ -319,12 +326,82 @@ namespace larg4 {
     // transportation set up in PhysicsList.  Find the mid-point
     // of the step.
 
-    if ( step->GetTotalEnergyDeposit() > 0 ){
+      if ( step->GetTotalEnergyDeposit() > 0 ){
       
       // Make sure we have the IonizationAndScintillation singleton
       // reset to this step
       larg4::IonizationAndScintillation::Instance()->Reset(step);
+      
+      if( fDontDriftThem )
+	{	  
+	  G4ThreeVector midPoint = 0.5*( step->GetPreStepPoint()->GetPosition()
+					 + step->GetPostStepPoint()->GetPosition() );
+	  double g4time = step->GetPreStepPoint()->GetGlobalTime();
+	  
+	  // Find the Geant4 track ID for the particle responsible for depositing the
+	  // energy.  if we are only storing primary EM shower particles, and this energy
+	  // is from a secondary etc EM shower particle, the ID returned is the primary
+	  const int trackID = ParticleListAction::GetCurrentTrackID();
+	  
+	  // Find out which TPC we are in.
+	  // If this readout object covers just one, we already know it.
+	  // Otherwise, we have to ask Geant where we are.
+	  unsigned short int cryostat = 0, tpc = 0;
+	  if (bSingleTPC) {
+	    cryostat = fCstat;
+	    tpc = fTPC;
+	  }
+	  else {
+	    // detect the TPC we are in
+	    const G4VTouchable* pTouchable = step->GetPreStepPoint()->GetTouchable();
+	    if (!pTouchable) {
+	      throw cet::exception
+		("LArG4") << "Untouchable step in LArVoxelReadout::ProcessHits()";
+	    }
+	    
+	    // one of the ancestors of the touched volume is supposed to be
+	    // actually a G4PVPlacementInTPC that knows which TPC it covers;
+	    // currently, it's the 4th in the ladder:
+	    // [0] voxel [1] voxel tower [2] voxel plane [3] the full box;
+	    G4int depth = 0;
+	    while (depth < pTouchable->GetHistoryDepth()) {
+	      const G4PVPlacementInTPC* pPVinTPC = 
+		dynamic_cast<const G4PVPlacementInTPC*>
+		(pTouchable->GetVolume(depth++));
+	      if (!pPVinTPC) continue;
+	      cryostat = pPVinTPC->ID.Cryostat;
+	      tpc = pPVinTPC->ID.TPC;
+	      if (Has(fSkipWireSignalInTPCs, tpc))
+		{
+		  return true;
+		}
+	      break;
+	    } // while
+	    if (depth < pTouchable->GetHistoryDepth()) {
+	      // this is a fundamental error where the step does not happen in
+	      // any TPC; this should not happen in the readout geometry!
+	      throw cet::exception
+		("LArG4") << "No TPC ID found in LArVoxelReadout::ProcessHits()";
+	    } // if
+	    LOG_DEBUG("LArVoxelReadoutHit") << " hit in C=" << cryostat << " T=" << tpc;
+	  } // if more than one TPC
+	  
+	  // Note that if there is no particle ID for this energy deposit, the
+	  // trackID will be sim::NoParticleId.	  
 
+	  /*
+	  std::cout << "Adding EDep " << midPoint.x() << " " << midPoint.y() << " " << midPoint.z() << " " << g4time
+		    << larg4::IonizationAndScintillation::Instance()->EnergyDeposit() << " "
+		    << larg4::IonizationAndScintillation::Instance()->NumberIonizationElectrons() << std::endl;
+	  */
+	  fSimEDepCol.emplace_back(midPoint.x(),midPoint.y(),midPoint.z(),g4time,
+				   larg4::IonizationAndScintillation::Instance()->EnergyDeposit(),
+				   larg4::IonizationAndScintillation::Instance()->NumberIonizationElectrons(),
+				   larg4::IonizationAndScintillation::Instance()->NumberScintillationPhotons(),
+				   trackID,
+				   tpc,cryostat);
+	}
+      
       if( !fDontDriftThem ){
 
         G4ThreeVector midPoint = 0.5*( step->GetPreStepPoint()->GetPosition()

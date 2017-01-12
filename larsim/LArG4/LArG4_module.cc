@@ -74,6 +74,7 @@
 #include "lardataobj/Simulation/SimChannel.h"
 #include "lardataobj/Simulation/OpDetBacktrackerRecord.h"
 #include "lardataobj/Simulation/AuxDetSimChannel.h"
+#include "lardataobj/Simulation/SimEDep.h"
 #include "larcore/Geometry/Geometry.h"
 #include "nutools/G4Base/DetectorConstruction.h"
 #include "nutools/G4Base/UserActionManager.h"
@@ -247,8 +248,14 @@ namespace larg4 {
     }
 
     produces< std::vector<simb::MCParticle> >();
-    produces< std::vector<sim::SimChannel>  >();
+
+    if(lgp->DisableWireplanes())
+      produces< std::vector<sim::SimEDep> >();
+    else{
+      produces< std::vector<sim::SimChannel>  >();
+    }
     produces< std::vector<sim::AuxDetSimChannel> >();
+
     produces< art::Assns<simb::MCTruth, simb::MCParticle> >();
 
     // constructor decides if initialized value is a path or an environment variable
@@ -413,6 +420,7 @@ namespace larg4 {
     LOG_DEBUG("LArG4") << "produce()";
 
     // loop over the lists and put the particles and voxels into the event as collections
+    std::unique_ptr< std::vector<sim::SimEDep>  >                  edepCol                    (new std::vector<sim::SimEDep>);
     std::unique_ptr< std::vector<sim::SimChannel>  >               scCol                      (new std::vector<sim::SimChannel>);
     std::unique_ptr< std::vector< sim::AuxDetSimChannel > >        adCol                      (new  std::vector<sim::AuxDetSimChannel> );
     std::unique_ptr< art::Assns<simb::MCTruth, simb::MCParticle> > tpassn                     (new art::Assns<simb::MCTruth, simb::MCParticle>);
@@ -536,7 +544,7 @@ namespace larg4 {
     // MCTruth in the event
 
     std::set<LArVoxelReadout*> ReadoutList; // to be cleared later on
-    
+
     for(unsigned int c = 0; c < geom->Ncryostats(); ++c){
 
       // map to keep track of which channels we already have SimChannels for in scCol
@@ -576,45 +584,56 @@ namespace larg4 {
                                         << "' is not a LArVoxelReadout object\n";
         }
 
-        LArVoxelReadout::ChannelMap_t& channels = larVoxelReadout->GetSimChannelMap(c, t);
-        if (!channels.empty()) {
-          LOG_DEBUG("LArG4") << "now put " << channels.size() << " SimChannels"
-            " from C=" << c << " T=" << t << " into the event";
-        }
+	if(lgp->DisableWireplanes())
+	  {
+	    edepCol->insert(edepCol->end(),
+			    larVoxelReadout->GetSimEDepCollection().begin(),
+			    larVoxelReadout->GetSimEDepCollection().end());
+	  }
+	
+	else{
+	  std::cout << "Write SimChannels?..." << std::endl;
 
-        for(auto ch_pair: channels){
-          sim::SimChannel& sc = ch_pair.second;
+	  LArVoxelReadout::ChannelMap_t& channels = larVoxelReadout->GetSimChannelMap(c, t);
+	  if (!channels.empty()) {
+	    LOG_DEBUG("LArG4") << "now put " << channels.size() << " SimChannels"
+	      " from C=" << c << " T=" << t << " into the event";
+	  }
+	  
+	  for(auto ch_pair: channels){
+	    sim::SimChannel& sc = ch_pair.second;
+	    
+	    // push sc onto scCol but only if we haven't already put something in scCol for this channel.
+	    // if we have, then merge the ionization deposits.  Skip the check if we only have one TPC
 
-          // push sc onto scCol but only if we haven't already put something in scCol for this channel.
-          // if we have, then merge the ionization deposits.  Skip the check if we only have one TPC
-
-          if (ntpcs > 1) {
-            unsigned int ichan = sc.Channel();
-            std::map<unsigned int, unsigned int>::iterator itertest = channelToscCol.find(ichan);
-            if (itertest == channelToscCol.end()) {
-              channelToscCol[ichan] = scCol->size();
+	    if (ntpcs > 1) {
+	      unsigned int ichan = sc.Channel();
+	      std::map<unsigned int, unsigned int>::iterator itertest = channelToscCol.find(ichan);
+	      if (itertest == channelToscCol.end()) {
+		channelToscCol[ichan] = scCol->size();
               scCol->emplace_back(std::move(sc));
-            }
-            else {
-              unsigned int idtest = itertest->second;
-              auto const& tdcideMap = sc.TDCIDEMap();
-              for(auto const& tdcide : tdcideMap){
-                 for(auto const& ide : tdcide.second){
+	      }
+	      else {
+		unsigned int idtest = itertest->second;
+		auto const& tdcideMap = sc.TDCIDEMap();
+		for(auto const& tdcide : tdcideMap){
+		  for(auto const& ide : tdcide.second){
                     double xyz[3] = {ide.x, ide.y, ide.z};
                     scCol->at(idtest).AddIonizationElectrons(ide.trackID,
-                                        tdcide.first,
-                                        ide.numElectrons,
-                                        xyz,
-                                        ide.energy);
+							     tdcide.first,
+							     ide.numElectrons,
+							     xyz,
+							     ide.energy);
                   } // end loop to add ionization electrons to  scCol->at(idtest)
                }// end loop over tdc to vector<sim::IDE> map
-            } // end if check to see if we've put SimChannels in for ichan yet or not
-          }
-          else {
-            scCol->emplace_back(std::move(sc));
-          } // end of check if we only have one TPC (skips check for multiple simchannels if we have just one TPC)
-        } // end loop over simchannels for this TPC
-        // mark it for clearing
+	      } // end if check to see if we've put SimChannels in for ichan yet or not
+	    }
+	    else {
+	      scCol->emplace_back(std::move(sc));
+	    } // end of check if we only have one TPC (skips check for multiple simchannels if we have just one TPC)
+	  } // end loop over simchannels for this TPC
+        }
+	// mark it for clearing
         ReadoutList.insert(const_cast<LArVoxelReadout*>(larVoxelReadout));
       } // end loop over tpcs
     }// end loop over cryostats
@@ -674,7 +693,11 @@ namespace larg4 {
         ++nChannels;
       } // for
     } // if dump SimChannels
-    evt.put(std::move(scCol));
+
+    if(lgp->DisableWireplanes())
+      evt.put(std::move(edepCol));
+    else
+      evt.put(std::move(scCol));
     
     evt.put(std::move(adCol));
     evt.put(std::move(partCol));

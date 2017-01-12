@@ -87,12 +87,12 @@ namespace larg4 {
       // charged and they have a significant life-time.
       else if(particle->GetPDGCharge() != 0  &&  !particle->IsShortLived()){
 	G4ProcessManager* pmanager = particle->GetProcessManager();
-	if(!DisableWireplanes){
+	//if(!DisableWireplanes){
 	  pmanager->AddProcess(LArVoxelParallelWorldScoringProcess);
 	  pmanager->SetProcessOrderingToLast(LArVoxelParallelWorldScoringProcess, idxAtRest);
 	  pmanager->SetProcessOrdering(LArVoxelParallelWorldScoringProcess, idxAlongStep, 1);
 	  pmanager->SetProcessOrderingToLast(LArVoxelParallelWorldScoringProcess, idxPostStep);
-	}
+	  //}
 	
 	// Do secondary biasing under control of K0Bias switch.
 	G4bool genSecondaries(false);

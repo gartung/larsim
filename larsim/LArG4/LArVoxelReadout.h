@@ -51,6 +51,7 @@
 #include "Geant4/globals.hh"
 
 #include "lardataobj/Simulation/SimChannel.h"
+#include "lardataobj/Simulation/SimEDep.h"
 #include "larcore/Geometry/Geometry.h"
 #include "larcore/Geometry/TPCGeo.h"
 #include "larsim/Simulation/LArG4Parameters.h"
@@ -191,6 +192,10 @@ namespace larg4 {
     ChannelMap_t& GetSimChannelMap(unsigned short cryo, unsigned short tpc);
     //@}
 
+
+    const std::vector<sim::SimEDep>& GetSimEDepCollection()
+    { return fSimEDepCol; }
+    
   private:
 
     typedef enum radiologicaltype {
@@ -232,11 +237,15 @@ namespace larg4 {
     unsigned int                              fTPC;        ///< which TPC this LArVoxelReadout corresponds to
     unsigned int                              fCstat;      ///< and in which cryostat (if bSingleTPC is true)
     bool                                      bSingleTPC;  ///< true if this readout is associated with a single TPC
-    
+
     CLHEP::HepRandomEngine*                   fPropGen = nullptr;  ///< random engine for charge propagation
     CLHEP::HepRandomEngine*                   fRadioGen = nullptr; ///< random engine for radiological decay
     
     ::detinfo::ElecClock                         fClock;      ///< TPC electronics clock
+
+
+    std::vector<sim::SimEDep>                 fSimEDepCol;
+
   };
 
 }
