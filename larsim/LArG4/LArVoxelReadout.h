@@ -39,6 +39,16 @@
 ///   readouts.  Geant4 allows the construction of multiple parallel
 ///   readouts, so this mechanism is relatively easy to extend for
 ///   each type of readout.
+///
+///
+///
+///  This version has undergone changes from the original LArVoxelReadout to
+///  remove post G4 energy deposition steps. Ionization/Scintillation,
+///  drifitng, and other elements are now separated.
+///
+///  Wes, February 2017
+
+
 
 #ifndef LArG4_LArVoxelReadout_h
 #define LArG4_LArVoxelReadout_h
@@ -121,31 +131,16 @@ namespace larg4 {
   class LArVoxelReadout : public G4VSensitiveDetector
   {
   public:
-    /// Type of map channel -> sim::SimChannel
-    typedef std::map<unsigned int, sim::SimChannel> ChannelMap_t;
-    
     /// Constructor. Can detect which TPC to cover by the name
     LArVoxelReadout(std::string const& name);
     
     /// Constructor. Sets which TPC to work on
     LArVoxelReadout
-      (std::string const& name, unsigned int cryostat, unsigned int tpc);
+      (std::string const& name, unsigned int, unsigned int);
 
     // Destructor
     virtual ~LArVoxelReadout();
 
-    /// Sets the random generators to be used
-    void SetRandomEngines
-      (CLHEP::HepRandomEngine* pPropGen, CLHEP::HepRandomEngine* pRadioGen)
-      { fPropGen = pPropGen; fRadioGen = pRadioGen; }
-    
-    /// Associates this readout to one specific TPC
-    void SetSingleTPC(unsigned int cryostat, unsigned int tpc);
-    
-    /// Sets this readout to discover the TPC of each processed hit
-    void SetDiscoverTPC();
-    
-    
     // Required for classes that inherit from G4VSensitiveDetector.
     //
     // Called at start and end of each event.
@@ -165,85 +160,14 @@ namespace larg4 {
     virtual void DrawAll();
     virtual void PrintAll();
 
-    // Independent method; clears the vector of SimChannels as well as the
-    // channel number to SimChannel map.  Has to be separate from the 
-    // clear method above because that run is run for every G4 event, ie
-    // each MCTruth in the art::Event, while we want to only run this at 
-    // the end of the G4 processing for each art::Event.
-    void ClearSimChannels();
-
-    /// Creates a list with the accumulated information for the single TPC
-    std::vector<sim::SimChannel> GetSimChannels() const;
-    
-    /// Creates a list with the accumulated information for specified TPC
-    std::vector<sim::SimChannel> GetSimChannels
-      (unsigned short cryo, unsigned short tpc) const;
-
-    //@{
-    /// Returns the accumulated channel -> SimChannel map for the single TPC
-    const ChannelMap_t& GetSimChannelMap() const;
-    ChannelMap_t& GetSimChannelMap();
-    //@}
-    
-    //@{
-    /// Returns the accumulated channel -> SimChannel map for the specified TPC
-    const ChannelMap_t& GetSimChannelMap
-      (unsigned short cryo, unsigned short tpc) const;
-    ChannelMap_t& GetSimChannelMap(unsigned short cryo, unsigned short tpc);
-    //@}
-
-
     const std::vector<sim::SimEDep>& GetSimEDepCollection()
     { return fSimEDepCol; }
     
   private:
 
-    typedef enum radiologicaltype {
-      notradiological,
-      firstrad,
-      subsequentrad } Radio_t;
-
-    void DriftIonizationElectrons(G4ThreeVector stepMidPoint,
-                                  const double g4time,
-                                  int trackID,
-                                  unsigned short int cryostat, unsigned short int tpc,
-                                  Radio_t radiological=notradiological, 
-                                  unsigned int tickmax=4096); // used to randomize the TDC tick values  
-
-    bool Has(std::vector<unsigned short int> v, unsigned short int tpc) const
-    {  	
-    	for (auto c: v) if (c == tpc) return true;	
-    	return false;
-    }
-
-    // Used in electron-cluster calculations
-    // External parameters for the electron-cluster calculation.
-    // obtained from LArG4Parameters, LArProperties, and DetectorProperties services
-    double                                    fDriftVelocity[3];
-    double                                    fLongitudinalDiffusion;
-    double                                    fTransverseDiffusion;
-    double                                    fElectronLifetime;
-    double                                    fElectronClusterSize;
-    int					      fMinNumberOfElCluster;
-    double                                    fSampleRate;
-    int                                       fTriggerOffset;
-    double                                    fArgon39DecayRate;
-    bool                                      fDontDriftThem;
-    std::vector<unsigned short int>           fSkipWireSignalInTPCs;
-
-    std::vector<std::vector<ChannelMap_t>>    fChannelMaps; ///< Maps of cryostat, tpc to channel data
-    art::ServiceHandle<geo::Geometry>         fGeoHandle;  ///< Handle to the Geometry service
-    art::ServiceHandle<sim::LArG4Parameters>  fLgpHandle;  ///< Handle to the LArG4 parameters service
-    unsigned int                              fTPC;        ///< which TPC this LArVoxelReadout corresponds to
-    unsigned int                              fCstat;      ///< and in which cryostat (if bSingleTPC is true)
-    bool                                      bSingleTPC;  ///< true if this readout is associated with a single TPC
-
-    CLHEP::HepRandomEngine*                   fPropGen = nullptr;  ///< random engine for charge propagation
-    CLHEP::HepRandomEngine*                   fRadioGen = nullptr; ///< random engine for radiological decay
+    void ProcessStep(G4Step*);
     
-    ::detinfo::ElecClock                         fClock;      ///< TPC electronics clock
-
-
+    G4ThreeVector                             fStepMidPoint;
     std::vector<sim::SimEDep>                 fSimEDepCol;
 
   };
