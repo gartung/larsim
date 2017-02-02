@@ -44,8 +44,7 @@ namespace larg4 {
   public:
     /// Constructor and destructor.
     LArVoxelReadoutGeometry(
-      const G4String name,
-      CLHEP::HepRandomEngine& PropGen, CLHEP::HepRandomEngine& RadioGen
+      const G4String name
       );
 
     /// The key method in this class; creates a parallel world view of
@@ -65,8 +64,6 @@ namespace larg4 {
     std::unique_ptr<G4UserLimits>     fStepLimit; ///< G4 doesn't handle memory management, 
                                                   ///< so we have to
     
-    CLHEP::HepRandomEngine*           fPropGen  = nullptr; ///< random engine for charge propagation
-    CLHEP::HepRandomEngine*           fRadioGen = nullptr; ///< random engine for radiological decay
   };
 
 } // namespace larg4
