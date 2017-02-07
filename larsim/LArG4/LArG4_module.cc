@@ -459,7 +459,9 @@ namespace larg4 {
         //for(auto const& partPair: particleList) {
         //  simb::MCParticle& p = *(partPair.second);
         auto iPartPair = particleList.begin();
-        while (iPartPair != particleList.end()) {
+        
+	//this is where brian thinks we should change stuff - howdo we define  the volume and aroun the tpc
+	while (iPartPair != particleList.end()) {
           simb::MCParticle& p = *(iPartPair->second);
           ++nGeneratedParticles;
           

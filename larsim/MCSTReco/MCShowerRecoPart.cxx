@@ -41,7 +41,8 @@ namespace sim {
       int candidate_mom_index=-1;
       if( mcp._pdgcode == 22 ||
           mcp._pdgcode == 11 ||
-          mcp._pdgcode == -11 )
+          mcp._pdgcode == -11 
+	  )
 	candidate_mom_index = i;
 
       unsigned int mom_track = mcp._mother;
@@ -50,7 +51,10 @@ namespace sim {
 
         unsigned int mom_index = (*mom_iter).second;
 
-        if( part_v.at(mom_index)._pdgcode == 22 || part_v.at(mom_index)._pdgcode == 11 || part_v.at(mom_index)._pdgcode == -11 )
+        if( part_v.at(mom_index)._pdgcode == 22 || 
+	    part_v.at(mom_index)._pdgcode == 11 || 
+	    part_v.at(mom_index)._pdgcode ==-11 )
+
 
           candidate_mom_index = mom_index;
 	

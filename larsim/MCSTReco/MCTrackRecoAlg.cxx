@@ -31,7 +31,15 @@ namespace sim {
 
     for(size_t i=0; i<part_v.size(); ++i) {
       auto const& mini_part = part_v[i];
-      if( part_v._pdg_list.find(mini_part._pdgcode) == part_v._pdg_list.end() ) continue;
+
+       
+      //  
+      // If a charged particle has less than 20 MeV of Kinetic Energy, does not build an MCTrack
+      if(mini_part._start_mom.T() < 20) continue;
+      //
+      //
+
+      if( part_v._pdg_list.find(mini_part._pdgcode) == part_v._pdg_list.end() ){continue;}
     
       ::sim::MCTrack mini_track;
     

@@ -37,6 +37,7 @@ art_make(
 			   lardataobj_MCBase
 			   larsim_RandomUtils_LArSeedService_service
 			   ${ART_FRAMEWORK_CORE}
+			   ${ART_UTILITIES}
 			   ${ART_FRAMEWORK_PRINCIPAL}
                            ${ART_FRAMEWORK_BASIC}
 			   ${ART_FRAMEWORK_SERVICES_REGISTRY}
