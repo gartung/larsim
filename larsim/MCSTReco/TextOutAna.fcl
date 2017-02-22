@@ -1,0 +1,8 @@
+BEGIN_PROLOG
+
+standard_textoutana:
+{
+    module_type: “TextOutAna”
+}
+
+END_PROLOG
