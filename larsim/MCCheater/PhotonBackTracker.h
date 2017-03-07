@@ -3,10 +3,18 @@
 /// \brief back track the reconstruction to the simulation
 ///
 /// \version $Id: Geometry.h,v 1.16 2009/11/03 22:53:20 brebel Exp $
-/// \author  brebel@fnal.gov
+/// \author  jstock@fnal.gov
+//  \adapted from BackTracker.h by brebel@fnal.gov
 ////////////////////////////////////////////////////////////////////////
 #ifndef CHEAT_PHOTONBACKTRACKERER_H
 #define CHEAT_PHOTONBACKTRACKERER_H
+#ifdef __GNUC__
+#define DEPRECATED __attribute__((deprecated))
+#else 
+#define DEPRECATED
+#endif
+
+
 
 #include <vector>
 
@@ -76,7 +84,9 @@ namespace cheat{
 
     // this method will return the Geant4 track IDs of 
     // the particles contributing ionization electrons to the identified hit
-    std::vector<sim::TrackSDP> OpHitToTrackID(art::Ptr<recob::OpHit> const& hit);
+    DEPRECATED std::vector<sim::TrackSDP> OpHitToTrackID(art::Ptr<recob::OpHit> const& hit)
+      {return OpHitToTrackSDPs(hit);}
+    std::vector<sim::TrackSDP> OpHitToTrackSDPs(art::Ptr<recob::OpHit> const& hit);
     
     // method to return a subset of allhits that are matched to a list of TrackIDs
     const std::vector<std::vector<art::Ptr<recob::OpHit>>> TrackIDsToOpHits(std::vector<art::Ptr<recob::OpHit>> const& allhits,
@@ -84,15 +94,22 @@ namespace cheat{
     
     // method to return the EveIDs of particles contributing ionization
     // electrons to the identified hit
+    std::vector<sim::TrackSDP> OpHitToEveSDPs(art::Ptr<recob::OpHit> const& hit);
     std::vector<sim::TrackSDP> OpHitToEveID(art::Ptr<recob::OpHit> const& hit);
     
     //@{
     // method to return sim::SDP objects associated with a given hit
-    void                 OpHitToSimSDPs(recob::OpHit const& hit,
+    void                 OpHitToSDPs(recob::OpHit const& hit,
                                       std::vector<sim::SDP>&      ides) const;
-    void                 OpHitToSimSDPs(art::Ptr<recob::OpHit> const& hit,
+    DEPRECATED void      OpHitToSimSDPs(recob::OpHit const& hit,
                                       std::vector<sim::SDP>&      ides) const
-                                      { OpHitToSimSDPs(*hit, ides); }
+                                      { OpHitToSDPs( hit, ides); }
+    void                 OpHitToSDPs(art::Ptr<recob::OpHit> const& hit,
+                                      std::vector<sim::SDP>&      ides) const
+                                      { OpHitToSDPs(*hit, ides); }
+    DEPRECATED void      OpHitToSimSDPs(art::Ptr<recob::OpHit> const& hit,
+                                      std::vector<sim::SDP>&      ides) const
+                                      { OpHitToSDPs(*hit, ides); }
     //@}
     
     // method to return the XYZ position of the weighted average energy deposition for a given hit
@@ -149,7 +166,7 @@ namespace cheat{
     // method to return all TrackIDs corresponding to the given list of hits
     std::set<int>       GetSetOfTrackIDs(std::vector< art::Ptr<recob::OpHit> > const& hits);
 
-    const std::vector<const sim::OpDetBacktrackerRecord*>& OpDetBacktrackerRecords() const { return cOpDetBacktrackerRecords; } 
+    const std::vector< art::Ptr< sim::OpDetBacktrackerRecord >>& OpDetBacktrackerRecords() const { return cOpDetBacktrackerRecords; } 
 
     void ChannelToTrackSDPs(std::vector<sim::TrackSDP>& trackSDPs,
         int channel,
@@ -160,14 +177,18 @@ namespace cheat{
 
     geo::GeometryCore const* geom = lar::providerFrom<geo::Geometry>();
 
-    const sim::OpDetBacktrackerRecord* FindOpDetBacktrackerRecord(int channel) const;
+    const art::Ptr< sim::OpDetBacktrackerRecord > FindOpDetBacktrackerRecord(int channel) const;
+
+    const void shouldThisFail() const;
+
+    bool have_complained;
 
     sim::ParticleList                      fParticleList;          ///< ParticleList to map track ID to sim::Particle
     sim::LArVoxelList                      fVoxelList;             ///< List to map the position of energy depostions
                                                                    ///< in voxels to the particles depositing the 
                                                                    ///< energy
     std::vector< art::Ptr<simb::MCTruth> > fMCTruthList;           ///< all the MCTruths for the event
-    std::vector<const sim::OpDetBacktrackerRecord*>  cOpDetBacktrackerRecords;         ///< all the OpDetBacktrackerRecords for the event
+    std::vector< art::Ptr< sim::OpDetBacktrackerRecord >>  cOpDetBacktrackerRecords;         ///< all the OpDetBacktrackerRecords for the event
     std::map<int, int>                     fTrackIDToMCTruthIndex; ///< map of track ids to MCTruthList entry
     std::string                            fG4ModuleLabel;         ///< label for geant4 module
     double                                 fMinOpHitEnergyFraction;  ///< minimum fraction of energy a track id has to 

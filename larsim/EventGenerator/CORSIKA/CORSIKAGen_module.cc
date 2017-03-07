@@ -41,6 +41,7 @@
 
 #include <sqlite3.h> 
 #include "CLHEP/Random/RandFlat.h"
+#include "CLHEP/Random/RandPoissonQ.h"
 #include "ifdh.h"  //to handle flux files
 
 namespace evgen {
@@ -75,7 +76,7 @@ namespace evgen {
                                         double xyzout[]);
     
     int fShowerInputs=0; ///< Number of shower inputs to process from    
-    std::vector<int> fNShowersPerEvent; ///< Number of showers to put in each event of duration fSampleTime; one per showerinput
+    std::vector<double> fNShowersPerEvent; ///< Number of showers to put in each event of duration fSampleTime; one per showerinput
     std::vector<int> fMaxShowers; //< Max number of showers to query, one per showerinput
     double fShowerBounds[6]={0.,0.,0.,0.,0.,0.}; ///< Boundaries of area over which showers are to be distributed
     double fToffset_corsika=0.; ///< Timing offset to account for propagation time through atmosphere, populated from db
@@ -118,7 +119,8 @@ namespace evgen{
     ;
     // create a default random engine; obtain the random seed from NuRandomService,
     // unless overridden in configuration with key "Seed"
-    art::ServiceHandle<rndm::NuRandomService>()->createEngine(*this, p, "Seed");
+    art::ServiceHandle<rndm::NuRandomService>()->createEngine(*this, "HepJamesRandom", "gen", p, { "Seed", "SeedGenerator" });
+    art::ServiceHandle<rndm::NuRandomService>()->createEngine(*this, "HepJamesRandom", "pois", p, "SeedPoisson");
 
     this->reconfigure(p);
     
@@ -183,7 +185,7 @@ namespace evgen{
     sqlite3_stmt *statement;
     //get rng engine
     art::ServiceHandle<art::RandomNumberGenerator> rng;
-    CLHEP::HepRandomEngine &engine = rng->getEngine();
+    CLHEP::HepRandomEngine &engine = rng->getEngine("gen");
     CLHEP::RandFlat flat(engine);
     
     //setup ifdh object
@@ -214,7 +216,7 @@ namespace evgen{
 		if(flist.size()==1){ //0th element is the search path:pattern
 			selIndex=0;
 		}else if(flist.size()>1){
-			selIndex= (unsigned int) (engine.flat()*(flist.size()-1)+0.5); //rnd with rounding, dont allow picking the 0th element
+			selIndex= (unsigned int) (flat()*(flist.size()-1)+0.5); //rnd with rounding, dont allow picking the 0th element
 		}else{
 			throw cet::exception("CORSIKAGen") << "No files returned for path:pattern: "<<path<<":"<<pattern<<std::endl;
 		}
@@ -331,14 +333,16 @@ namespace evgen{
     const std::string kStatement("select erange_high,erange_low,eslope,nshow from input");
     double upperLimitOfEnergyRange=0.,lowerLimitOfEnergyRange=0.,energySlope=0.,oneMinusGamma=0.,EiToOneMinusGamma=0.,EfToOneMinusGamma=0.;
     
-    //get rng engine
+    /*
+    // get random number generator engine... currently unused here
     art::ServiceHandle<art::RandomNumberGenerator> rng;
-    CLHEP::HepRandomEngine &engine = rng->getEngine();
+    CLHEP::HepRandomEngine &engine = rng->getEngine("gen");
     CLHEP::RandFlat flat(engine);
+    */
     
     for(int i=0; i<fShowerInputs; i++){
         //build and do query to get run info from databases
-        double thisrnd=engine.flat();//need a new random number for each query
+      //  double thisrnd=flat();//need a new random number for each query
         if ( sqlite3_prepare(fdb[i], kStatement.c_str(), -1, &statement, 0 ) == SQLITE_OK ){
           int res=0;
           res = sqlite3_step(statement);
@@ -360,7 +364,7 @@ namespace evgen{
       
       //this is computed, how?
       double NShowers=( M_PI * showersArea * fShowerFluxConstants[i] * (EfToOneMinusGamma - EiToOneMinusGamma) / oneMinusGamma )*fSampleTime; 
-      fNShowersPerEvent.push_back((int)NShowers);
+      fNShowersPerEvent.push_back(NShowers);
       mf::LogVerbatim("CORSIKAGen")<<"For showers input "<< i
                                <<" the number of showers per event is "<<(int)NShowers<<"\n";
     }
@@ -387,8 +391,11 @@ namespace evgen{
 
     //get rng engine
     art::ServiceHandle<art::RandomNumberGenerator> rng;
-    CLHEP::HepRandomEngine &engine = rng->getEngine();
+    CLHEP::HepRandomEngine &engine = rng->getEngine("gen");
     CLHEP::RandFlat flat(engine);
+
+    CLHEP::HepRandomEngine &engine_pois = rng->getEngine("pois");
+    CLHEP::RandPoissonQ randpois(engine_pois);
 
     // get geometry and figure where to project particles to, based on CRYHelper
     art::ServiceHandle<geo::Geometry> geom;
@@ -415,7 +422,9 @@ namespace evgen{
     int shower,pdg;
     double px,py,pz,x,z,tParticleTime,etot,showerTime=0.,showerXOffset=0.,showerZOffset=0.,t;
     for(int i=0; i<fShowerInputs; i++){
-      nShowerCntr=fNShowersPerEvent[i];
+      nShowerCntr=randpois.fire(fNShowersPerEvent[i]);
+      mf::LogInfo("CORSIKAGEN") << " Shower input " << i << " with mean " << fNShowersPerEvent[i] << " generating " << nShowerCntr;
+
       while(nShowerCntr>0){
         //how many showers should we query?
         if(nShowerCntr>fMaxShowers[i]){
@@ -424,7 +433,7 @@ namespace evgen{
           nShowerQry=nShowerCntr; //take the rest that are needed
         }
         //build and do query to get nshowers
-        double thisrnd=engine.flat(); //need a new random number for each query
+        double thisrnd=flat(); //need a new random number for each query
         TString kthisStatement=TString::Format(kStatement.Data(),thisrnd,nShowerQry,thisrnd);
         LOG_DEBUG("CORSIKAGen")<<"Executing: "<<kthisStatement;
         if ( sqlite3_prepare(fdb[i], kthisStatement.Data(), -1, &statement, 0 ) == SQLITE_OK ){
@@ -436,10 +445,10 @@ namespace evgen{
               shower=sqlite3_column_int(statement,0);
               if(shower!=lastShower){
                 //each new shower gets its own random time and position offsets
-                showerTime=1e9*(engine.flat()*fSampleTime); //converting from s to ns
+                showerTime=1e9*(flat()*fSampleTime); //converting from s to ns
                 //and a random offset in both z and x controlled by the fRandomXZShift parameter
-                showerXOffset=engine.flat()*fRandomXZShift - (fRandomXZShift/2);
-                showerZOffset=engine.flat()*fRandomXZShift - (fRandomXZShift/2);
+                showerXOffset=flat()*fRandomXZShift - (fRandomXZShift/2);
+                showerZOffset=flat()*fRandomXZShift - (fRandomXZShift/2);
               } 
               pdg=sqlite3_column_int(statement,1);
               //get mass for this particle

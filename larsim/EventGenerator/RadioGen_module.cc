@@ -4,7 +4,7 @@
 ///
 /// Module designed to produce a set list of particles for MC to model radiological decays
 ///
-/// \version $Id: RadioGen_module.cc,v 1.0 2014/09/05 15:02:00 trj Exp $
+/// \version $Id: RadioGen_module.cc,v 2.0 2017/01/31 15:02:00 trj Exp $
 /// \author  trj@fnal.gov
 //           Rn222 generation feature added by gleb.sinev@duke.edu 
 //           (based on a generator by jason.stock@mines.sdsmt.edu)
@@ -16,11 +16,15 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <regex>
 #include <cmath>
 #include <memory>
 #include <iterator>
 #include <vector>
 #include <sys/stat.h>
+#include <TGeoManager.h>
+#include <TGeoMaterial.h>
+#include <TGeoNode.h>
 
 // Framework includes
 #include "art/Framework/Core/EDProducer.h"
@@ -98,7 +102,11 @@ namespace evgen {
 
     //double betaphasespace(double mass, double q); // older parameterization.
 
+    // the generator randomly samples points in a rectangular prism of space and time, and only selects those points in
+    // volumes with materials that match the regexes in fMaterial.  One can use wildcards * and ? for broader matches.
+
     std::vector<std::string> fNuclide;   ///< List of nuclides to simulate.  Example:  "39Ar".
+    std::vector<std::string> fMaterial;  ///< List of regexes of materials in which to generate the decays.  Example: "LAr"  
     std::vector<double> fBq;             ///< Radioactivity in Becquerels (decay per sec) per cubic cm.
     std::vector<double> fT0;             ///< Beginning of time window to simulate in ns
     std::vector<double> fT1;             ///< End of time window to simulate in ns
@@ -158,6 +166,7 @@ namespace evgen{
     // the seed midstream -- same as SingleGen
 
     fNuclide       = p.get< std::vector<std::string>>("Nuclide");
+    fMaterial      = p.get< std::vector<std::string>>("Material");
     fBq            = p.get< std::vector<double> >("BqPercc");
     fT0            = p.get< std::vector<double> >("T0");
     fT1            = p.get< std::vector<double> >("T1");
@@ -171,6 +180,7 @@ namespace evgen{
     // check for consistency of vector sizes
     
     unsigned int nsize = fNuclide.size();
+    if (  fMaterial.size() != nsize ) throw cet::exception("RadioGen") << "Different size Material vector and Nuclide vector\n";
     if (  fBq.size() != nsize ) throw cet::exception("RadioGen") << "Different size Bq vector and Nuclide vector\n";
     if (  fT0.size() != nsize ) throw cet::exception("RadioGen") << "Different size T0 vector and Nuclide vector\n";
     if (  fT1.size() != nsize ) throw cet::exception("RadioGen") << "Different size T1 vector and Nuclide vector\n";
@@ -230,13 +240,17 @@ namespace evgen{
 
   void RadioGen::SampleOne(unsigned int i, simb::MCTruth &mct){
 
+    art::ServiceHandle<geo::Geometry> geo;
+    TGeoManager *geomanager = geo->ROOTGeoManager(); 
+
     // get the random number generator service and make some CLHEP generators
     art::ServiceHandle<art::RandomNumberGenerator> rng;
     CLHEP::HepRandomEngine &engine = rng->getEngine();
     CLHEP::RandFlat     flat(engine);
     CLHEP::RandPoisson  poisson(engine);
 
-    // figure out how many decays to generate
+    // figure out how many decays to generate, assuming that the entire prism consists of the radioactive material.
+    // we will skip over decays in other materials later.
 
     double rate = fabs( fBq[i] * (fT1[i] - fT0[i]) * (fX1[i] - fX0[i]) * (fY1[i] - fY0[i]) * (fZ1[i] - fZ0[i]) ) / 1.0E9;
     long ndecays = poisson.shoot(rate);
@@ -245,6 +259,20 @@ namespace evgen{
       {
 	// generate just one particle at a time.  Need a little recoding if a radioactive
 	// decay generates multiple daughters that need simulation
+
+	// uniformly distributed in position and time
+
+	TLorentzVector pos( fX0[i] + flat.fire()*(fX1[i] - fX0[i]),
+			    fY0[i] + flat.fire()*(fY1[i] - fY0[i]),
+			    fZ0[i] + flat.fire()*(fZ1[i] - fZ0[i]),
+			    fT0[i] + flat.fire()*(fT1[i] - fT0[i]) );
+
+	// discard decays that are not in the proper material
+
+	std::string volmaterial = geomanager->FindNode(pos.X(),pos.Y(),pos.Z())->GetMedium()->GetMaterial()->GetName();
+	//mf::LogDebug("RadioGen") << "Position: " << pos.X() << " " << pos.Y() << " " << pos.Z() << " " << pos.T() << " " << volmaterial << " " << fMaterial[i] << std::endl;
+	if ( ! std::regex_match(volmaterial, std::regex(fMaterial[i])) ) continue;
+	//mf::LogDebug("RadioGen") << "Decay accepted" << std::endl;
 
 	int pdgid=0;  // electron=11, photon=22, alpha = 1000020040
         double t = 0; // kinetic energy of particle GeV
@@ -263,14 +291,6 @@ namespace evgen{
           else        p = 0;
         }
         else samplespectrum(fNuclide[i],pdgid,t,m,p);
-
-
-	// uniformly distributed in position and time
-
-	TLorentzVector pos( fX0[i] + flat.fire()*(fX1[i] - fX0[i]),
-			    fY0[i] + flat.fire()*(fY1[i] - fY0[i]),
-			    fZ0[i] + flat.fire()*(fZ1[i] - fZ0[i]),
-			    fT0[i] + flat.fire()*(fT1[i] - fT0[i]) );
 
 	// isotropic production angle for the decay product
 

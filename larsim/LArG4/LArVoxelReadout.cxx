@@ -73,12 +73,10 @@ namespace larg4 {
     fSimEDepCol.clear();
     fSimEDepCol.reserve(1000000);
   }  
-
   //---------------------------------------------------------------------------------------
   // Called at the end of each event.
   void LArVoxelReadout::EndOfEvent(G4HCofThisEvent*)
   {
-    //fSimEDepCol.clear();
   }// LArVoxelReadout::EndOfEvent()
 
   //---------------------------------------------------------------------------------------
