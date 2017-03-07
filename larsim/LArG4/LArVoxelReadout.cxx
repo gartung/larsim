@@ -99,7 +99,8 @@ namespace larg4 {
     fSimEDepCol.emplace_back(fStepMidPoint.x(),fStepMidPoint.y(),fStepMidPoint.z(),
 			     step->GetPreStepPoint()->GetGlobalTime(),
 			     step->GetTotalEnergyDeposit()/CLHEP::MeV,
-			     ParticleListAction::GetCurrentTrackID());    
+			     ParticleListAction::GetCurrentTrackID(),
+			     ParticleListAction::GetCurrentPdgCode());    
   }
 
   
