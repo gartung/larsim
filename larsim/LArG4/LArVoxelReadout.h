@@ -65,7 +65,6 @@
 #include "larcore/Geometry/Geometry.h"
 #include "larcore/Geometry/TPCGeo.h"
 #include "larsim/Simulation/LArG4Parameters.h"
-#include "larsim/LArG4/IonizationAndScintillation.h"
 #include "lardata/DetectorInfoServices/LArPropertiesService.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "lardata/DetectorInfoServices/DetectorClocksService.h"
@@ -168,6 +167,7 @@ namespace larg4 {
     void ProcessStep(G4Step*);
     
     G4ThreeVector                             fStepMidPoint;
+    G4ThreeVector                             fStepTotal;
     std::vector<sim::SimEDep>                 fSimEDepCol;
 
   };

@@ -56,7 +56,6 @@
 #include "larsim/LArG4/PhysicsList.h"
 #include "larsim/LArG4/ParticleListAction.h"
 #include "larsim/LArG4/G4BadIdeaAction.h"
-#include "larsim/LArG4/IonizationAndScintillationAction.h"
 #include "larsim/LArG4/OpDetSensitiveDetector.h"
 #include "larsim/LArG4/OpDetReadoutGeometry.h"
 #include "larsim/LArG4/LArStackingAction.h"

@@ -93,8 +93,9 @@ namespace larg4 {
 
     fStepMidPoint = 0.5*( step->GetPreStepPoint()->GetPosition() + 
 			  step->GetPostStepPoint()->GetPosition() );
-    
-    fSimEDepCol.emplace_back(fStepMidPoint.x(),fStepMidPoint.y(),fStepMidPoint.z(),
+    fStepTotal = step->GetPostStepPoint()->GetPosition() - step->GetPreStepPoint()->GetPosition();
+    fSimEDepCol.emplace_back(fStepMidPoint.x()/CLHEP::cm,fStepMidPoint.y()/CLHEP::cm,fStepMidPoint.z()/CLHEP::cm,
+			     fStepTotal.mag()/CLHEP::cm,
 			     step->GetPreStepPoint()->GetGlobalTime(),
 			     step->GetTotalEnergyDeposit()/CLHEP::MeV,
 			     ParticleListAction::GetCurrentTrackID(),
