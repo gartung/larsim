@@ -20,6 +20,7 @@
 #include "nutools/RandomUtils/NuRandomService.h"
 
 #include <memory>
+#include <iostream>
 
 #include "larcore/Geometry/Geometry.h"
 #include "larsim/PhotonPropagation/PhotonVisibilityService.h"
@@ -162,8 +163,11 @@ void phot::PhotonLibraryPropagation::produce(art::Event & e)
   std::unique_ptr< std::vector<sim::SimPhotons> > photCol ( new std::vector<sim::SimPhotons>);
   auto & photonCollection(*photCol);
 
-  photonCollection.resize(NOpChannels);
-
+  for(size_t i_op=0; i_op<NOpChannels; ++i_op){
+    photonCollection.emplace_back(i_op);
+    photonCollection[i_op].reserve(edeps.size()*10);
+  }
+  
   PrecalculateSC(edeps);
   
   for(auto const& edep : edeps){
@@ -178,13 +182,13 @@ void phot::PhotonLibraryPropagation::produce(art::Event & e)
     
     yieldRatio = GetScintYield(edep,*larp);
     fISAlg.CalculateIonizationAndScintillation(edep,fSCCalcMap[GetSCMapIndex(edep.xpos,edep.ypos,edep.zpos)][1]);
-    nphot = randpoisphot.fire(fISAlg.NumberScintillationPhotons());
+    nphot =fISAlg.NumberScintillationPhotons();
     nphot_fast = yieldRatio*nphot;
     photon.Time = edep.time + GetScintTime(larp->ScintFastTimeConst(),fRiseTimeFast,
 					   randflatscinttime(),randflatscinttime());
     for(size_t i_op=0; i_op<NOpChannels; ++i_op)
-      photonCollection[i_op].insert(photonCollection[i_op].end(),nphot_fast*Visibilities[i_op],photon);
-        
+      photonCollection[i_op].insert(photonCollection[i_op].end(),randpoisphot.fire(nphot_fast*Visibilities[i_op]),photon);
+
     if(fDoSlowComponent){
       nphot_slow = nphot - nphot_fast;
       
@@ -192,13 +196,13 @@ void phot::PhotonLibraryPropagation::produce(art::Event & e)
 	photon.Time = edep.time - GetScintTime(larp->ScintSlowTimeConst(),fRiseTimeSlow,
 					       randflatscinttime(),randflatscinttime());
 	for(size_t i_op=0; i_op<NOpChannels; ++i_op)
-	  photonCollection[i_op].insert(photonCollection[i_op].end(),nphot_slow*Visibilities[i_op],photon);	
+	  photonCollection[i_op].insert(photonCollection[i_op].end(),randpoisphot.fire(nphot_slow*Visibilities[i_op]),photon);
       }
       
     }//end doing slow component
 
   }//end loop over edeps
-
+  
   e.put(std::move(photCol));
   
 }
