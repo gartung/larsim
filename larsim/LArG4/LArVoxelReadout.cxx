@@ -405,12 +405,12 @@ namespace larg4 {
       }
           
       const double lifetimecorrection = TMath::Exp(TDrift / LifetimeCorr_const);
-      const int    nIonizedElectrons  = larg4::IonizationAndScintillation::Instance()->NumberIonizationElectrons();
+      const double nIonizedElectrons  = larg4::IonizationAndScintillation::Instance()->NumberIonizationElectrons();
       const double energy             = larg4::IonizationAndScintillation::Instance()->EnergyDeposit();
       
       // if we have no electrons (too small energy or too large recombination)
       // we are done already here
-      if (nIonizedElectrons <= 0) {
+      if (nIonizedElectrons <= 0.0) {
         LOG_DEBUG("LArVoxelReadout")
           << "No electrons drifted to readout, " << energy << " MeV lost.";
         return;
