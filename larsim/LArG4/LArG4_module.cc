@@ -231,6 +231,7 @@ namespace larg4 {
     produces< std::vector<sim::SimEDep> >();
 
     produces< art::Assns<simb::MCTruth, simb::MCParticle> >();
+    produces< art::Assns<simb::MCParticle, sim::SimEDep> >();
 
     // constructor decides if initialized value is a path or an environment variable
     cet::search_path sp("FW_SEARCH_PATH");
