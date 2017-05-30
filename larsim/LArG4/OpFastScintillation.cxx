@@ -128,60 +128,52 @@ namespace larg4
   //-------------------------------------------------------------
   OpFastScintillation::OpFastScintillation(const G4String& processName,
                                            G4ProcessType type)
-    : G4VRestDiscreteProcess(processName, type)
+    : G4VRestDiscreteProcess(processName, type),
+      fSlowIntegralTable(0),
+      fFastIntegralTable(0),
+      fTrackSecondariesFirst(false),
+      fFiniteRiseTime(false),
+      fExcitationRatio(1),
+      fEMSaturation(0)
   {
     SetProcessSubType(25);
 
-    fTrackSecondariesFirst = false;
-    fFiniteRiseTime = false;
-
-
-    YieldFactor=1.0;
-    ExcitationRatio = 1.0;
-
     const detinfo::LArProperties* larp = lar::providerFrom<detinfo::LArPropertiesService>();
-
-    scintillationByParticleType = larp->ScintByParticleType();
-
-    theFastIntegralTable = NULL;
-    theSlowIntegralTable = NULL;
+    fScintillationByParticleType = larp->ScintByParticleType();
 
     if (verboseLevel>0) {
       G4cout << GetProcessName() << " is created " << G4endl;
     }
 
-    BuildThePhysicsTable();
-
-    emSaturation = NULL;
+    BuildPhysicsTable();
   }
 
   //-------------------------------------------------------------
   OpFastScintillation::OpFastScintillation(const OpFastScintillation& rhs)
     : G4VRestDiscreteProcess(rhs.GetProcessName(), rhs.GetProcessType())
   {
-    theSlowIntegralTable        = rhs.GetSlowIntegralTable();
-    theFastIntegralTable        = rhs.GetFastIntegralTable();
+    fSlowIntegralTable = 0;
+    fFastIntegralTable = 0;
 
-    fTrackSecondariesFirst      = rhs.GetTrackSecondariesFirst();
-    fFiniteRiseTime             = rhs.GetFiniteRiseTime();
-    YieldFactor                 = rhs.GetScintillationYieldFactor();
-    ExcitationRatio             = rhs.GetScintillationExcitationRatio();
-    scintillationByParticleType = rhs.GetScintillationByParticleType();
-    emSaturation                = rhs.GetSaturation();
+    fTrackSecondariesFirst       = rhs.GetTrackSecondariesFirst();
+    fFiniteRiseTime              = rhs.GetFiniteRiseTime();
+    fExcitationRatio             = rhs.GetScintillationExcitationRatio();
+    fScintillationByParticleType = rhs.GetScintillationByParticleType();
+    fEMSaturation                = rhs.GetSaturation();
 
-    BuildThePhysicsTable();
+    BuildPhysicsTable();
   }
 
   //-------------------------------------------------------------
   OpFastScintillation::~OpFastScintillation()
   {
-    if(theFastIntegralTable){
-      theFastIntegralTable->clearAndDestroy();
-      delete theFastIntegralTable;
+    if(fFastIntegralTable){
+      fFastIntegralTable->clearAndDestroy();
+      delete fFastIntegralTable;
     }
-    if(theSlowIntegralTable){
-      theSlowIntegralTable->clearAndDestroy();
-      delete theSlowIntegralTable;
+    if(fSlowIntegralTable){
+      fSlowIntegralTable->clearAndDestroy();
+      delete fSlowIntegralTable;
     }
   }
 
@@ -306,7 +298,7 @@ namespace larg4
     double YieldRatio=0;
 
 
-    if (scintillationByParticleType) {
+    if (fScintillationByParticleType) {
       // The scintillation response is a function of the energy
       // deposited by particle types.
 
@@ -399,7 +391,7 @@ namespace larg4
 	      GetConstProperty("FASTSCINTILLATIONRISETIME");
 	  }
 	  ScintillationIntegral =
-	    (G4PhysicsOrderedFreeVector*)((*theFastIntegralTable)(materialIndex));
+	    (G4PhysicsOrderedFreeVector*)((*fFastIntegralTable)(materialIndex));
 	}
 	if(Slow_Intensity){
 	  ScintillationTime   = aMaterialPropertiesTable->
@@ -409,7 +401,7 @@ namespace larg4
 	      GetConstProperty("SLOWSCINTILLATIONRISETIME");
 	  }
 	  ScintillationIntegral =
-	    (G4PhysicsOrderedFreeVector*)((*theSlowIntegralTable)(materialIndex));
+	    (G4PhysicsOrderedFreeVector*)((*fSlowIntegralTable)(materialIndex));
 	}
       }
       else {
@@ -418,11 +410,11 @@ namespace larg4
 	    GetConstProperty("YIELDRATIO");
 
 
-	if ( ExcitationRatio == 1.0 ) {
+	if ( fExcitationRatio == 1.0 ) {
 	  Num = G4int (std::min(YieldRatio,1.0)*MeanNumberOfPhotons);
 	}
 	else {
-	  Num = G4int (std::min(ExcitationRatio,1.0)*MeanNumberOfPhotons);
+	  Num = G4int (std::min(fExcitationRatio,1.0)*MeanNumberOfPhotons);
 	}
 	ScintillationTime   = aMaterialPropertiesTable->
 		  GetConstProperty("FASTTIMECONSTANT");
@@ -431,7 +423,7 @@ namespace larg4
 	    GetConstProperty("FASTSCINTILLATIONRISETIME");
 	}
 	ScintillationIntegral =
-	  (G4PhysicsOrderedFreeVector*)((*theFastIntegralTable)(materialIndex));
+	  (G4PhysicsOrderedFreeVector*)((*fFastIntegralTable)(materialIndex));
       }
     }
 
@@ -444,7 +436,7 @@ namespace larg4
 		      GetConstProperty("SLOWSCINTILLATIONRISETIME");
       }
       ScintillationIntegral =
-	(G4PhysicsOrderedFreeVector*)((*theSlowIntegralTable)(materialIndex));
+	(G4PhysicsOrderedFreeVector*)((*fSlowIntegralTable)(materialIndex));
     }
 
     if (!ScintillationIntegral) continue;
@@ -578,9 +570,9 @@ namespace larg4
   }
 
   // --------------------------------------------------
-  void OpFastScintillation::BuildThePhysicsTable()
+  void OpFastScintillation::BuildPhysicsTable()
   {
-    if (theFastIntegralTable && theSlowIntegralTable) return;
+    if (fFastIntegralTable && fSlowIntegralTable) return;
 
     const G4MaterialTable* theMaterialTable =
       G4Material::GetMaterialTable();
@@ -588,8 +580,8 @@ namespace larg4
 
     // create new physics table
 
-    if(!theFastIntegralTable)theFastIntegralTable = new G4PhysicsTable(numOfMaterials);
-    if(!theSlowIntegralTable)theSlowIntegralTable = new G4PhysicsTable(numOfMaterials);
+    if(!fFastIntegralTable)fFastIntegralTable = new G4PhysicsTable(numOfMaterials);
+    if(!fSlowIntegralTable)fSlowIntegralTable = new G4PhysicsTable(numOfMaterials);
 
     // loop for materials
     for (G4int i=0 ; i < numOfMaterials; i++){
@@ -608,22 +600,22 @@ namespace larg4
 
       if (aMaterialPropertiesTable) {
 
-        G4MaterialPropertyVector* theFastLightVector =
+        G4MaterialPropertyVector* fFastLightVector =
           aMaterialPropertiesTable->GetProperty("FASTCOMPONENT");
 
-        if (theFastLightVector) {
+        if (fFastLightVector) {
 
           // Retrieve the first intensity point in vector
           // of (photon energy, intensity) pairs
 
-          G4double currentIN = (*theFastLightVector)[0];
+          G4double currentIN = (*fFastLightVector)[0];
 
           if (currentIN >= 0.0) {
 
             // Create first (photon energy, Scintillation
             // Integral pair
 
-            G4double currentPM = theFastLightVector->Energy(0);
+            G4double currentPM = fFastLightVector->Energy(0);
 
             G4double currentCII = 0.0;
 
@@ -640,11 +632,11 @@ namespace larg4
             // pairs stored for this material
 
             for (size_t i = 1;
-                 i < theFastLightVector->GetVectorLength();
+                 i < fFastLightVector->GetVectorLength();
                  i++)
               {
-                currentPM = theFastLightVector->Energy(i);
-                currentIN = (*theFastLightVector)[i];
+                currentPM = fFastLightVector->Energy(i);
+                currentIN = (*fFastLightVector)[i];
 
                 currentCII = 0.5 * (prevIN + currentIN);
 
@@ -718,8 +710,8 @@ namespace larg4
       // The scintillation integral(s) for a given material
       // will be inserted in the table(s) according to the
       // position of the material in the material table.
-      theFastIntegralTable->insertAt(i,aPhysicsOrderedFreeVector);
-      theSlowIntegralTable->insertAt(i,bPhysicsOrderedFreeVector);
+      fFastIntegralTable->insertAt(i,aPhysicsOrderedFreeVector);
+      fSlowIntegralTable->insertAt(i,bPhysicsOrderedFreeVector);
     }
   }
 
@@ -728,12 +720,12 @@ namespace larg4
   // of energy deposited by particle types
   void OpFastScintillation::SetScintillationByParticleType(const G4bool scintType)
   {
-    if (emSaturation) {
+    if (fEMSaturation) {
       G4Exception("OpFastScintillation::SetScintillationByParticleType", "Scint02",
                   JustWarning, "Redefinition: Birks Saturation is replaced by ScintillationByParticleType!");
       RemoveSaturation();
     }
-    scintillationByParticleType = scintType;
+    fScintillationByParticleType = scintType;
   }
 
   // --------------------------------------------------

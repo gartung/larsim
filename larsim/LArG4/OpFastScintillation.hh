@@ -150,25 +150,23 @@ public:
   // If set, the primary particle tracking is interrupted and any produced
   // scintillation photons are tracked next. When all have been tracked, the
   // tracking of the primary resumes.
-  void SetTrackSecondariesFirst(const G4bool state);
+  void SetTrackSecondariesFirst(const G4bool state)
+  {
+    fTrackSecondariesFirst = state;
+  }
 
   // If set, the OpFastScintillation process expects the user to have
   // set the constant material property FAST/SLOWSCINTILLATIONRISETIME.
-  void SetFiniteRiseTime(const G4bool state);
+  void SetFiniteRiseTime(const G4bool state)
+  {
+    fFiniteRiseTime = state;
+  }
 
   // Returns the boolean flag for tracking secondaries first.
-  G4bool GetTrackSecondariesFirst() const;
+  G4bool GetTrackSecondariesFirst() const {return fTrackSecondariesFirst;}
 
   // Returns the boolean flag for a finite scintillation rise time.
-  G4bool GetFiniteRiseTime() const;
-
-  // Called to set the scintillation photon yield factor, needed when
-  // the yield is different for different types of particles. This
-  // scales the yield obtained from the G4MaterialPropertiesTable.
-  void SetScintillationYieldFactor(const G4double yieldfactor);
-
-  // Returns the photon yield factor.
-  G4double GetScintillationYieldFactor() const;
+  G4bool GetFiniteRiseTime() const {return fFiniteRiseTime;}
 
   // Called to set the scintillation exciation ratio, needed when
   // the scintillation level excitation is different for different
@@ -176,23 +174,19 @@ public:
   // from the G4MaterialPropertiesTable.
   void SetScintillationExcitationRatio(const G4double excitationratio);
 
-  // Returns the scintillation level excitation ratio.
-  G4double GetScintillationExcitationRatio() const;
+  G4double GetScintillationExcitationRatio() const {return fExcitationRatio;}
 
-  // Returns the address of the fast scintillation integral table.
-  G4PhysicsTable* GetFastIntegralTable() const;
-
-  // Returns the address of the slow scintillation integral table.
-  G4PhysicsTable* GetSlowIntegralTable() const;
+  G4PhysicsTable* GetFastIntegralTable() const {return fFastIntegralTable;}
+  G4PhysicsTable* GetSlowIntegralTable() const {return fSlowIntegralTable;}
 
   // Adds Birks Saturation to the process.
-  void AddSaturation(G4EmSaturation* sat) { emSaturation = sat; }
+  void AddSaturation(G4EmSaturation* sat) { fEMSaturation = sat; }
 
   // Removes the Birks Saturation from the process.
-  void RemoveSaturation() { emSaturation = NULL; }
+  void RemoveSaturation() { fEMSaturation = NULL; }
 
   // Returns the Birks Saturation.
-  G4EmSaturation* GetSaturation() const { return emSaturation; }
+  G4EmSaturation* GetSaturation() const { return fEMSaturation; }
 
   // Called by the user to set the scintillation yield as a function
   // of energy deposited by particle type
@@ -200,7 +194,7 @@ public:
 
   // Return the boolean that determines the method of scintillation
   // production
-  G4bool GetScintillationByParticleType() const { return scintillationByParticleType; }
+  G4bool GetScintillationByParticleType() const { return fScintillationByParticleType; }
 
   // Prints the fast and slow scintillation integral tables.
   void DumpPhysicsTable() const;
@@ -208,24 +202,22 @@ public:
 protected:
   // It builds either the fast or slow scintillation integral table;
   // or both.
-  void BuildThePhysicsTable();
+  void BuildPhysicsTable();
 
   // Note the production of N photons in at point xyz.
   // pass on to generate detector response, etc.
   bool RecordPhotonsProduced(const G4Step& aStep, double N);
 
 
-  G4PhysicsTable* theSlowIntegralTable;
-  G4PhysicsTable* theFastIntegralTable;
+  G4PhysicsTable* fSlowIntegralTable;
+  G4PhysicsTable* fFastIntegralTable;
 
   G4bool fTrackSecondariesFirst;
   G4bool fFiniteRiseTime;
 
-  G4double YieldFactor;
+  G4double fExcitationRatio;
 
-  G4double ExcitationRatio;
-
-  G4bool scintillationByParticleType;
+  G4bool fScintillationByParticleType;
 
   G4double single_exp(G4double t, G4double tau2);
   G4double bi_exp(G4double t, G4double tau1, G4double tau2);
@@ -233,7 +225,7 @@ protected:
   // emission time distribution when there is a finite rise time
   G4double sample_time(G4double tau1, G4double tau2);
 
-  G4EmSaturation* emSaturation;
+  G4EmSaturation* fEMSaturation;
 
 };
 
@@ -247,84 +239,24 @@ G4bool OpFastScintillation::IsApplicable(const G4ParticleDefinition& aParticleTy
 }
 
 inline
-void OpFastScintillation::SetTrackSecondariesFirst(const G4bool state)
-{
-  fTrackSecondariesFirst = state;
-}
-
-inline
-void OpFastScintillation::SetFiniteRiseTime(const G4bool state)
-{
-  fFiniteRiseTime = state;
-}
-
-inline
-G4bool OpFastScintillation::GetTrackSecondariesFirst() const
-{
-  return fTrackSecondariesFirst;
-}
-
-inline
-G4bool OpFastScintillation::GetFiniteRiseTime() const
-{
-  return fFiniteRiseTime;
-}
-
-inline
-void OpFastScintillation::SetScintillationYieldFactor(const G4double yieldfactor)
-{
-  YieldFactor = yieldfactor;
-}
-
-inline
-G4double OpFastScintillation::GetScintillationYieldFactor() const
-{
-  return YieldFactor;
-}
-
-inline
-void OpFastScintillation::SetScintillationExcitationRatio(const G4double excitationratio)
-{
-  ExcitationRatio = excitationratio;
-}
-
-inline
-G4double OpFastScintillation::GetScintillationExcitationRatio() const
-{
-  return ExcitationRatio;
-}
-
-inline
-G4PhysicsTable* OpFastScintillation::GetSlowIntegralTable() const
-{
-  return theSlowIntegralTable;
-}
-
-inline
-G4PhysicsTable* OpFastScintillation::GetFastIntegralTable() const
-{
-  return theFastIntegralTable;
-}
-
-inline
 void OpFastScintillation::DumpPhysicsTable() const
 {
-  if (theFastIntegralTable) {
-    G4int PhysicsTableSize = theFastIntegralTable->entries();
+  if (fFastIntegralTable) {
+    G4int PhysicsTableSize = fFastIntegralTable->entries();
     G4PhysicsOrderedFreeVector *v;
 
     for (G4int i = 0 ; i < PhysicsTableSize ; i++ ){
-      v = (G4PhysicsOrderedFreeVector*)(*theFastIntegralTable)[i];
+      v = (G4PhysicsOrderedFreeVector*)(*fFastIntegralTable)[i];
       v->DumpValues();
     }
   }
 
-  if (theSlowIntegralTable) {
-    G4int PhysicsTableSize = theSlowIntegralTable->entries();
+  if (fSlowIntegralTable) {
+    G4int PhysicsTableSize = fSlowIntegralTable->entries();
     G4PhysicsOrderedFreeVector *v;
 
     for (G4int i = 0 ; i < PhysicsTableSize ; i++ ){
-      v = (G4PhysicsOrderedFreeVector*)(*theSlowIntegralTable)[i];
+      v = (G4PhysicsOrderedFreeVector*)(*fSlowIntegralTable)[i];
       v->DumpValues();
     }
   }
