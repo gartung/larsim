@@ -295,82 +295,10 @@ namespace larg4
 
 
     G4int Num = 0;
-    double YieldRatio=0;
+    double YieldRatio = GetYieldRatio(aParticle,
+                                      aMaterialPropertiesTable);
 
 
-    if (fScintillationByParticleType) {
-      // The scintillation response is a function of the energy
-      // deposited by particle types.
-
-      // Get the definition of the current particle
-      G4ParticleDefinition *pDef = aParticle->GetDefinition();
-
-      // Obtain the G4MaterialPropertyVectory containing the
-      // scintillation light yield as a function of the deposited
-      // energy for the current particle type
-
-      // Protons
-      if(pDef==G4Proton::ProtonDefinition()){
-        YieldRatio = aMaterialPropertiesTable->
-          GetConstProperty("PROTONYIELDRATIO");
-      }
-
-    // Muons
-    else if(pDef==G4MuonPlus::MuonPlusDefinition()||pDef==G4MuonMinus::MuonMinusDefinition())
-      {
-	YieldRatio = aMaterialPropertiesTable->
-	  GetConstProperty("MUONYIELDRATIO");
-      }
-
-    // Pions
-    else if(pDef==G4PionPlus::PionPlusDefinition()||pDef==G4PionMinus::PionMinusDefinition())
-      {
-	YieldRatio = aMaterialPropertiesTable->
-	  GetConstProperty("PIONYIELDRATIO");
-      }
-
-    // Kaons
-    else if(pDef==G4KaonPlus::KaonPlusDefinition()||pDef==G4KaonMinus::KaonMinusDefinition())
-      {
-	YieldRatio = aMaterialPropertiesTable->
-	  GetConstProperty("KAONYIELDRATIO");
-      }
-
-    // Alphas
-    else if(pDef==G4Alpha::AlphaDefinition())
-      {
-	YieldRatio = aMaterialPropertiesTable->
-	  GetConstProperty("ALPHAYIELDRATIO");
-      }
-
-    // Electrons (must also account for shell-binding energy
-    // attributed to gamma from standard PhotoElectricEffect)
-    else if(pDef==G4Electron::ElectronDefinition() ||
-	    pDef==G4Gamma::GammaDefinition())
-      {
-	YieldRatio = aMaterialPropertiesTable->
-	  GetConstProperty("ELECTRONYIELDRATIO");
-      }
-
-    // Default for particles not enumerated/listed above
-    else
-      {
-	YieldRatio = aMaterialPropertiesTable->
-	  GetConstProperty("ELECTRONYIELDRATIO");
-      }
-
-    // If the user has not specified yields for (p,d,t,a,carbon)
-    // then these unspecified particles will default to the
-    // electron's scintillation yield
-    if(YieldRatio==0){
-      {
-
-	YieldRatio = aMaterialPropertiesTable->
-	  GetConstProperty("ELECTRONYIELDRATIO");
-
-      }
-    }
-  }
 
   double const xyz[3] = { x0[0]/CLHEP::cm, x0[1]/CLHEP::cm, x0[2]/CLHEP::cm };
   float const* Visibilities = pvs->GetAllVisibilities(xyz);
@@ -567,6 +495,46 @@ namespace larg4
   }
 
   return 0;
+  }
+
+  // --------------------------------------------------
+  double OpFastScintillation::
+  GetYieldRatio(const G4DynamicParticle* aParticle,
+                G4MaterialPropertiesTable* aMaterialPropertiesTable) const
+  {
+    if(!fScintillationByParticleType) return 0;
+
+    // The scintillation response is a function of the energy
+    // deposited by particle types.
+
+    // Get the definition of the current particle
+    G4ParticleDefinition* pDef = aParticle->GetDefinition();
+
+    // Default for particles not enumerated below
+    std::string propName = "ELECTRON";
+
+    /* */if(pDef == G4Proton::ProtonDefinition()) propName = "PROTON";
+    else if(pDef == G4MuonPlus::MuonPlusDefinition() ||
+            pDef == G4MuonMinus::MuonMinusDefinition()) propName = "MUON";
+    else if(pDef == G4PionPlus::PionPlusDefinition() ||
+            pDef == G4PionMinus::PionMinusDefinition()) propName = "PION";
+    else if(pDef == G4KaonPlus::KaonPlusDefinition() ||
+            pDef == G4KaonMinus::KaonMinusDefinition()) propName = "KAON";
+    else if(pDef == G4Alpha::AlphaDefinition()) propName = "ALPHA";
+    // Electrons (must also account for shell-binding energy
+    // attributed to gamma from standard PhotoElectricEffect)
+    else if(pDef == G4Electron::ElectronDefinition() ||
+	    pDef == G4Gamma::GammaDefinition()) propName = "ELECTRON";
+
+
+    const double ret = aMaterialPropertiesTable->GetConstProperty((propName+"YIELDRATIO").c_str());
+
+    // If the user has not specified yields for (p,d,t,a,carbon)
+    // then these unspecified particles will default to the
+    // electron's scintillation yield
+    if(ret == 0) return aMaterialPropertiesTable->GetConstProperty("ELECTRONYIELDRATIO");
+
+    return ret;
   }
 
   // --------------------------------------------------

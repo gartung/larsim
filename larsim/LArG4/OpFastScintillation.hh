@@ -208,6 +208,8 @@ protected:
   // pass on to generate detector response, etc.
   bool RecordPhotonsProduced(const G4Step& aStep, double N);
 
+  double GetYieldRatio(const G4DynamicParticle* aParticle,
+                       G4MaterialPropertiesTable* aMaterialPropertiesTable) const;
 
   G4PhysicsTable* fSlowIntegralTable;
   G4PhysicsTable* fFastIntegralTable;
