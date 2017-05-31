@@ -122,6 +122,9 @@
 // support libraries
 #include "cetlib/exception.h"
 
+#include "TFile.h"
+#include "TH3.h"
+#include "TRandom3.h" // TODO use official random framework
 
 namespace larg4
 {
@@ -246,6 +249,128 @@ namespace larg4
   }
 
   //-------------------------------------------------------------
+  void OpFastScintillation::PropogatePhoton(TVector3 r0)
+  {
+    static TH3* h[7] = {0,};
+    static double survProb[7];
+    if(!h[0]){
+      TFile* f = new TFile("~/dev_dune/photon_sim/srcs/dunetpc/dune/PhotonPropagation/anaphots_hist.root");
+      for(int i = 0; i <= 6; ++i){
+        h[i] = (TH3*)f->Get(TString::Format("ana/thetathetapthetarp%d", i).Data());
+        // TODO normalize by number of photons in the module that derives these
+        // things.
+        survProb[i] = h[i]->Integral(0, -1)/1000000.;
+      }
+    }
+
+    art::ServiceHandle<geo::Geometry> geom;
+
+    double xyz[3] = {r0.X(), r0.Y(), r0.Z()};
+    const geo::CryostatGeo* cryo = 0;
+    try{
+      geo::CryostatID junkid;
+      cryo = &geom->PositionToCryostat(xyz, junkid);
+    }
+    catch(...){
+      std::cout << "Warning: photon production point "
+                << "(" << r0.X() << ", " << r0.Y() << ", " << r0.Z() << ") "
+                << "not in any Cryostat" << std::endl;
+      return;
+    }
+    const geo::TPCGeo* tpc = 0;
+    try{
+      unsigned int junki;
+      tpc = &cryo->PositionToTPC(xyz, junki, 1.001);
+    }
+    catch(...){
+      std::cout << "Warning: photon production point "
+                << "(" << r0.X() << ", " << r0.Y() << ", " << r0.Z() << ") "
+                << "not in any TPC" << std::endl;
+      return;
+    }
+
+    const double x0 = tpc->MinX();
+    const double x1 = tpc->MaxX();
+    const double y0 = tpc->MinY();
+    const double y1 = tpc->MaxY();
+    const double z0 = tpc->MinZ();
+    const double z1 = tpc->MaxZ();
+
+
+    // Pick a direction for the photon
+    TVector3 p0 = random_unit();
+
+    for(int i = 0;; ++i){
+      // Distance to edge
+      double L = std::min({r0.X()-x0, x1-r0.X(),
+                           r0.Y()-y0, y1-r0.Y(),
+                           r0.Z()-z0, z1-r0.Z()});
+
+      if(L < 0){
+        std::cout << "Warning: photon production point "
+                  << "(" << r0.X() << ", " << r0.Y() << ", " << r0.Z() << ") "
+                  << "not in TPC" << std::endl;
+        return;
+      }
+
+      int Lbin = log(L)/log(2);
+      Lbin = std::max(0, std::min(6, Lbin)); // clamp to range of histograms
+      L = exp(log(2)*Lbin); // alter step size to match
+
+      if(gRandom->Uniform(0, 1) > survProb[Lbin]){
+        std::cout << "Photon absorbed after " << i+1 << " steps" << std::endl;
+        return;
+      }
+
+      TVector3 p1, p2;
+      ortho_basis(p0, p1, p2);
+
+      // Pick the dot products the step will have to satisfy at random from the
+      // histogram.
+      double A, B, C;
+      h[Lbin]->GetRandom3(A, B, C);
+      A = cos(A*M_PI/180);
+      B = cos(B*M_PI/180);
+      C = cos(C*M_PI/180);
+
+      // TODO special case for picking the 0,0,0 (straight ahead) bin?
+
+      // Physics is symmetric around the axis of motion
+      const double phi = gRandom->Uniform(0, 2*M_PI);
+
+      // Satisfy the first dot product
+      const TVector3 r = A*p0 + sqrt(1-A*A)*(cos(phi)*p1+sin(phi)*p2);
+
+      // Solve quadratic equation to find a psi that solves the other two
+      const double a = r.Dot(p1);
+      const double b = r.Dot(p2);
+      const double c = (C-A*B)/sqrt(1-B*B);
+      const double psi = 2*atan((b-sqrt(std::max(0., a*a+b*b-c*c)))/(a+c));
+
+      const TVector3 p = B*p0 + sqrt(1-B*B)*(cos(psi)*p1 + sin(psi)*p2);
+
+      // Check we're close enough to satisfying the constraints
+      //    std::cout << A << " " << r.Dot(p0) << std::endl;
+      //    std::cout << B << " " << p.Dot(p0) << std::endl;
+      //    std::cout << C << " " << r.Dot(p) << std::endl;
+
+      // Actually take the step
+      r0 += L*r;
+      p0 = p;
+
+      // New distance to edge
+      L = std::min({r0.X()-x0, x1-r0.X(),
+                    r0.Y()-y0, y1-r0.Y(),
+                    r0.Z()-z0, z1-r0.Z()});
+
+      if(L < 0){
+        std::cout << "Hit a wall after " << i+1 << " steps" << std::endl;
+        return;
+      }
+    }
+  }
+
+  //-------------------------------------------------------------
   bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double MeanNumberOfPhotons)
   {
     // Get the pointer to the fast scintillation table
@@ -253,7 +378,7 @@ namespace larg4
     OpDetPhotonTable* litefst = OpDetPhotonTable::Instance();
 
     // Get the pointer to the visibility service
-    art::ServiceHandle<phot::PhotonVisibilityService> pvs;
+    //    art::ServiceHandle<phot::PhotonVisibilityService> pvs;
     art::ServiceHandle<sim::LArG4Parameters> lgp;
 
     const G4Track * aTrack = aStep.GetTrack();
@@ -278,7 +403,7 @@ namespace larg4
 
     // Get the visibility vector for this point
     size_t NOpChannels = 0;
-    NOpChannels = pvs->NOpChannels();
+    //    NOpChannels = pvs->NOpChannels();
 
 
     G4MaterialPropertyVector* Fast_Intensity =
@@ -301,7 +426,7 @@ namespace larg4
 
 
     double const xyz[3] = { x0[0]/CLHEP::cm, x0[1]/CLHEP::cm, x0[2]/CLHEP::cm };
-    float const* Visibilities = pvs->GetAllVisibilities(xyz);
+    float const* Visibilities = 0;//pvs->GetAllVisibilities(xyz);
 
     for (G4int scnt = 1; scnt <= nscnt; scnt++) {
 
@@ -369,8 +494,20 @@ namespace larg4
       if (!ScintillationIntegral) continue;
 
       static long NN = 0;
+      static long NNfluc = 0;
       NN += Num;
-      std::cout << " **** NUM = " << NN << " ****" << std::endl;
+
+      const int Nfluc = gRandom->Poisson(.01*Num);
+      if(Nfluc > 0){
+        NNfluc += Nfluc;
+        std::cout << " **** Total number of photons simulated so far = " << NN << " (" << NNfluc << ") ****" << std::endl;
+      }
+
+      // Downsample for photon detector efficiency here
+      for(int i = 0; i < Nfluc; ++i){
+        TVector3 r0(x0[0]/CLHEP::cm, x0[1]/CLHEP::cm, x0[2]/CLHEP::cm);
+        PropogatePhoton(r0);
+      }
 
       if(!Visibilities){
       }else{
@@ -717,6 +854,36 @@ namespace larg4
       if (ran2 <= bi_exp(t,tau1,tau2)/g) return t;
     }
     return -1.0;
+  }
+
+  // --------------------------------------------------
+  // Construct a random unit vector
+  TVector3 OpFastScintillation::random_unit()
+  {
+    double px, py, pz;
+    do{
+      px = gRandom->Uniform(-1, +1);
+      py = gRandom->Uniform(-1, +1);
+      pz = gRandom->Uniform(-1, +1);
+    } while(px*px + py*py + pz*pz > 1);
+
+    const double m = sqrt(px*px + py*py + pz*pz);
+    px /= m;
+    py /= m;
+    pz /= m;
+
+    return TVector3(px, py, pz);
+  }
+
+  // --------------------------------------------------
+  void OpFastScintillation::ortho_basis(TVector3 p0, TVector3& p1, TVector3& p2)
+  {
+    p1 = TVector3(gRandom->Uniform(-1, +1),
+                  gRandom->Uniform(-1, +1),
+                  gRandom->Uniform(-1, +1));
+
+    p2 = p0.Cross(p1).Unit();
+    p1 = p0.Cross(p2).Unit();
   }
 
 } // namespace

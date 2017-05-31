@@ -98,6 +98,8 @@
 #include "Geant4/G4PhysicsOrderedFreeVector.hh"
 #include "Geant4/G4EmSaturation.hh"
 
+#include "TVector3.h"
+
 // Class Description:
 // RestDiscrete Process - Generation of Scintillation Photons.
 // Class inherits publicly from G4VRestDiscreteProcess.
@@ -211,6 +213,8 @@ protected:
   double GetYieldRatio(const G4DynamicParticle* aParticle,
                        G4MaterialPropertiesTable* aMaterialPropertiesTable) const;
 
+  void PropogatePhoton(TVector3 r0);
+
   G4PhysicsTable* fSlowIntegralTable;
   G4PhysicsTable* fFastIntegralTable;
 
@@ -226,6 +230,10 @@ protected:
 
   // emission time distribution when there is a finite rise time
   G4double sample_time(G4double tau1, G4double tau2);
+
+  static TVector3 random_unit();
+
+  static void ortho_basis(TVector3 p0, TVector3& p1, TVector3& p2);
 
   G4EmSaturation* fEMSaturation;
 
