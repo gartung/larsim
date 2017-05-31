@@ -254,7 +254,12 @@ namespace larg4
     static TH3* h[7] = {0,};
     static double survProb[7];
     if(!h[0]){
+      // Caltech
       TFile* f = new TFile("~/dev_dune/photon_sim/srcs/dunetpc/dune/PhotonPropagation/anaphots_hist.root");
+      if(f->IsZombie()){
+        // FNAL
+        f = new TFile("/dune/app/users/bckhouse/photon_lib/anaphots_hist.root");
+      }
       for(int i = 0; i <= 6; ++i){
         h[i] = (TH3*)f->Get(TString::Format("ana/thetathetapthetarp%d", i).Data());
         // TODO normalize by number of photons in the module that derives these
