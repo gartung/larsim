@@ -11,16 +11,17 @@
 #include <cstring>
 
 #include "larsim/LArG4/ISCalculation.h"
-
+#include "larsim/larsim/LArG4/LaRLightEnergyAction.h"
 #include "Geant4/G4Step.hh"
 
 #include "TH1.h"
 #include "TH2.h"
+#include <TTree.h>
 
 namespace CLHEP { class HepRandomEngine; }
 
 namespace larg4 {
-
+ 
   // The Ionization and Scintillation singleton
   class IonizationAndScintillation
   {
@@ -49,7 +50,13 @@ namespace larg4 {
     G4Step const*         fStep;               ///< pointer to the current G4 step
     int                   fStepNumber;         ///< last StepNumber checked
     int                   fTrkID;              ///< last TrkID checked
-
+    bool change_event=false;
+    Int_t evnr;
+    Int_t isphotons;
+    Int_t isrun1;
+    Int_t isevent1;
+    Int_t issubrun1;
+    TTree*		  fisTree;
     TH1F*                 fElectronsPerStep;   ///< histogram of electrons per step
     TH1F*                 fStepSize;           ///< histogram of the step sizes
     TH1F*                 fPhotonsPerStep;     ///< histogram of the photons per step

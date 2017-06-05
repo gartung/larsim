@@ -231,7 +231,9 @@ namespace larg4 {
         << "The configuration of LArG4 module has the discontinued 'Seed' parameter.\n"
         "Seeds are now controlled by three parameters: 'GEANTSeed', 'PropagationSeed' and 'RadioSeed'.";
     }
-
+    isevent=0;
+	isrun=0;
+	issubrun=0;
 if(fLarLightEnergyAction){
     fTPCLariat=pset.get< std::string >("TPCName1","volTPCActive_PV");
     fTPCTest=pset.get< std::string >("TPCName2","volBeamBox_PV");
@@ -431,7 +433,10 @@ if(fLarLightEnergyAction){
   void LArG4::produce(art::Event& evt)
 
   {
-
+	isevent=int(evt.event());
+	issubrun=int(evt.subRun());
+	isrun=int(evt.run());
+std::cout<<"ev nr IN LARG4 "<<isevent <<std::endl;
     LOG_DEBUG("LArG4") << "produce()";
 
     // loop over the lists and put the particles and voxels into the event as collections

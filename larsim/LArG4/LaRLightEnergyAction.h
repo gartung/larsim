@@ -28,9 +28,12 @@
 class G4Step;
 
 namespace larg4 {
-double energy_deposit_step;
+static double energy_deposit_step=0;
 //double phot_refl_ev;
-int eventnumber_fast;
+static int eventnumber_fast;
+ extern Int_t issubrun;
+ extern Int_t isrun;
+ extern Int_t isevent;
   class LaRLightEnergyAction : public g4b::UserAction
   {
   public:
