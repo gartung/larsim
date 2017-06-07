@@ -162,11 +162,38 @@ if(Material=="G10"){
 		new G4LogicalSkinSurface("refl_surfaceg",volume, refl_opsurfg);
 		}
 
+if(Material=="Titanium"){
+                std::cout<< "Titanium surface set "<<volume->GetName()<<std::endl;
+                const G4int num4t = 12;
+                G4double Ephotont[num4t] = {1.77*CLHEP::eV, 2.0675*CLHEP::eV, 2.481*CLHEP::eV, 2.819*CLHEP::eV, 2.953*CLHEP::eV, 3.1807*CLHEP::eV, 3.54*CLHEP::eV, 4.135*CLHEP::eV, 4.962*CLHEP::eV, 5.39*CLHEP::eV,6.2*CLHEP::eV,15.0*CLHEP::eV};
+                G4double Reflectivity_reflt[num4t] = {0.55679, 0.55739, 0.525395, 0.510266, 0.507495, 0.502816, 0.485183, 0.402329, 0.2, 0.2, 0.2, 0.2};//measurements at Cracow University of Techno$
+                G4MaterialPropertiesTable* reflsptt = new G4MaterialPropertiesTable(); 
+                reflsptt->AddProperty("REFLECTIVITY", Ephotont, Reflectivity_reflt, num4t);
+                G4OpticalSurface* refl_opsurft = new G4OpticalSurface("titanium Surface",glisur,ground,dielectric_metal);
+                refl_opsurft->SetMaterialPropertiesTable(reflsptt);
+                refl_opsurft-> SetPolish(0.1);
+                new G4LogicalSkinSurface("refl_surfacet",volume, refl_opsurft);
+                }
+
+if(Material=="STEEL_STAINLESS_Fe7Cr2Ni"){
+                std::cout<< "Titanium surface set "<<volume->GetName()<<std::endl;
+                const G4int numSt = 12;
+                G4double EphotonSt[numSt] = {1.77*CLHEP::eV, 2.0675*CLHEP::eV, 2.481*CLHEP::eV, 2.819*CLHEP::eV, 2.953*CLHEP::eV, 3.1807*CLHEP::eV, 3.54*CLHEP::eV, 4.135*CLHEP::eV, 4.962*CLHEP::eV, 5.39*CLHEP::eV,6.2*CLHEP::eV,15.0*CLHEP::eV};
+                G4double Reflectivity_reflSt[numSt] = {0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25};//measurements at Cracow University of Techno$
+                G4MaterialPropertiesTable* reflsptSt = new G4MaterialPropertiesTable(); 
+                reflsptSt->AddProperty("REFLECTIVITY", EphotonSt, Reflectivity_reflSt, numSt);
+                G4OpticalSurface* refl_opsurfSt = new G4OpticalSurface("steel Surface",glisur,ground,dielectric_metal);
+                refl_opsurfSt->SetMaterialPropertiesTable(reflsptSt);
+                refl_opsurfSt-> SetPolish(0.1);
+                new G4LogicalSkinSurface("refl_surfaceSt",volume, refl_opsurfSt);
+                }
+
+
 	if(Material=="vm2000"){
 		std::cout<< "reflector  "<<volume->GetName()<<std::endl;
 		const G4int num2 = 12;
   		G4double Ephoton2[num2] = {1.77*CLHEP::eV, 2.0675*CLHEP::eV, 2.481*CLHEP::eV, 2.819*CLHEP::eV, 2.953*CLHEP::eV, 3.1807*CLHEP::eV, 3.54*CLHEP::eV, 4.135*CLHEP::eV, 4.962*CLHEP::eV, 5.39*CLHEP::eV,6.2*CLHEP::eV,15.0*CLHEP::eV};
-		G4double Reflectivity_refl[num2]  = {0.95,0.95,0.95,0.95,0.95,0.32,0.0401,0.0229,0.1825,0.1825,0.0,0.0};//VM2000 data arXiv:1304.6117, 
+		G4double Reflectivity_refl[num2]  = {0.93,0.93,0.93,0.93,0.93,0.3131,0.0393,0.0224,0.1787,0.1787,0.0,0.0} ;//VM2000 data arXiv:1304.6117, 
 		//{0.83,0.83,0.83,0.83,0.83,0.28,0.035,0.02,0.16,0.16,0.0,0.0} used in simulations before 23.5.2017 -
 		//{0.90,0.90,0.90,0.90,0.90,0.303,0.038,0.0217,0.173,0.173,0.0,0.0} - a 90%v version 
 		//{0.93,0.93,0.93,0.93,0.93,0.3131,0.0393,0.0224,0.1787,0.1787,0.0,0.0} a 93% version needs to be checked!,  
@@ -215,7 +242,8 @@ if(Material=="G10"){
 	  {
 	    ReflectanceToStore[itEn->first]=itEn->second;
 	  }    
-	SetMaterialProperty("LAr", ReflectancePropName, ReflectanceToStore,1);
+        SetMaterialProperty(itMat->first, "REFLECTIVITY", ReflectanceToStore,1);
+//	SetMaterialProperty("LAr", ReflectancePropName, ReflectanceToStore,1);
 //SetMaterialProperty("TPB", ReflectancePropName, ReflectanceToStore,1);
       }
 
