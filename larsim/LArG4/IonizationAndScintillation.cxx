@@ -30,6 +30,8 @@ namespace larg4 {
     Int_t isevent;
     Int_t issubrun;
     int steps;
+        int steps1;
+	    int steps2;
     bool isprim;
     Double_t dLdxStep[200];
     Double_t zStep[200];	//<---number of protons per length/step
@@ -43,9 +45,13 @@ namespace larg4 {
     int photons_sum;
 	int ions_sum;
     double energy_sum;
-
-
-  //......................................................................
+Int_t isphotons_allpartEn;
+Int_t isphotonsEn;
+float photons_count;
+float energy_dep;
+Double_t Ene;
+Double_t Ene_all;  
+//......................................................................
   IonizationAndScintillation* IonizationAndScintillation::CreateInstance
     (CLHEP::HepRandomEngine& engine)
   {
@@ -92,14 +98,21 @@ namespace larg4 {
     fTrkID=-1;
     evnr=0;
     steps=0;
+    steps1=0;
+    steps2=0;
     isphotons=0;
-	isions=0;
+    isions=0;
     isphotons_allpart=0;
-	isions_allpart=0;
+    isions_allpart=0;
     size_max=0.5;
     size_sum=0.0;
     photons_sum=0.0;
     energy_sum=0.0;
+    isphotonsEn=0;
+    isphotons_allpartEn=0;
+    Ene=0.0;
+    Ene_all=0.0;
+
 ;
     // initialize the calculator
     fISCalc->Initialize();
@@ -126,6 +139,11 @@ namespace larg4 {
 					  
     fElectronsVsPhotons = tfs->make<TH2F>("electronsVsPhotons", ";Photons;Electrons",
 					  500, 0., 5000., 500, 0., 5000.);
+
+    fEnergyVsPhotons = tfs->make<TH2F>("energyVsPhotons", ";Photons;Energy",
+                                          500, 0., 5000., 100, 0., 0.5);
+
+
 fisTree = tfs->make<TTree>("IonScintTree","IonScintTree");
     fisTree->Branch("isrun", &isrun1, "isrun/I");
     fisTree->Branch("issubrun", &issubrun1, "issubrun/I");
@@ -134,10 +152,13 @@ fisTree = tfs->make<TTree>("IonScintTree","IonScintTree");
     fisTree->Branch("isphotons_allpart", &isphotons_allpart, "isphotons_allpart/I");
     fisTree->Branch("isions_allpart", &isions_allpart, "isions_allpart/I");
     fisTree->Branch("dLdxStep", &dLdxStep, "dLdxStep[200]/D");
-   fisTree->Branch("dLdEStep", &dLdEStep, "dLdEStep[200]/D");
+    fisTree->Branch("dLdEStep", &dLdEStep, "dLdEStep[200]/D");
     fisTree->Branch("isions", &isions, "isions/I");
-   fisTree->Branch("dLdIStep", &dLdIStep, "dLdIStep[200]/D");
-
+    fisTree->Branch("dLdIStep", &dLdIStep, "dLdIStep[200]/D");
+    fisTree->Branch("isphotons_allpartEn", &isphotons_allpartEn, "isphotons_allpartEn/I");
+    fisTree->Branch("isphotonsEn", &isphotonsEn, "isphotonsEn/I");    
+fisTree->Branch("Ene", &Ene, "Ene/D");
+fisTree->Branch("Ene_all", &Ene_all, "Ene_all/D");
 
 
 
@@ -164,7 +185,8 @@ fisTree = tfs->make<TTree>("IonScintTree","IonScintTree");
     if(fTrkID==1) isprim=true;
     else isprim=false;
     fStep = step;
-
+    energy_dep=0.0;
+    photons_count=0;
     // reset the calculator
     fISCalc->Reset();
 
@@ -174,48 +196,62 @@ fisTree = tfs->make<TTree>("IonScintTree","IonScintTree");
     // double check that the energy deposit is non-zero
     // then do the calculation if it is
     if( step->GetTotalEnergyDeposit() > 0 ){
- 
+      //getting number of photons and energy deposit in this step
+
       fISCalc->CalculateIonizationAndScintillation(fStep);
-    
+    photons_count=fISCalc->NumberScintillationPhotons(); 
       LOG_DEBUG("IonizationAndScintillation") << "Step Size: "   << fStep->GetStepLength()/CLHEP::cm
-					      << "\nEnergy: "    << fISCalc->EnergyDeposit()
+					      << "\nEnergy: "    << energy_dep
 					      << "\nElectrons: " << fISCalc->NumberIonizationElectrons()
-					      << "\nPhotons: "   << fISCalc->NumberScintillationPhotons();
+					      << "\nPhotons: "   << photons_count;
 
       G4ThreeVector totstep = fStep->GetPostStepPoint()->GetPosition();
       totstep -= fStep->GetPreStepPoint()->GetPosition();
       
       // Fill the histograms
       fStepSize          ->Fill(totstep.mag()/CLHEP::cm);
-      fEnergyPerStep     ->Fill(fISCalc->EnergyDeposit());
+      fEnergyPerStep     ->Fill(energy_dep);
       fElectronsPerStep  ->Fill(fISCalc->NumberIonizationElectrons());
-      fPhotonsPerStep    ->Fill(fISCalc->NumberScintillationPhotons());
-      fElectronsVsPhotons->Fill(fISCalc->NumberScintillationPhotons(), 
+      fPhotonsPerStep    ->Fill(photons_count);
+      fElectronsVsPhotons->Fill(photons_count, 
 				fISCalc->NumberIonizationElectrons());
-      fElectronsPerLength->Fill(fISCalc->NumberIonizationElectrons()*1.e-3/(totstep.mag()/CLHEP::cm));
-      fPhotonsPerLength  ->Fill(fISCalc->NumberScintillationPhotons()*1.e-3/(totstep.mag()/CLHEP::cm));
-      fElectronsPerEDep  ->Fill(fISCalc->NumberIonizationElectrons()*1.e-3/fISCalc->EnergyDeposit());
-      fPhotonsPerEDep    ->Fill(fISCalc->NumberScintillationPhotons()*1.e-3/fISCalc->EnergyDeposit());
-	if(isprim) isphotons+=fISCalc->NumberScintillationPhotons();
-	if(isprim) isions+=fISCalc->NumberIonizationElectrons();
-	isphotons_allpart+=fISCalc->NumberScintillationPhotons();
-	isions_allpart+=fISCalc->NumberIonizationElectrons();
+      fEnergyVsPhotons->Fill(photons_count, 
+                                energy_dep);
+ 
+     fElectronsPerLength->Fill(fISCalc->NumberIonizationElectrons()*1.e-3/(totstep.mag()/CLHEP::cm));
+      fPhotonsPerLength  ->Fill(photons_count*1.e-3/(totstep.mag()/CLHEP::cm));
+      fElectronsPerEDep  ->Fill(fISCalc->NumberIonizationElectrons()*1.e-3/energy_dep);
+      fPhotonsPerEDep    ->Fill(photons_count*1.e-3/energy_dep);
+
+	isphotons_allpart+=int(photons_count);
+		energy_dep=fISCalc->EnergyDeposit()/CLHEP::MeV;
+	
+	isions_allpart+=int(fISCalc->NumberIonizationElectrons());
+        ++steps1;
+	Ene_all+=energy_dep;
 mf::LogWarning("IonisationScintillation")<<" trk id scint energyaction "<<fTrkID<<" "<<step->GetTrack()->GetDefinition()->GetParticleName()<<" "<<fStepNumber<<std::endl;
-    if(isprim ){ //only primary particles are interesting in this step of the the NEST validation
+                              if(Double_t(energy_dep)!=0.0)	isphotons_allpartEn+=Int_t(photons_count); 
+   if(isprim ){ //only primary particles are interesting in this step of the the NEST validation
+		isphotons+=photons_count;
+		isions+=fISCalc->NumberIonizationElectrons();
 		size_sum+=double(totstep.mag()/CLHEP::cm);
-		photons_sum+=int(fISCalc->NumberScintillationPhotons());
-		energy_sum+=double(fISCalc->EnergyDeposit()/CLHEP::MeV);
+		photons_sum+=int(photons_count);
+		energy_sum+=double(energy_dep);
+		Ene+=energy_dep;
 		ions_sum+=int(fISCalc->NumberIonizationElectrons());
+		if(Double_t(energy_dep)!=0.0) isphotonsEn+=Int_t(fISCalc->NumberScintillationPhotons());
+		
 		if(size_sum>0.5&&steps<200){
 		dLdxStep[steps]=Double_t(photons_sum/size_sum);
 		dLdIStep[steps]=Double_t(ions_sum/size_sum);
 		dLdEStep[steps]=Double_t(photons_sum/energy_sum);
 		zStep[steps]=Double_t(fStep->GetPreStepPoint()->GetPosition().z()/CLHEP::cm);
 		++steps;
-		size_sum=0.0;
-		photons_sum=0.0;
+                size_sum=0.0;
 		
-		mf::LogWarning("IonisationScintillation")<<" trk id scint energyaction "<<fTrkID<<" "<<fStepNumber<<" "<<steps<<" "<<dLdxStep[steps]<<std::endl;
+                photons_sum=0.0;
+		++steps2;//steps of primary particle
+		mf::LogWarning("IonisationScintillation")<<" trk id scint energyaction photons test "<<fTrkID<<" "<<fStepNumber<<" "<<steps<<" "<<isphotons<<" added --> "<<photons_count<<" should be "<<fISCalc->NumberScintillationPhotons()<<" to integer "<<int(fISCalc->NumberScintillationPhotons())<<" int_t "<<Int_t(fISCalc->NumberScintillationPhotons())<<std::endl;
 		}
 	}//end of statement for storing primary photons/e dep
 	change_event=false;//>new track	change_event=false;//>new event
@@ -228,7 +264,9 @@ mf::LogWarning("IonisationScintillation")<<" trk id scint energyaction "<<fTrkID
 				mf::LogWarning("IonisationScintillation")<<" photons stepby step "<<ii<<" "<<dLdxStep[ii]<<std::endl;
 
 				}*/
-			steps=0;
+		//	steps=0;
+			//steps1=0;
+			//	steps2=0;
 			mf::LogWarning("ionistation scint")<<"--------------EVENT NUMBER"<<evnr<<std::endl;
 		}
 		
@@ -237,25 +275,30 @@ mf::LogWarning("IonisationScintillation")<<" trk id scint energyaction "<<fTrkID
 
 	else{
 		change_event=true;
-		/*for(int ii=0;ii<steps;++ii){
-			mf::LogWarning("IonisationScintillation")<<" photons step by step "<<ii<<" "<<dLdxStep[ii]<<std::endl;
-
-		}*/
-		steps=0;
 		evnr=isevent;
-		//mf::LogWarning("IonisationScintillation")<<" EVENT NUMBER scint energyaction "<<evnr<<std::endl;	
 	}
 	if (change_event==true){
 
 		isevent1=isevent;
 		isrun1=isrun;
 		issubrun1=issubrun;
-mf::LogWarning("IonisationScintillation")<<" EVENT NUMBER scint energyaction "<<isevent1<<std::endl;
-if(steps<200&&isprim) mf::LogWarning("IonisationScintillation")<<" trk id scint energyaction written to the tree "<<fStepNumber<<" "<<dLdxStep[steps]<<" "<<dLdxStep[1]<<std::endl;
+		mf::LogWarning("IonisationScintillation")<<" EVENT NUMBER scint energyaction "<<isevent1<<" photons count "<<isphotons<<" all particles: "<<isphotons_allpart<<" different method "<<isphotonsEn<<std::endl;
+		if(steps<200&&isprim) mf::LogWarning("IonisationScintillation")<<" trk id scint energyaction written to the tree "<<fStepNumber<<" "<<dLdxStep[steps]<<" "<<dLdxStep[1]<<std::endl;
+		
+		
+
 		fisTree->Fill();
 		isphotons=0;
 		isions=0;
 		size_sum=0.0;
+		isphotons_allpart=0;
+		isphotonsEn=0;
+		isphotons_allpartEn=0;
+		Ene=0.0;
+		Ene_all=0.0;
+		steps=0;
+		steps1=0;
+		steps2=0;
 	}
 
     } // end if the energy deposition is non-zero
@@ -267,7 +310,6 @@ else{		if(steps<200&&isprim){
 		}
 
 }
-	//if(isprim) ++steps;
     return;
   }
 

@@ -66,6 +66,8 @@ namespace larg4 {
     TH1F*                 fElectronsPerEDep;   ///< histogram of electrons per MeV deposited
     TH1F*                 fPhotonsPerEDep;     ///< histogram of photons per MeV deposited
     TH2F*                 fElectronsVsPhotons; ///< histogram of electrons vs photons per step 
+    TH2F*                 fEnergyVsPhotons; ///< histogram of electrons vs photons per step 
+
     CLHEP::HepRandomEngine& fEngine;           ///< random engine
   };
 

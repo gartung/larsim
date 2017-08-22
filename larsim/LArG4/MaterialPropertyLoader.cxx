@@ -193,7 +193,7 @@ if(Material=="STEEL_STAINLESS_Fe7Cr2Ni"){
 		std::cout<< "reflector  "<<volume->GetName()<<std::endl;
 		const G4int num2 = 12;
   		G4double Ephoton2[num2] = {1.77*CLHEP::eV, 2.0675*CLHEP::eV, 2.481*CLHEP::eV, 2.819*CLHEP::eV, 2.953*CLHEP::eV, 3.1807*CLHEP::eV, 3.54*CLHEP::eV, 4.135*CLHEP::eV, 4.962*CLHEP::eV, 5.39*CLHEP::eV,6.2*CLHEP::eV,15.0*CLHEP::eV};
-		G4double Reflectivity_refl[num2]  = {0.93,0.93,0.93,0.93,0.93,0.3131,0.0393,0.0224,0.1787,0.1787,0.0,0.0} ;//VM2000 data arXiv:1304.6117, 
+		G4double Reflectivity_refl[num2]  ={0.90,0.90,0.90,0.90,0.90,0.303,0.038,0.0217,0.173,0.173,0.0,0.0} ;//VM2000 data arXiv:1304.6117, 
 		//{0.83,0.83,0.83,0.83,0.83,0.28,0.035,0.02,0.16,0.16,0.0,0.0} used in simulations before 23.5.2017 -
 		//{0.90,0.90,0.90,0.90,0.90,0.303,0.038,0.0217,0.173,0.173,0.0,0.0} - a 90%v version 
 		//{0.93,0.93,0.93,0.93,0.93,0.3131,0.0393,0.0224,0.1787,0.1787,0.0,0.0} a 93% version needs to be checked!,  
