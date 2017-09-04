@@ -43,6 +43,19 @@
 #include "CLHEP/Random/RandPoissonQ.h"
 #include "ifdh.h"  //to handle flux files
 
+// InFlight includes
+#include <iostream>
+#include <cmath>
+#include <vector>
+#include <unistd.h>
+#include <getopt.h>
+#include "fourmomentum.h" // Defines a class for fourmomenta; makes getting directions and 3-momenta (and all that) easier.
+#include "sterile_flux.h" // Defines getEvents, and describes a class whose objects denote a single
+// incoming sterile (mass, fourmomentum).
+#include "channel.h"    // Includes the mother class for two body final state
+// decays, and the derived classes for the two channels we've studied so far.
+#include "detector.h"   // This includes the detector-specific cut functions.
+
 namespace evgen {
 
   /// A module to check the results from the Monte Carlo generator
