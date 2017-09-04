@@ -40,14 +40,13 @@ twoIP_channel::twoIP_channel(gsl_rng * g, std::vector<double> input_params)
 int twoIP_channel::decayfunction(initial_sterile nuS)
 {
 	std::cout<<"You've somehow managed to call the decayfunction of the parent class (twoIP_channel). Don't do that."<<std::endl;
-return 0;
+	return 0;
 }
 int twoIP_channel::decayfunctionMassive(initial_sterile nuS,double m0, double m1, double m2)
 {
 	std::cout<<"You've somehow managed to call the decayfunction of the parent class (twoIP_channel). Don't do that."<<std::endl;
-return 0;
+	return 0;
 }
-
 
 int twoIP_channel::observables(OBSERVABLES * output, gsl_rng *g)
 {
@@ -62,12 +61,12 @@ int twoIP_channel::observables(OBSERVABLES * output, gsl_rng *g)
 	output->P_low=p2;
 	output->P_high=p1;
 
-//		std::cout<<"test "<<(180.0/M_PI)*IP2.direction().at(0)<<" "<<acos(p2[2]/( pow(p2[0],2)+pow(p2[1],2)+pow(p2[2],2) ) )*180/3.14145<<
-	
-//			std::cout<<Obs.Th_low<<" "<<atan2(Obs.P_low[0],Obs.P_low[2])*180/3.14159<<" "<<atan2(Obs.P_low[1],Obs.P_low[2])*180/3.14159<<std::endl;
-//			std::cout<<Obs.Th_low<<" "<<atan2(Obs.P_low[1],Obs.P_low[0])*180/3.14159<<" "<<atan2(Obs.P_low[2],Obs.P_low[0])*180/3.14159<<std::endl;
-//			std::cout<<Obs.Th_low<<" "<<atan2(Obs.P_low[0],Obs.P_low[1])*180/3.14159<<" "<<atan2(Obs.P_low[1],Obs.P_low[2])*180/3.14159<<std::endl;
-//			std::cout<<Obs.Th_low<<" "<<acos(Obs.P_low[2]/( pow(Obs.P_low[0],2)+pow(Obs.P_low[1],2)+pow(Obs.P_low[2],2) ) )*180/3.14145<<std::endl;
+	//		std::cout<<"test "<<(180.0/M_PI)*IP2.direction().at(0)<<" "<<acos(p2[2]/( pow(p2[0],2)+pow(p2[1],2)+pow(p2[2],2) ) )*180/3.14145<<
+
+	//			std::cout<<Obs.Th_low<<" "<<atan2(Obs.P_low[0],Obs.P_low[2])*180/3.14159<<" "<<atan2(Obs.P_low[1],Obs.P_low[2])*180/3.14159<<std::endl;
+	//			std::cout<<Obs.Th_low<<" "<<atan2(Obs.P_low[1],Obs.P_low[0])*180/3.14159<<" "<<atan2(Obs.P_low[2],Obs.P_low[0])*180/3.14159<<std::endl;
+	//			std::cout<<Obs.Th_low<<" "<<atan2(Obs.P_low[0],Obs.P_low[1])*180/3.14159<<" "<<atan2(Obs.P_low[1],Obs.P_low[2])*180/3.14159<<std::endl;
+	//			std::cout<<Obs.Th_low<<" "<<acos(Obs.P_low[2]/( pow(Obs.P_low[0],2)+pow(Obs.P_low[1],2)+pow(Obs.P_low[2],2) ) )*180/3.14145<<std::endl;
 
 
 
@@ -83,17 +82,17 @@ int twoIP_channel::observables(OBSERVABLES * output, gsl_rng *g)
 
 	output->AngSep =(180.0/M_PI)*acos((IP1.p.at(0)*IP2.p.at(0) + IP1.p.at(1)*IP2.p.at(1) + IP1.p.at(2)*IP2.p.at(2))/(IP1.modp*IP2.modp)); 
 
-//	IP1.print("IP1");
-//	IP2.print("IP2");
+	//	IP1.print("IP1");
+	//	IP2.print("IP2");
 
-//	if(IP1.p.at(2) > 0 && IP2.p.at(2) > 0)
-//	{
-//		output->FS_AngSep = (180.0/M_PI)*fabs(atan(IP1.p.at(0)/IP1.p.at(2)) - atan(IP2.p.at(0)/IP2.p.at(2)));
-//	}
-//	else 
-//	{
-//		output->FS_AngSep = 180 - (180.0/M_PI)*fabs(atan(IP1.p.at(0)/IP1.p.at(2)) - atan(IP2.p.at(0)/IP2.p.at(2)));
-//	}
+	//	if(IP1.p.at(2) > 0 && IP2.p.at(2) > 0)
+	//	{
+	//		output->FS_AngSep = (180.0/M_PI)*fabs(atan(IP1.p.at(0)/IP1.p.at(2)) - atan(IP2.p.at(0)/IP2.p.at(2)));
+	//	}
+	//	else 
+	//	{
+	//		output->FS_AngSep = 180 - (180.0/M_PI)*fabs(atan(IP1.p.at(0)/IP1.p.at(2)) - atan(IP2.p.at(0)/IP2.p.at(2)));
+	//	}
 
 	if(IP1.p.at(2)*IP2.p.at(2) >= 0 && IP2.p.at(0)*IP2.p.at(0) >= 0)
 	{
@@ -147,25 +146,25 @@ int twoIP_channel::observables(OBSERVABLES * output, gsl_rng *g)
 	switch(output->chan_identifier)
 	{
 		case CHAN_ELECPOSI:
-			res_low = 0.15;
-			res_high = 0.15;
-			break;
+		res_low = 0.15;
+		res_high = 0.15;
+		break;
 		case CHAN_ELECPI:
-			res_low = 0.06;
-			res_high = 0.15;
-			break;
+		res_low = 0.06;
+		res_high = 0.15;
+		break;
 		case CHAN_MUONPI:
-			res_low = 0.06;
-			res_high = 0.06;
-			break;
+		res_low = 0.06;
+		res_high = 0.06;
+		break;
 		case CHAN_NUPI0:
-			res_low = 0.15;
-			res_high = 0.15;
-			break;
+		res_low = 0.15;
+		res_high = 0.15;
+		break;
 		case CHAN_GAMMA:
-			res_low = 0.15;
-			res_high = 0.15;
-			break;
+		res_low = 0.15;
+		res_high = 0.15;
+		break;
 	}
 	
 	output->E_high_smear = smear_energy(output->E_high, mhigh, res_high, g);
@@ -182,12 +181,12 @@ int twoIP_channel::observables(OBSERVABLES * output, gsl_rng *g)
 	output->Minvar_smear = sqrt(mlow*mlow+mhigh*mhigh+2.0*(output->E_low_smear*output->E_high-sqrt(pow(output->E_high_smear,2)-mhigh*mhigh)* sqrt(pow(output->E_low_smear,2)-mlow*mlow)*cos(output->AngSep_smear* 3.14159/180.0)  ) );
 
 
-//	std::cout<<output->Minvar<<" "<<sqrt(mlow*mlow+mhigh*mhigh+2.0*(output->E_low_smear*output->E_high-sqrt(pow(output->E_high_smear,2)-mhigh*mhigh)* sqrt(pow(output->E_low_smear,2)-mlow*mlow)*cos(output->AngSep_smear* 3.14159/180.0)  ) )<<std::endl;
+	//	std::cout<<output->Minvar<<" "<<sqrt(mlow*mlow+mhigh*mhigh+2.0*(output->E_low_smear*output->E_high-sqrt(pow(output->E_high_smear,2)-mhigh*mhigh)* sqrt(pow(output->E_low_smear,2)-mlow*mlow)*cos(output->AngSep_smear* 3.14159/180.0)  ) )<<std::endl;
 
-//	IP1.print("IP1");
-//	IP2.print("IP2");
+	//	IP1.print("IP1");
+	//	IP2.print("IP2");
 
-return 0;
+	return 0;
 }
 
 
@@ -202,10 +201,10 @@ return 0;
 
 threebody::threebody(gsl_rng *g, std::vector<double> input) : twoIP_channel(g, input)
 {
-//	if(model_params.size() != 1)
-//	{ 
-//		std::cout<<"ERROR: threebody decay channel set up with too many parameters."<<std::endl; 
-//	}
+	//	if(model_params.size() != 1)
+	//	{ 
+	//		std::cout<<"ERROR: threebody decay channel set up with too many parameters."<<std::endl; 
+	//	}
 }
 
 int threebody::decayfunction(initial_sterile nuS)
@@ -214,7 +213,7 @@ int threebody::decayfunction(initial_sterile nuS)
 	double restFrameParams[] = {0.0,0.0,0.0};
 	drawRestFrameDist(r,nuS.mass,mZprime,restFrameParams); //this will populate the doubles.
 	computeLabFrameVariables(nuS.mass, nuS.energy, nuS.costhS, nuS.phiS, restFrameParams);
-return 0;
+	return 0;
 }
 
 int threebody::decayfunctionMassive(initial_sterile nuS,double m0, double m1, double m2)
@@ -223,7 +222,7 @@ int threebody::decayfunctionMassive(initial_sterile nuS,double m0, double m1, do
 	double p1[] = {0.0,0.0,0.0,0.0};
 	drawRestFrameDistMassive(r,nuS.mass,m0,m1,m2, p0,p1); //this will populate the doubles.
 	computeLabFrameVariablesMassive(nuS,p0,p1);
-return 0;
+	return 0;
 }
 
 int threebody::computeLabFrameVariablesMassive(initial_sterile nuS, double p0[4], double p1[4])
@@ -246,7 +245,7 @@ int threebody::computeLabFrameVariablesMassive(initial_sterile nuS, double p0[4]
 	IP1.populate(Vec_P0_lab[0], silly0);
 	IP2.populate(Vec_P1_lab[0], silly1);
 
-return 0;
+	return 0;
 }
 
 
@@ -257,8 +256,8 @@ int threebody::computeLabFrameVariables(double mS, double Es, double costhS, dou
 	double Th = acos(restFrameParams[1]);
 	double Phi = restFrameParams[2];
 
-//	std::cout<<"Enu: "<<Enu<<" cosThnu: "<<cos(Th)<<" PhiNu: "<<Phi<<std::endl;
-//	std::cout<<"Es: "<<Es<<" cosThS: "<<costhS<<" phiS: "<<phiS<<std::endl;
+	//	std::cout<<"Enu: "<<Enu<<" cosThnu: "<<cos(Th)<<" PhiNu: "<<Phi<<std::endl;
+	//	std::cout<<"Es: "<<Es<<" cosThS: "<<costhS<<" phiS: "<<phiS<<std::endl;
 
 	double me = 0.00;//511;// THIS CAUSES ERRORS! 5.11e-6; //GeV
 	
@@ -267,7 +266,7 @@ int threebody::computeLabFrameVariables(double mS, double Es, double costhS, dou
 	double beta = sqrt(1-mS*mS/(Es*Es));
 	double gamma = 1.0/sqrt(1.0-beta*beta);
 
-//	printf("Enu: %.5lf Ee: %.5lf Pe: %.5lf beta: %.5lf gamma: %.5lf mS: %.5lf\n", Enu, Ee, Pe, beta, gamma, mS); 
+	
 
 	double alpha = 2.0*acos( Enu/(2.0*Pe) );
 	double theta_plus = M_PI - Th - alpha/2.0;
@@ -286,38 +285,38 @@ int threebody::computeLabFrameVariables(double mS, double Es, double costhS, dou
 	double Pplus[] = {Pplus_x, Pplus_y, Pplus_z};
 	double Pminus[] = {Pminus_x, Pminus_y, Pminus_z};
 
-//	std::cout<<"PplusNorm: "<<Pplus_E*Pplus_E - Pplus_x*Pplus_x - Pplus_y*Pplus_y - Pplus_z*Pplus_z<<std::endl;
-//	std::cout<<"PmiusNorm: "<<Pminus_E*Pminus_E - Pminus_x*Pminus_x - Pminus_y*Pminus_y - Pminus_z*Pminus_z<<std::endl;
+	//	std::cout<<"PplusNorm: "<<Pplus_E*Pplus_E - Pplus_x*Pplus_x - Pplus_y*Pplus_y - Pplus_z*Pplus_z<<std::endl;
+	//	std::cout<<"PmiusNorm: "<<Pminus_E*Pminus_E - Pminus_x*Pminus_x - Pminus_y*Pminus_y - Pminus_z*Pminus_z<<std::endl;
 
-//	std::cout<<"Pp1: "<<Pplus[0]<<" Pp2: "<<Pplus[1]<<" Pp3: "<<Pplus[2]<<std::endl;
-//	std::cout<<"Pm1: "<<Pminus[0]<<" Pm2: "<<Pminus[1]<<" Pm3: "<<Pminus[2]<<std::endl;
+	//	std::cout<<"Pp1: "<<Pplus[0]<<" Pp2: "<<Pplus[1]<<" Pp3: "<<Pplus[2]<<std::endl;
+	//	std::cout<<"Pm1: "<<Pminus[0]<<" Pm2: "<<Pminus[1]<<" Pm3: "<<Pminus[2]<<std::endl;
 
-//	std::vector<double> Vec_pplus(Pplus, Pplus + sizeof(Pplus)/sizeof(double));
-//	std::vector<double> Vec_pminus(Pminus, Pminus + sizeof(Pminus)/sizeof(double));
+	//	std::vector<double> Vec_pplus(Pplus, Pplus + sizeof(Pplus)/sizeof(double));
+	//	std::vector<double> Vec_pminus(Pminus, Pminus + sizeof(Pminus)/sizeof(double));
 
-//	IP1.populate(Pplus_E, Vec_pplus);
-//	IP1.print("pre-rot IP1");
-//	IP2.populate(Pminus_E, Vec_pminus);
-//	IP2.print("pre-rot IP2");
+	//	IP1.populate(Pplus_E, Vec_pplus);
+	//	IP1.print("pre-rot IP1");
+	//	IP2.populate(Pminus_E, Vec_pminus);
+	//	IP2.print("pre-rot IP2");
 
 	rotor(acos(costhS),phiS,Pee);
 	rotor(acos(costhS),phiS,Pplus);
 	rotor(acos(costhS),phiS,Pminus);
-//	std::cout<<"Rotated!..."<<std::endl;
-//	std::cout<<"Pp1: "<<Pplus[0]<<" Pp2: "<<Pplus[1]<<" Pp3: "<<Pplus[2]<<std::endl;
-//	std::cout<<"Pm1: "<<Pminus[0]<<" Pm2: "<<Pminus[1]<<" Pm3: "<<Pminus[2]<<std::endl;
+	//	std::cout<<"Rotated!..."<<std::endl;
+	//	std::cout<<"Pp1: "<<Pplus[0]<<" Pp2: "<<Pplus[1]<<" Pp3: "<<Pplus[2]<<std::endl;
+	//	std::cout<<"Pm1: "<<Pminus[0]<<" Pm2: "<<Pminus[1]<<" Pm3: "<<Pminus[2]<<std::endl;
 
 	std::vector<double> Vec_pplus2(Pplus, Pplus + sizeof(Pplus)/sizeof(double));
 	std::vector<double> Vec_pminus2(Pminus, Pminus + sizeof(Pminus)/sizeof(double));
 
 	IP1.populate(Pplus_E, Vec_pplus2);
-//	IP1.print("post-rot IP1");
+	//	IP1.print("post-rot IP1");
 	IP2.populate(Pminus_E, Vec_pminus2);
-//	IP2.print("post-rot IP2");
+	//	IP2.print("post-rot IP2");
 
-//std::cout<<std::endl;
+	//std::cout<<std::endl;
 
-return 0;
+	return 0;
 }
 
 double threebody::pdf_function(double x, double y, double mS, double mZprime, void * pointer)
@@ -341,11 +340,11 @@ double threebody::pdf_function(double x, double y, double mS, double mZprime, vo
 
 	double ret = (1.0/invnorm)*x*(4-x*x)/((1.0+alpha*x)*(1.0+alpha*x));
 
-//	printf("inv. norm: %.5lf\talpha: %.5lf\tret: %.5lf\n",invnorm,alpha,ret);
+	//	printf("inv. norm: %.5lf\talpha: %.5lf\tret: %.5lf\n",invnorm,alpha,ret);
 
 	if(ret<0){ ret = 0.0; }
 
-return ret; 
+	return ret; 
 }
 
 
@@ -363,26 +362,26 @@ int threebody::rotor(double theta, double phi, double vector[3])
 	vector[1]=(cos(theta)*rdotn1 + sin(theta)*rdotn2)*sin(phi) + rdotn3*cos(phi);
 	vector[2]=-sin(theta)*rdotn1 + cos(theta)*rdotn2;
 
-return 0;
+	return 0;
 }
 
 std::vector<double > threebody::generic_boost(double Ep, double px, double py, double pz, double Er, double rx, double ry, double rz){	
-		double pnorm = sqrt(px*px+py*py+pz*pz);
-		double nx = px/pnorm;
-		double ny = py/pnorm;
-		double nz = pz/pnorm;
+	double pnorm = sqrt(px*px+py*py+pz*pz);
+	double nx = px/pnorm;
+	double ny = py/pnorm;
+	double nz = pz/pnorm;
 
-		double B = pnorm/Ep;
-	        double g = 1.0/sqrt(1-B*B);
+	double B = pnorm/Ep;
+	double g = 1.0/sqrt(1-B*B);
 	
-		std::vector<double > boosted;
+	std::vector<double > boosted;
 
-		boosted.push_back( Er*g-B*g*nx*rx-B*g*ny*ry-B*g*nz*rz);
-		boosted.push_back( -B*Er*g*nx+(1+(-1+g)*nx*nx)*rx+(-1+g)*nx*ny*ry+(-1+g)*nx*nz*rz);
-		boosted.push_back( -B*Er*g*ny+(-1+g)*nx*ny*rx+(1+(-1+g)*ny*ny)*ry+(-1+g)*ny*nz*rz);
-		boosted.push_back( -B*Er*g*nz+(-1+g)*nx*nz*rx+(-1+g)*ny*nz*ry+(1+(-1+g)*nz*nz)*rz);
+	boosted.push_back( Er*g-B*g*nx*rx-B*g*ny*ry-B*g*nz*rz);
+	boosted.push_back( -B*Er*g*nx+(1+(-1+g)*nx*nx)*rx+(-1+g)*nx*ny*ry+(-1+g)*nx*nz*rz);
+	boosted.push_back( -B*Er*g*ny+(-1+g)*nx*ny*rx+(1+(-1+g)*ny*ny)*ry+(-1+g)*ny*nz*rz);
+	boosted.push_back( -B*Er*g*nz+(-1+g)*nx*nz*rx+(-1+g)*ny*nz*ry+(1+(-1+g)*nz*nz)*rz);
 
-		
+
 		//std::cout<<Ep<<" "<<px<<" "<<py<<" "<<pz<<" "<<Er<<" "<<rx<<" "<<ry<<" "<<rz<<std::endl;
 	//	std::cout<<boosted[0]<<" "<<boosted[1]<<" "<<boosted[2]<<" "<<boosted[3]<<std::endl;
 	return boosted;
@@ -442,7 +441,7 @@ int threebody::drawRestFrameDistMassive(gsl_rng * r, double mS, double m0, doubl
 	double costhetan, sinthetan,phin,sinphin,cosphin;
 
 	costheta=2.0*gsl_rng_uniform(r)-1.0;
-        sintheta= sqrt((1-costheta)*(1+costheta));
+	sintheta= sqrt((1-costheta)*(1+costheta));
 	phi=2*3.14159*gsl_rng_uniform(r);
 	sinphi=sin(phi);
 	cosphi=cos(phi);
@@ -450,8 +449,8 @@ int threebody::drawRestFrameDistMassive(gsl_rng * r, double mS, double m0, doubl
 	std::vector<double > tp0 = {sqrt(m0*m0+absP0*absP0),absP0*sintheta*cosphi, absP0*sintheta*sinphi, absP0*costheta};
 
 	p0[1]= absP0*sintheta*cosphi;
-       	p0[2]= absP0*sintheta*sinphi;
-       	p0[3]= absP0*costheta;
+	p0[2]= absP0*sintheta*sinphi;
+	p0[3]= absP0*costheta;
 	
 
 	costhetan = (absP1*absP1-absP2*absP2-absP0*absP0)/(2.0*absP2*absP0);
@@ -471,7 +470,7 @@ int threebody::drawRestFrameDistMassive(gsl_rng * r, double mS, double m0, doubl
 	p1[1] = -(tp0[1]+p2[1]);
 	p1[2] = -(tp0[2]+p2[2]);
 	p1[3] = -(tp0[3]+p2[3]);
-return 0;
+	return 0;
 }
 
 
@@ -481,7 +480,7 @@ int threebody::drawRestFrameDist(gsl_rng * r, double mS, double mZprime, double 
 	double mu_s  = mS/mZprime;
 	double alpha = mu_s*mu_s/(1-mu_s*mu_s);
 
-//	double PDF_MAX = 3.0/2.0; //pdf_function_test
+	//	double PDF_MAX = 3.0/2.0; //pdf_function_test
 	double PDF_MAX = 1.8; //pdf_function
 
 	double x = gsl_rng_uniform(r);
@@ -491,13 +490,13 @@ int threebody::drawRestFrameDist(gsl_rng * r, double mS, double mZprime, double 
 
 	while(threebody::pdf_function(x,y,mS,mZprime,NULL)<=z)
 	{
-//		printf("I tried!\n");
+	//		printf("I tried!\n");
 		x = gsl_rng_uniform(r);
 		y = -1.0 + 2.0*gsl_rng_uniform(r);
 		z = (PDF_MAX+0.01)*gsl_rng_uniform(r);
 	}
 
-//	printf("I succeeded!\n");
+	//	printf("I succeeded!\n");
 
 	//printf("%.5lf %.5lf %.5lf %.5lf\n",x,y,z,pdf(x,y,mS,mZprime,NULL));
 	struct threebody::PDF_CHOICE choice;
@@ -509,29 +508,29 @@ int threebody::drawRestFrameDist(gsl_rng * r, double mS, double mZprime, double 
 	output[1]=choice.cosThnu;
 	output[2]=choice.Phinu;
 
-return 0;
+	return 0;
 }
 
 //This is the nu_s \to \nu Zprime \to \nu e+ e- channel (on-shell Zprime).
 
 Zprimeresonance::Zprimeresonance(gsl_rng *g, std::vector<double> input) : twoIP_channel(g, input)
 {
-//	if(model_params.size() != 1)
-//	{
-//	 	std::cout<<"ERROR: Zprime resonance channel set up with too many parameters."<<std::endl;
-//	}
+	//	if(model_params.size() != 1)
+	//	{
+	//	 	std::cout<<"ERROR: Zprime resonance channel set up with too many parameters."<<std::endl;
+	//	}
 }
 
 double Zprimeresonance::fourvec_costheta(double FOURVEC[4])
 {
-return FOURVEC[3]/sqrt(FOURVEC[1]*FOURVEC[1]+FOURVEC[2]*FOURVEC[2]+FOURVEC[3]*FOURVEC[3]);
+	return FOURVEC[3]/sqrt(FOURVEC[1]*FOURVEC[1]+FOURVEC[2]*FOURVEC[2]+FOURVEC[3]*FOURVEC[3]);
 }
 
 double Zprimeresonance::fourvec_cosphi(double FOURVEC[4])
 {
 	double P = sqrt(FOURVEC[1]*FOURVEC[1]+FOURVEC[2]*FOURVEC[2]+FOURVEC[3]*FOURVEC[3]);
 	double cosPhi = FOURVEC[1]/(sqrt(1-fourvec_costheta(FOURVEC)*fourvec_costheta(FOURVEC))*P);
-return cosPhi;
+	return cosPhi;
 }
 
 double Zprimeresonance::rot_boost(double costheta, double phi, double gamma, double FOURVEC[4])
@@ -550,7 +549,7 @@ double Zprimeresonance::rot_boost(double costheta, double phi, double gamma, dou
 	FOURVEC[2] = gamma*beta*sin(phi)*sintheta*temp[0] + sin(phi)*costheta*temp[1] + cos(phi)*temp[2] + gamma*sin(phi)*sintheta*temp[3];
 	FOURVEC[3] = gamma*beta*costheta*temp[0] - sintheta*temp[1] + gamma*costheta*temp[3];
 
-return 0.0;
+	return 0.0;
 }
 
 
@@ -558,34 +557,34 @@ return 0.0;
 int Zprimeresonance::decayfunction(initial_sterile nuS)
 {
 
-double mZprime = model_params.at(0);
-double Es = nuS.energy;
-double costhS = nuS.costhS;
-double phiS = nuS.phiS;
-double mS = nuS.mass;
+	double mZprime = model_params.at(0);
+	double Es = nuS.energy;
+	double costhS = nuS.costhS;
+	double phiS = nuS.phiS;
+	double mS = nuS.mass;
 
-//
+	
 
-double Z_E_srf = (mS*mS+mZprime*mZprime)/(2.0*mS);
-double Z_P_srf = sqrt(Z_E_srf*Z_E_srf-mZprime*mZprime);
+	double Z_E_srf = (mS*mS+mZprime*mZprime)/(2.0*mS);
+	double Z_P_srf = sqrt(Z_E_srf*Z_E_srf-mZprime*mZprime);
 
-double Z_phi_srf = 0.0;
-double Z_costheta_srf = 1.0;
+	double Z_phi_srf = 0.0;
+	double Z_costheta_srf = 1.0;
 
-double S_phi_lf = 0.0;
-double S_costheta_lf = 1.0;
-double S_E_lf = Es;
-double S_gamma = Es/mS;
+	double S_phi_lf = 0.0;
+	double S_costheta_lf = 1.0;
+	double S_E_lf = Es;
+	double S_gamma = Es/mS;
 
-double Z_FOURVEC[] = {0.0,0.0,0.0,0.0};
-double EPLUS_FOURVEC[] = {0.0,0.0,0.0,0.0};
-double EMINUS_FOURVEC[] = {0.0,0.0,0.0,0.0};
-double SUM_FOURVEC[] = {0.0,0.0,0.0,0.0};
+	double Z_FOURVEC[] = {0.0,0.0,0.0,0.0};
+	double EPLUS_FOURVEC[] = {0.0,0.0,0.0,0.0};
+	double EMINUS_FOURVEC[] = {0.0,0.0,0.0,0.0};
+	double SUM_FOURVEC[] = {0.0,0.0,0.0,0.0};
 
-double Z_gamma = 1.0;
-double cosalpha, sinalpha;
-double cosbeta, sinbeta, beta;
-double temp = 0.0;
+	double Z_gamma = 1.0;
+	double cosalpha, sinalpha;
+	double cosbeta, sinbeta, beta;
+	double temp = 0.0;
 
 	// Angles of the Z in the sterile rest frame (srf) are evenly distributed on the sphere.
 	Z_phi_srf = 2.0*M_PI*gsl_rng_uniform(r);
@@ -606,7 +605,7 @@ double temp = 0.0;
 	//We boost and rotate to move the Z fourvector into the lab frame.
 	rot_boost(S_costheta_lf,S_phi_lf,S_gamma,Z_FOURVEC);
 	
-//	printf("%.5lf %.5lf %.5lf %.5lf %.5lf\n", Z_FOURVEC[0],  fourvec_costheta(Z_FOURVEC), fourvec_cosphi(Z_FOURVEC), Z_costheta_srf, cos(Z_phi_srf)); 
+	
 
 	Z_gamma = Z_FOURVEC[0]/mZprime;
 	
@@ -647,7 +646,7 @@ double temp = 0.0;
 	IP1.populate(EPLUS_FOURVEC[0], eplus_p);
 	IP2.populate(EMINUS_FOURVEC[0], eminus_p);
 
-return 0;
+	return 0;
 }
 
 //This is a generic nu_s \to two body channel (isotropic in rest-frame decay)
@@ -655,10 +654,10 @@ return 0;
 twobody::twobody(gsl_rng * r, std::vector<double> input) : twoIP_channel(r, input)
 {
 
-//	if(input.size() != 2) 
-//	{ 
-//		std::cout<<"ERROR: twobody channel needs 2 inputs (both of the final particle masses)!"<<std::endl; 
-//	}	
+	//	if(input.size() != 2) 
+	//	{ 
+	//		std::cout<<"ERROR: twobody channel needs 2 inputs (both of the final particle masses)!"<<std::endl; 
+	//	}	
 
 }
 
@@ -671,8 +670,8 @@ int twobody::decayfunction(initial_sterile nus)
 	double Ea_rf = (nus.mass*nus.mass + Ma*Ma - Mb*Mb)/(2.0*nus.mass);
 	double Eb_rf = (nus.mass*nus.mass + Mb*Mb - Ma*Ma)/(2.0*nus.mass);
 
-//	std::cout<<"Ea_rf = "<<Ea_rf<<std::endl;
-//	std::cout<<"Eb_rf = "<<Eb_rf<<std::endl;
+	//	std::cout<<"Ea_rf = "<<Ea_rf<<std::endl;
+	//	std::cout<<"Eb_rf = "<<Eb_rf<<std::endl;
 	
 	//both decay products have a common *magnitude* of momentum
 	double P_rf = sqrt(Ea_rf*Ea_rf - Ma*Ma);
@@ -698,16 +697,16 @@ int twobody::decayfunction(initial_sterile nus)
 	IP1.populate(Ea_rf, momentum_a_rf);
 	IP2.populate(Eb_rf, momentum_b_rf);
 
-//	IP1.print("pre-rot IP1");
-//	IP2.print("pre-rot IP2");
+	//	IP1.print("pre-rot IP1");
+	//	IP2.print("pre-rot IP2");
 
 	//We now need to boost and rotate so that the z axis lies along the sterile direction at an appropriate boost.
 	IP1.rot_boost_from_parent(&nus.labframeP); 	
 	IP2.rot_boost_from_parent(&nus.labframeP); 	
 
-//	IP1.print("post-rot IP1");
-//	IP2.print("post-rot IP2");
+	//	IP1.print("post-rot IP1");
+	//	IP2.print("post-rot IP2");
 
-return 0;
+	return 0;
 }
 
