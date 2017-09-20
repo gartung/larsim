@@ -21,6 +21,7 @@
  */
 
 #include "sterile_flux.h"
+#include "CLHEP/Random/RandFlat.h"
 
 initial_sterile::initial_sterile(double M, double E, double in_costhS, double in_phiS)
 {
@@ -214,7 +215,7 @@ double interpolate(std::vector<double > elist, std::vector<double> wlist, double
 		return wlist.back();
 	}
 
-	int i = 1;
+	unsigned int i = 1;
 	for(i=1; i<=elist.size();i++)
 	{
 		if(elist[i]==Ein)
@@ -241,7 +242,7 @@ double interpolate(std::vector<double > elist, std::vector<double> wlist, double
 }
 
 
-double fluxfile::get_event(gsl_rng *r)
+double fluxfile::get_event(CLHEP::HepRandomEngine& r)
 {
 
 	double height_draw = 0.0;
@@ -253,16 +254,17 @@ double fluxfile::get_event(gsl_rng *r)
 
 	int num = 0;
 
-	E = (E_max-E_min)*gsl_rng_uniform(r)+E_min;
+        CLHEP::RandFlat flat(r);
+	E = (E_max-E_min)*flat()+E_min;
 
-	height_draw = gsl_rng_uniform(r);
+	height_draw = flat();
 	norm_flux = getFlux(E)/fmax;
 
 	while(height_draw > norm_flux)
 	{
 		num++;
-		E = (E_max-E_min)*gsl_rng_uniform(r)+E_min;
-		height_draw = gsl_rng_uniform(r);
+		E = (E_max-E_min)*flat()+E_min;
+		height_draw = flat();
 		norm_flux = getFlux(E)/fmax;
 	//	if(num > 1){std::cout<<"calling a lot "<<num<<"  E: "<<E<<" fmax: "<<fmax<<"  getFlux(E): "<<getFlux(E)<<" "<<norm_flux<<std::endl;}
 	}

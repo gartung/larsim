@@ -28,6 +28,8 @@
 #include <vector>
 #include <string>
 
+#include "CLHEP/Random/RandomEngine.h"
+
 #include "channel.h"
 
 #define ACCEPTED 0
@@ -39,8 +41,8 @@
 #define DET_ICARUS 3
 
 
-double smear_energy(double En,double ms, double Percen, gsl_rng * r);
-double smear_angle(double En, double Percen,gsl_rng * r);
+double smear_energy(double En,double ms, double Percen, CLHEP::HepRandomEngine& r);
+double smear_angle(double En, double Percen, CLHEP::HepRandomEngine& r);
 
 
 

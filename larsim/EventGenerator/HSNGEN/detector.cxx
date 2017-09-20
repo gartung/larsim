@@ -1,4 +1,4 @@
-/*
+ /*
  *_________ _        _______  _       _________ _______          _________
  *\__   __/( (    /|(  ____ \( \      \__   __/(  ____ \|\     /|\__   __/
  *   ) (   |  \  ( || (    \/| (         ) (   | (    \/| )   ( |   ) (   
@@ -21,19 +21,22 @@
  */
 
 #include "detector.h"
+#include "CLHEP/Random/RandGauss.h"
 
 
-double smear_energy(double En,double mn, double Percen, gsl_rng * r){
+double smear_energy(double En,double mn, double Percen, CLHEP::HepRandomEngine& r){
 		double ans = 0;
+                CLHEP::RandGauss gaus(r, En, Percen*sqrt(En) );
 		while(ans <=mn){
-		ans =gsl_ran_gaussian ( r,Percen*En/sqrt(En))+En;
+		ans = gaus.fire();
 		}
 		return ans;
 	} 
 
-double smear_angle(double th, double Percen,gsl_rng * r){
+double smear_angle(double th, double Percen, CLHEP::HepRandomEngine& r){
 		double ans = 0;
-		ans = gsl_ran_gaussian(r,Percen)+th;
+                CLHEP::RandGauss gaus(r, th, Percen);
+		ans = gaus.fire();
 		
 		return fabs(ans);
 	} 

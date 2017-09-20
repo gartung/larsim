@@ -32,6 +32,7 @@
 #include <cstring>
 #include <fstream>
 
+#include "CLHEP/Random/RandomEngine.h"
 
 #include "fourmomentum.h"
 #include "detector.h"
@@ -65,7 +66,7 @@ struct fluxfile
 	double fmax;
 	double mass;
 
-	double get_event(gsl_rng *r);
+	double get_event(CLHEP::HepRandomEngine& r);
 
 
 };

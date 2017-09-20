@@ -27,9 +27,8 @@
 #include <cmath>
 #include <vector>
 
-#include <gsl/gsl_statistics.h>
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
+#include "CLHEP/Random/RandomEngine.h"
+
 
 #include "fourmomentum.h" // defines class fourmomentum
 #include "sterile_flux.h" // defines class initial_sterile
@@ -79,15 +78,15 @@ typedef struct OBSERVABLES { // this is a struct of relevant observables for two
 class twoIP_channel { //This is the mother class for all decay channels (into two Ionising Particles)
 
 public:
-	twoIP_channel(gsl_rng * g, std::vector<double> input);
+	twoIP_channel(CLHEP::HepRandomEngine& g, std::vector<double> input);
 
 	fourmomentum IP1;	//first outgoing particle 4 momentum.
 	fourmomentum IP2;	//second outgoing particle 4 momentum.
 	int chan_identifier;
-	gsl_rng * r;
+	CLHEP::HepRandomEngine * r;
 	std::vector<double> model_params;
 
-	int observables(OBSERVABLES * output, gsl_rng *g);
+	int observables(OBSERVABLES * output, CLHEP::HepRandomEngine& g);
 	virtual int decayfunction(initial_sterile nuS);	
 	virtual int decayfunctionMassive(initial_sterile nuS, double m0, double m1, double m2);
 
@@ -108,7 +107,7 @@ public:
 class threebody : public twoIP_channel {
 
 public:
-	threebody(gsl_rng * g, std::vector<double> input);
+	threebody(CLHEP::HepRandomEngine& g, std::vector<double> input);
 	int decayfunction(initial_sterile nuS);
 	int decayfunctionMassive(initial_sterile nuS,double m0, double m1, double m2);
 
@@ -129,8 +128,8 @@ private:
 
 	
 	
-	int drawRestFrameDist(gsl_rng * r, double mS, double mZprime, double output[3]);
-	int drawRestFrameDistMassive(gsl_rng * r, double mS, double m0, double m1, double m2, double out0[4], double out1[4]);
+	int drawRestFrameDist(CLHEP::HepRandomEngine& r, double mS, double mZprime, double output[3]);
+	int drawRestFrameDistMassive(CLHEP::HepRandomEngine& r, double mS, double m0, double m1, double m2, double out0[4], double out1[4]);
 
 }; 
 
@@ -144,7 +143,7 @@ private:
 class Zprimeresonance : public twoIP_channel {
 
 public: 
-	Zprimeresonance(gsl_rng * g, std::vector<double> input);
+	Zprimeresonance(CLHEP::HepRandomEngine& g, std::vector<double> input);
 	int decayfunction(initial_sterile nuS);
 
 private:
@@ -172,7 +171,7 @@ same as used for the eplus and eminus channel (defined at the top) -- but with
 class twobody : public twoIP_channel {
 
 public: 
-	twobody(gsl_rng * g, std::vector<double> input);
+	twobody(CLHEP::HepRandomEngine& g, std::vector<double> input);
 	int decayfunction(initial_sterile nuS);
 
 }; 

@@ -21,8 +21,9 @@
  */
 
 #include "channel.h"
+#include "CLHEP/Random/RandFlat.h"
 
-twoIP_channel::twoIP_channel(gsl_rng * g, std::vector<double> input_params)
+twoIP_channel::twoIP_channel(CLHEP::HepRandomEngine& g, std::vector<double> input_params)
 {
 	std::vector<double> p;
 	p.push_back(0.0);	
@@ -34,7 +35,7 @@ twoIP_channel::twoIP_channel(gsl_rng * g, std::vector<double> input_params)
 	
 	model_params = input_params;
 	chan_identifier = model_params[2];	
-	r = g;
+	r = &g;
 }
 
 int twoIP_channel::decayfunction(initial_sterile nuS)
@@ -48,7 +49,7 @@ int twoIP_channel::decayfunctionMassive(initial_sterile nuS,double m0, double m1
 	return 0;
 }
 
-int twoIP_channel::observables(OBSERVABLES * output, gsl_rng *g)
+int twoIP_channel::observables(OBSERVABLES * output, CLHEP::HepRandomEngine& g)
 {
 	//OBSERVABLES { double E_sum; double Th_sum; double AngSep; double E_sterile; double Th_sterile; double E_high; double Th_high; double E_low; double Th_low; double FS_AngSep; } OBSERVABLES;
 
@@ -199,7 +200,7 @@ int twoIP_channel::observables(OBSERVABLES * output, gsl_rng *g)
 
 //This is the nu_s \to \nu e+ e- channel (off-shell Zprime).
 
-threebody::threebody(gsl_rng *g, std::vector<double> input) : twoIP_channel(g, input)
+threebody::threebody(CLHEP::HepRandomEngine& g, std::vector<double> input) : twoIP_channel(g, input)
 {
 	//	if(model_params.size() != 1)
 	//	{ 
@@ -211,7 +212,7 @@ int threebody::decayfunction(initial_sterile nuS)
 {
 	double mZprime = model_params.at(0);
 	double restFrameParams[] = {0.0,0.0,0.0};
-	drawRestFrameDist(r,nuS.mass,mZprime,restFrameParams); //this will populate the doubles.
+	drawRestFrameDist(*r,nuS.mass,mZprime,restFrameParams); //this will populate the doubles.
 	computeLabFrameVariables(nuS.mass, nuS.energy, nuS.costhS, nuS.phiS, restFrameParams);
 	return 0;
 }
@@ -220,7 +221,7 @@ int threebody::decayfunctionMassive(initial_sterile nuS,double m0, double m1, do
 {
 	double p0[] = {0.0,0.0,0.0,0.0};
 	double p1[] = {0.0,0.0,0.0,0.0};
-	drawRestFrameDistMassive(r,nuS.mass,m0,m1,m2, p0,p1); //this will populate the doubles.
+	drawRestFrameDistMassive(*r,nuS.mass,m0,m1,m2, p0,p1); //this will populate the doubles.
 	computeLabFrameVariablesMassive(nuS,p0,p1);
 	return 0;
 }
@@ -390,7 +391,7 @@ std::vector<double > threebody::generic_boost(double Ep, double px, double py, d
 
 
 
-int threebody::drawRestFrameDistMassive(gsl_rng * r, double mS, double m0, double m1, double m2, double p0[4], double p1[4])
+int threebody::drawRestFrameDistMassive(CLHEP::HepRandomEngine& r, double mS, double m0, double m1, double m2, double p0[4], double p1[4])
 {
 
 	double sumofdau =m0+m1+m2;
@@ -406,9 +407,11 @@ int threebody::drawRestFrameDistMassive(gsl_rng * r, double mS, double m0, doubl
 	double absP1 = 0;
 	double absP2 = 0;
 
+        CLHEP::RandFlat flat(r);
+
 	do{
-		rd1 = gsl_rng_uniform(r);
-		rd2 = gsl_rng_uniform(r);
+		rd1 = flat();
+		rd2 = flat();
 		if(rd2>rd1){
 			rd=rd1;rd1=rd2;rd2=rd;
 		};
@@ -440,9 +443,9 @@ int threebody::drawRestFrameDistMassive(gsl_rng * r, double mS, double m0, doubl
 	double costheta, sintheta, phi,sinphi,cosphi;
 	double costhetan, sinthetan,phin,sinphin,cosphin;
 
-	costheta=2.0*gsl_rng_uniform(r)-1.0;
+	costheta=2.0*flat()-1.0;
 	sintheta= sqrt((1-costheta)*(1+costheta));
-	phi=2*3.14159*gsl_rng_uniform(r);
+	phi=2*3.14159*flat();
 	sinphi=sin(phi);
 	cosphi=cos(phi);
 
@@ -455,7 +458,7 @@ int threebody::drawRestFrameDistMassive(gsl_rng * r, double mS, double m0, doubl
 
 	costhetan = (absP1*absP1-absP2*absP2-absP0*absP0)/(2.0*absP2*absP0);
 	sinthetan = sqrt((1-costhetan)*(1+costhetan));
-	phin = 2*3.14159*gsl_rng_uniform(r);
+	phin = 2*3.14159*flat();
 	sinphin=sin(phin);
 	cosphin=cos(phin);
 
@@ -474,7 +477,7 @@ int threebody::drawRestFrameDistMassive(gsl_rng * r, double mS, double m0, doubl
 }
 
 
-int threebody::drawRestFrameDist(gsl_rng * r, double mS, double mZprime, double output[3])
+int threebody::drawRestFrameDist(CLHEP::HepRandomEngine& r, double mS, double mZprime, double output[3])
 {
 
 	double mu_s  = mS/mZprime;
@@ -483,17 +486,18 @@ int threebody::drawRestFrameDist(gsl_rng * r, double mS, double mZprime, double 
 	//	double PDF_MAX = 3.0/2.0; //pdf_function_test
 	double PDF_MAX = 1.8; //pdf_function
 
-	double x = gsl_rng_uniform(r);
-	double y = -1.0 + 2.0*gsl_rng_uniform(r);
-	double phi = 2*M_PI*gsl_rng_uniform(r);
-	double z = (PDF_MAX+0.01)*gsl_rng_uniform(r);
+        CLHEP::RandFlat flat(r);
+	double x = flat();
+	double y = -1.0 + 2.0*flat();
+	double phi = 2*M_PI*flat();
+	double z = (PDF_MAX+0.01)*flat();
 
 	while(threebody::pdf_function(x,y,mS,mZprime,NULL)<=z)
 	{
 	//		printf("I tried!\n");
-		x = gsl_rng_uniform(r);
-		y = -1.0 + 2.0*gsl_rng_uniform(r);
-		z = (PDF_MAX+0.01)*gsl_rng_uniform(r);
+		x = flat();
+		y = -1.0 + 2.0*flat();
+		z = (PDF_MAX+0.01)*flat();
 	}
 
 	//	printf("I succeeded!\n");
@@ -513,7 +517,7 @@ int threebody::drawRestFrameDist(gsl_rng * r, double mS, double mZprime, double 
 
 //This is the nu_s \to \nu Zprime \to \nu e+ e- channel (on-shell Zprime).
 
-Zprimeresonance::Zprimeresonance(gsl_rng *g, std::vector<double> input) : twoIP_channel(g, input)
+Zprimeresonance::Zprimeresonance(CLHEP::HepRandomEngine& g, std::vector<double> input) : twoIP_channel(g, input)
 {
 	//	if(model_params.size() != 1)
 	//	{
@@ -579,16 +583,17 @@ int Zprimeresonance::decayfunction(initial_sterile nuS)
 	double Z_FOURVEC[] = {0.0,0.0,0.0,0.0};
 	double EPLUS_FOURVEC[] = {0.0,0.0,0.0,0.0};
 	double EMINUS_FOURVEC[] = {0.0,0.0,0.0,0.0};
-	double SUM_FOURVEC[] = {0.0,0.0,0.0,0.0};
+	// double SUM_FOURVEC[] = {0.0,0.0,0.0,0.0};
 
 	double Z_gamma = 1.0;
 	double cosalpha, sinalpha;
 	double cosbeta, sinbeta, beta;
 	double temp = 0.0;
 
+        CLHEP::RandFlat flat(r);
 	// Angles of the Z in the sterile rest frame (srf) are evenly distributed on the sphere.
-	Z_phi_srf = 2.0*M_PI*gsl_rng_uniform(r);
-	Z_costheta_srf = 2.0*gsl_rng_uniform(r) -1.0;
+	Z_phi_srf = 2.0*M_PI*flat();
+	Z_costheta_srf = 2.0*flat() -1.0;
 	
 	// The labframe phi and costheta for sterile (S_phi_lf, S_costheta_lf) are taken from input.
 	S_phi_lf = phiS;
@@ -609,8 +614,8 @@ int Zprimeresonance::decayfunction(initial_sterile nuS)
 
 	Z_gamma = Z_FOURVEC[0]/mZprime;
 	
-	cosalpha = 2.0*gsl_rng_uniform(r) - 1.0;
-	beta = 2.0*M_PI*gsl_rng_uniform(r);
+	cosalpha = 2.0*flat() - 1.0;
+	beta = 2.0*M_PI*flat();
 	cosbeta = cos(beta);
 	sinalpha = sqrt(1.0-cosalpha*cosalpha);
 	sinbeta = sqrt(1.0-cosbeta*cosbeta);
@@ -628,10 +633,10 @@ int Zprimeresonance::decayfunction(initial_sterile nuS)
 	rot_boost(fourvec_costheta(Z_FOURVEC), acos(fourvec_cosphi(Z_FOURVEC)),Z_gamma, EPLUS_FOURVEC); 
 	rot_boost(fourvec_costheta(Z_FOURVEC), acos(fourvec_cosphi(Z_FOURVEC)),Z_gamma, EMINUS_FOURVEC); 
 
-	SUM_FOURVEC[0] = EPLUS_FOURVEC[0] + EMINUS_FOURVEC[0], 
-	SUM_FOURVEC[1] = EPLUS_FOURVEC[1] + EMINUS_FOURVEC[1];
-	SUM_FOURVEC[2] = EPLUS_FOURVEC[2] + EMINUS_FOURVEC[2];
-	SUM_FOURVEC[3] = EPLUS_FOURVEC[3] + EMINUS_FOURVEC[3];
+	// SUM_FOURVEC[0] = EPLUS_FOURVEC[0] + EMINUS_FOURVEC[0], 
+	// SUM_FOURVEC[1] = EPLUS_FOURVEC[1] + EMINUS_FOURVEC[1];
+	// SUM_FOURVEC[2] = EPLUS_FOURVEC[2] + EMINUS_FOURVEC[2];
+	// SUM_FOURVEC[3] = EPLUS_FOURVEC[3] + EMINUS_FOURVEC[3];
 
 	std::vector<double> eplus_p;
 	eplus_p.push_back(EPLUS_FOURVEC[1]);
@@ -651,7 +656,7 @@ int Zprimeresonance::decayfunction(initial_sterile nuS)
 
 //This is a generic nu_s \to two body channel (isotropic in rest-frame decay)
 
-twobody::twobody(gsl_rng * r, std::vector<double> input) : twoIP_channel(r, input)
+twobody::twobody(CLHEP::HepRandomEngine& r, std::vector<double> input) : twoIP_channel(r, input)
 {
 
 	//	if(input.size() != 2) 
@@ -677,8 +682,9 @@ int twobody::decayfunction(initial_sterile nus)
 	double P_rf = sqrt(Ea_rf*Ea_rf - Ma*Ma);
 
 	//We assumed isotropy in the restframe... so we can generate angles flatly on the 2-sphere.
-	double costheta_rf = 2.0*gsl_rng_uniform(r) - 1.0;
-	double phi_rf  = 2.0*M_PI*gsl_rng_uniform(r);
+	CLHEP::RandFlat flat(r);
+	double costheta_rf = 2.0*flat() - 1.0;
+	double phi_rf  = 2.0*M_PI*flat();
 
 	double sintheta_rf = sqrt(1-costheta_rf*costheta_rf);
 
