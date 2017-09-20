@@ -1,5 +1,7 @@
 
 art_make( 
+          LIB_LIBRARIES
+                        ${CLHEP}
           MODULE_LIBRARIES 
                         larcoreobj_SummaryData
                         larcorealg_Geometry
