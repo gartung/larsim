@@ -399,11 +399,11 @@ namespace larg4 {
       if (XDrift < 0.) XDrift = 0.;
       
       TDrift = XDrift * RecipDriftVel[0];
-      if (tpcg.Nplanes() == 2){// special case for ArgoNeuT (plane 0 is the second wire plane)
+/*      if (tpcg.Nplanes() == 2){// special case for ArgoNeuT (plane 0 is the second wire plane)
         TDrift = ((XDrift - tpcg.PlanePitch(0,1)) * RecipDriftVel[0] 
                   + tpcg.PlanePitch(0,1) * RecipDriftVel[1]);
       }
-          
+*/          
       const double lifetimecorrection = TMath::Exp(TDrift / LifetimeCorr_const);
       const int    nIonizedElectrons  = larg4::IonizationAndScintillation::Instance()->NumberIonizationElectrons();
       const double energy             = larg4::IonizationAndScintillation::Instance()->EnergyDeposit();
@@ -425,6 +425,7 @@ namespace larg4 {
       double electronclsize = fElectronClusterSize;
       
       int nClus = (int) std::ceil(nElectrons / electronclsize);
+     
       if (nClus < fMinNumberOfElCluster)
       {
       	electronclsize = nElectrons / fMinNumberOfElCluster; 
@@ -435,6 +436,7 @@ namespace larg4 {
       	nClus = (int) std::ceil(nElectrons / electronclsize);
       }
       
+
       // Compute arrays of values as quickly as possible.
       std::vector< double > XDiff(nClus);
       std::vector< double > YDiff(nClus);
@@ -444,7 +446,7 @@ namespace larg4 {
 
       // fix the number of electrons in the last cluster, that has smaller size
       nElDiff.back() = nElectrons - (nClus-1)*electronclsize;
-      
+
       for(size_t xx = 0; xx < nElDiff.size(); ++xx){
         if(nElectrons > 0) nEnDiff[xx] = energy/nElectrons*nElDiff[xx];
         else               nEnDiff[xx] = 0.;
@@ -473,25 +475,29 @@ namespace larg4 {
 
       // make a collection of electrons for each plane
       for(size_t p = 0; p < tpcg.Nplanes(); ++p){
-        
+
         geo::PlaneGeo const& plane = tpcg.Plane(p);
 
         double Plane0Pitch = tpcg.Plane0Pitch(p);
         
         // "-" sign is because Plane0Pitch output is positive. Andrzej
-        xyz1[0] = tpcg.PlaneLocation(0)[0] - Plane0Pitch;
+//        xyz1[0] = tpcg.PlaneLocation(0)[0] - Plane0Pitch;
+        xyz1[0] = tpcg.PlaneLocation(0)[0];
+
+
         
         // Drift nClus electron clusters to the induction plane
         for(int k = 0; k < nClus; ++k){
           // Correct drift time for longitudinal diffusion and plane
           double TDiff = TDrift + XDiff[k] * RecipDriftVel[0];
-          // Take into account different Efields between planes
+          // Take into account different Efields between planes  (no need for dual phase)
           // Also take into account special case for ArgoNeuT where Nplanes = 2.
-          for (size_t ip = 0; ip<p; ++ip){
-            TDiff += tpcg.PlanePitch(ip,ip+1) * RecipDriftVel[tpcg.Nplanes()==3?ip+1:ip+2];
-          }
-          xyz1[1] = YDiff[k];
-          xyz1[2] = ZDiff[k];
+//          for (size_t ip = 0; ip<p; ++ip){
+//            TDiff += tpcg.PlanePitch(ip,ip+1) * RecipDriftVel[tpcg.Nplanes()==3?ip+1:ip+2];
+//          }
+ 
+         xyz1[1] = YDiff[k];
+         xyz1[2] = ZDiff[k];
           
           /// \todo think about effects of drift between planes
           
@@ -514,13 +520,24 @@ namespace larg4 {
             } // if charge lands off plane
             uint32_t channel = fGeoHandle->NearestChannel(xyz1, p, tpc, cryostat);
             
+
             /// \todo check on what happens if we allow the tdc value to be
             /// \todo beyond the end of the expected number of ticks
             // Add potential decay/capture/etc delay effect, simTime.
             unsigned int tdc = fClock.Ticks(ts->G4ToElecTime(TDiff + simTime));
 
             // Add electrons produced by each cluster to the map
+
+//	   if( (channel-1)%160 == 0 || (channel+2)%160 == 0)
+//	   {
+//           DepositsToStore[channel][tdc].add(0.5*nEnDiff[k], 0.5*nElDiff[k]);  //channel 1, 158, 161, 318, 321, 478, 461 etc. see only half procent of the charge
+//	   }
+
+	   if( channel%160 != 0 && (channel+1)%160 != 0) //channel 0, 159, 160, 319, 320, 479, 480 etc. see no charge, all other channels see full charge
+	   {
             DepositsToStore[channel][tdc].add(nEnDiff[k], nElDiff[k]);
+	   }
+
           }
           catch(cet::exception &e){
             mf::LogWarning("LArVoxelReadout") << "unable to drift electrons from point ("
