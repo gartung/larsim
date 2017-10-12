@@ -75,10 +75,6 @@ simple_plugin(BackTracker "service"
 
   )
 
-simple_plugin(PhotonBackTrackerLoader "module"
-  larsim_MCCheater_PhotonBackTracker_service
-  ${ART_FRAMEWORK_SERVICES_REGISTRY}              
-  )
 
 simple_plugin(BackTrackerLoader "module"
   larsim_MCCheater_BackTracker_service
