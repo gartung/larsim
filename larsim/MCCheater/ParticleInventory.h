@@ -82,7 +82,7 @@ namespace cheat{
       sim::ParticleList                       fParticleList;
       std::vector< art::Ptr<simb::MCTruth> >  fMCTruthList;   //there is some optimization that can be done here.
       std::map<unsigned short, unsigned short > fTrackIdToMCTruthIndex;
-      std::string fG4ModuleLabel = "largeant";
+      std::string fG4ModuleLabel;
 
 
 
