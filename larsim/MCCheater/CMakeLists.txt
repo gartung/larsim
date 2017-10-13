@@ -9,6 +9,17 @@ cet_make_library(
   lardataobj_Simulation
   nusimdata_SimulationBase
   ) 
+cet_make_library(
+  LIBRARY_NAME larsim_MCCheater_BackTracker
+  SOURCE BackTracker.cc
+  LIBRARIES
+  canvas
+  lardata_Utilities
+  larsim_Simulation 
+  nutools_ParticleNavigation 
+  lardataobj_Simulation
+  nusimdata_SimulationBase
+  ) 
 
 simple_plugin(ParticleInventoryService "service"
   lardata_Utilities
@@ -30,7 +41,7 @@ simple_plugin(ParticleInventoryService "service"
   ${ROOT_BASIC_LIB_LIST}
   )
 
-simple_plugin(PhotonBackTracker "service"
+simple_plugin(PhotonBackTrackerService "service"
   lardata_Utilities
   larsim_Simulation nutools_ParticleNavigation lardataobj_Simulation
   lardataobj_RecoBase
@@ -52,7 +63,7 @@ simple_plugin(PhotonBackTracker "service"
   ${ROOT_BASIC_LIB_LIST}
   )
 
-simple_plugin(BackTracker "service"
+simple_plugin(BackTrackerService "service"
   lardata_Utilities
   larsim_Simulation nutools_ParticleNavigation lardataobj_Simulation
   lardataobj_RecoBase
@@ -72,14 +83,6 @@ simple_plugin(BackTracker "service"
   ${FHICLCPP}
   cetlib cetlib_except
   ${ROOT_BASIC_LIB_LIST}
-
-  )
-
-
-simple_plugin(BackTrackerLoader "module"
-  larsim_MCCheater_BackTracker_service
-  ${ART_FRAMEWORK_SERVICES_REGISTRY}              
-
   )
 
 simple_plugin(CheckBackTracking "module"
