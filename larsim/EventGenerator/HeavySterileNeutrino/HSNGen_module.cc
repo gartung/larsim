@@ -141,7 +141,7 @@ namespace hsngen
     CompressSettings(gSett);
     FillModel(gEngine, gChan, gModelParams, gSett);
     gFlux = FluxFile(fFluxFile, fSterileMass);
-    gFakeRunNumber = 0;
+    gFakeRunNumber = 0; // Used for the Hepevt format output
     return;
   }
 
@@ -177,7 +177,7 @@ namespace hsngen
     // Generate MCParts from observables
     simb::MCParticle p1(0,obs.pdg1,"primary",-1,obs.mass1,1);
     simb::MCParticle p2(1,obs.pdg2,"primary",-1,obs.mass2,1);
-    TLorentzVector pos(obs.xPos, obs.yPos, obs.zPos, obs.time);// time needs to be in ns to match GENIE, etc
+    TLorentzVector pos(obs.xPos, obs.yPos, obs.zPos, obs.time);
     TLorentzVector mom1(obs.P1[0],obs.P1[1],obs.P1[2],obs.E1);
     TLorentzVector mom2(obs.P2[0],obs.P2[1],obs.P2[2],obs.E2);
     p1.AddTrajectoryPoint(pos,mom1);
