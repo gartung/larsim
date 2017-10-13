@@ -16,6 +16,7 @@
 
 #include "ParticleInventory.h"
 
+#include "lardataobj/Simulation/SimChannel.h"
 #include "lardataobj/RecoBase/Hit.h"
 #include "lardataobj/RecoBase/SpacePoint.h"
 
@@ -27,7 +28,8 @@
 namespace cheat{
   class BackTracker{
     public:
-      BackTracker();
+      BackTracker(std::shared_ptr<cheat::ParticleInventory> partInv, std::string g4label, double minHitFrac);
+      BackTracker(std::shared_ptr<cheat::ParticleInventory> partInv);
       ~BackTracker();
 
       template<typename Evt>
@@ -49,17 +51,15 @@ namespace cheat{
       std::vector<const sim::IDE>       TrackIdToSimIDE (int const& id, const geo::View_t view) const; //I don't like this. It is poor use of memory. I may not include it in the release.
       
       //Track IDEs cannot be returned as pointers, as they dont exist in the data product, and we will not be storing them.
-      std::vector< const sim::TrackIDE> HitToTrackIDE(art::Ptr<recob::Hit> const& hit);
-      std::vector< const sim::TrackIDE> HitToTrackIDE(recob::Hit const& hit) { return this->HitToTrackIDE(*hit); }
+      std::vector< const sim::TrackIDE> HitToTrackIDE(recob::Hit const& hit);
+//      std::vector< const sim::TrackIDE> HitToTrackIDE(art::Ptr<recob::Hit> const& hit) { return this->HitToTrackIDE(*hit); }
+      std::vector< const sim::TrackIDE> HitToEveTrackIDE(recob::Hit const& hit);
+//      std::vector< const sim::TrackIDE> HitToEveTrackIDE(art::Ptr<recob::Hit> const& hit){ return this->HitToEveTrackIDE(*hit); }
 
-      std::vector< const int> HitToTrackId(art::Ptr<recob::Hit> const& hit);
-      std::vector< const int> HitToTrackId(recob::Hit const& hit) { return this->HitToTrackId(*hit); }
-
-      std::vector< const sim::TrackIDE> HitToEveTrackIDE(art::Ptr<recob::Hit> const& hit);
-      std::vector< const sim::TrackIDE> HitToEveTrackIDE(recob::Hit const& hit) { return this->HitToEveTrackIDE(*hit); }
-
-      std::vector< const int> HitToEveTrackId(art::Ptr<recob::Hit> const& hit);
-      std::vector< const int> HitToEveTrackId(recob::Hit const& hit) { return this->HitToEveTrackId(*hit); }
+      std::vector< const int> HitToTrackId(recob::Hit const& hit);
+//      std::vector< const int> HitToTrackId(art::Ptr<recob::Hit> const& hit) { return this->HitToTrackId(*hit); }
+      std::vector< const int> HitToEveTrackId(recob::Hit const& hit) const;
+//      std::vector< const int> HitToEveTrackId(art::Ptr<recob::Hit> const& hit) const { return this->HitToEveTrackId(*hit); }
 
 
       //I will not return these by copy either, as that could get very large very quickly.
@@ -69,11 +69,11 @@ namespace cheat{
       std::vector< std::vector< art::Ptr<recob::Hit> > > TrackIdsToHitsPs( std::vector<int> const& tkIds, std::vector< art::Ptr< recob::Hit > > const& hitsIn ) const;
 
       std::vector< const sim::IDE* const > HitToSimIDEsPs (recob::Hit const& hit) const;
-      std::vector< const sim::IDE* const > HitToSimIDEsPs (art::Ptr< recob::Hit > const& hit) const { return this->HitToSimIDEsPs (*hit); }
-      std::vector< const sim::IDE > HitToSimIDEsPs (recob::Hit const& hit);
-      std::vector< const sim::IDE > HitToSimIDEsPs (art::Ptr< recob::Hit > const& hit) { return this->HitToSimIDEsPs (*hit); }
+//      std::vector< const sim::IDE* const > HitToSimIDEsPs (art::Ptr< recob::Hit > const& hit) const { return this->HitToSimIDEsPs (*hit); }
+      std::vector< const sim::IDE > HitToSimIDEs (recob::Hit const& hit);
+//      std::vector< const sim::IDE > HitToSimIDEs (art::Ptr< recob::Hit > const& hit) { return this->HitToSimIDEsPs (*hit); }
 
-      std::vector<double> SimIDEsToXYZ( std::vector< sim::IDE > > const& ides) const;
+      std::vector<double> SimIDEsToXYZ( std::vector< sim::IDE > const& ides) const;
 
       std::vector<double> HitToXYZ(art::Ptr<recob::Hit> const& hit) const;
 
@@ -97,7 +97,7 @@ namespace cheat{
       std::set<int> GetSetOfTrackIds( std::vector< art::Ptr< recob::Hit > > const& hits );
       std::set<int> GetSetOfEveIds( std::vector< art::Ptr< recob::Hit > > const& hits );
 
-      std::vector< sim::TrackIDE > ChannelToTrackIDEs(raw::ChannelId_t channel, const double hit_start_time, const double hit_end_time);
+      std::vector< sim::TrackIDE > ChannelToTrackIDEs(raw::ChannelID_t channel, const double hit_start_time, const double hit_end_time);
 
     private:
       std::shared_ptr<cheat::ParticleInventory> fPartInv; //The constructor needs to put something in here
@@ -105,8 +105,12 @@ namespace cheat{
       double      fMinHitEnergyFraction;
 
       bool fCanRun=0;
-      std::vector<sim::SimChannel*>             fSimChannels;
+      std::vector<const sim::SimChannel*>             fSimChannels;
 
   };//end class BackTracker
 
 }//end namespace cheat
+
+#include "BackTracker.tpp"
+
+#endif //CHEAT_BACKTRACKER_H
