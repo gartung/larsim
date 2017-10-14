@@ -75,7 +75,10 @@ namespace cheat{
       std::vector< std::vector< art::Ptr<recob::Hit> > > TrackIdsToHits_Ps( std::vector<int> const& tkIds ) const; //planned
       std::vector< std::vector< art::Ptr<recob::Hit> > > TrackIdsToHits_Ps( std::vector<int> const& tkIds, std::vector< art::Ptr< recob::Hit > > const& hitsIn ) const;
 
-      std::vector< const sim::IDE* const > HitToSimIDEsPs (recob::Hit const& hit) const;
+      const std::vector< sim::IDE > HitToAvgSimIDEs ( recob::Hit const& hit) const;
+      const std::vector< sim::IDE > HitToAvgSimIDEs ( art::Ptr<recob::Hit> hit) const{ return this->HitToAvgSimIDEs(*hit);}
+
+      const std::vector< const sim::IDE* > HitToSimIDEs_Ps (recob::Hit const& hit) const;
 //      std::vector< const sim::IDE* const > HitToSimIDEsPs (art::Ptr< recob::Hit > const& hit) const { return this->HitToSimIDEsPs (*hit); }
       std::vector< const sim::IDE > HitToSimIDEs (recob::Hit const& hit);
 //      std::vector< const sim::IDE > HitToSimIDEs (art::Ptr< recob::Hit > const& hit) { return this->HitToSimIDEsPs (*hit); }

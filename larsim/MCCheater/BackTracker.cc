@@ -208,12 +208,14 @@ namespace cheat{
   }
 
 
+  //-----------------------------------------------------------------------
   std::vector < art::Ptr< recob::Hit > > BackTracker::TrackIdToHits_Ps( const int& tkId ) const{
     return this->TrackIdToHits_Ps(tkId, fAllHits); 
   }
 
+  //-----------------------------------------------------------------------
   std::vector< std::vector< art::Ptr<recob::Hit> > > BackTracker::TrackIdsToHits_Ps( std::vector<int> const& tkIds, std::vector< art::Ptr< recob::Hit > > const& hitsIn ) const{
-      // returns a subset of the hits in the allhits collection that are matched
+    // returns a subset of the hits in the allhits collection that are matched
     // to MC particles listed in tkIds
 
     // temporary vector of TrackIDs and Ptrs to hits so only one
@@ -245,16 +247,53 @@ namespace cheat{
       }
       truHits.push_back(tmpHits);
     }
-
     return truHits;
- 
   }
 
+  //-----------------------------------------------------------------------
   std::vector< std::vector< art::Ptr<recob::Hit> > > BackTracker::TrackIdsToHits_Ps( std::vector<int> const& tkIds ) const{
     return this->TrackIdsToHits_Ps(tkIds, fAllHits);
   }
 
+  //-----------------------------------------------------------------------
+  //Cannot be returned as a pointer, as these IDEs do not exist in the event. They are constructed on the fly.
+  const std::vector<  sim::IDE > BackTracker::HitToAvgSimIDEs (recob::Hit const& hit) const{
+    // Get services.
+    const detinfo::DetectorClocks* ts = lar::providerFrom<detinfo::DetectorClocksService>();
 
+    int start_tdc = ts->TPCTick2TDC( hit.PeakTimeMinusRMS() );
+    int end_tdc   = ts->TPCTick2TDC( hit.PeakTimePlusRMS()   );
+    if(start_tdc<0) start_tdc = 0;
+    if(end_tdc<0) end_tdc = 0;
 
+    return (this->FindSimChannel(hit.Channel()))->TrackIDsAndEnergies(start_tdc, end_tdc);
+  }
 
+  const std::vector< const sim::IDE* > BackTracker::HitToSimIDEs_Ps (recob::Hit const& hit) const{
+    std::vector< const sim::IDE* > retVec;
+    const auto start_tdc = hit.PeakTimeMinusRMS();
+    const auto end_tdc = hit.PeakTimePlusRMS();
+    if(start_tdc > end_tdc){throw;}
+    //const TDCIDEs_t tdcIDEMap = (this->FindSimChannel(hit.Channel())).TDCIDEMap(); //Map of TDC value to vector of IDEs
+    std::vector< std::pair<unsigned short, std::vector<sim::IDE>> > tdcIDEMap = (this->FindSimChannel(hit.Channel()))->TDCIDEMap(); //This in fact does not return a map. It returns a vector... with no guarantee that it is sorted...
+
+//    bool pairSort = []( const std::pair<unsigned short, std::vector< sim::IDE > >& a, const std::pair<unsigned short, std::vector< sim::IDE > >& b ) { return ( (a.first)<(b.first) );};
+    auto pairSort = [](auto& a, auto& b) { return a.first < b.first ; } ;
+    if( !std::is_sorted( tdcIDEMap.begin(), tdcIDEMap.end(), pairSort)) {
+      std::sort (tdcIDEMap.begin(), tdcIDEMap.end(), pairSort);
+    }
+
+    //find in the map will be faster than iterating over the entire map. We use lower_bound
+    std::vector<sim::IDE> dummyVec;
+    std::pair<double, std::vector<sim::IDE>> start_tdcPair = std::make_pair(start_tdc,dummyVec);
+    std::pair<double, std::vector<sim::IDE>> end_tdcPair = std::make_pair(end_tdc,dummyVec);
+    std::vector<std::pair<unsigned short, std::vector<sim::IDE> > >::iterator 
+      mapFirst = std::lower_bound(tdcIDEMap.begin(), tdcIDEMap.end(), start_tdcPair, pairSort);
+    std::vector<std::pair<unsigned short, std::vector<sim::IDE> > >::iterator 
+      mapLast  = std::upper_bound(tdcIDEMap.begin(), tdcIDEMap.end(), end_tdcPair, pairSort);
+    for( auto mapitr = mapFirst; mapitr != mapLast; ++mapitr ){
+      for( auto ide : mapitr->second){ retVec.push_back(&ide);}
+    }
+    return retVec;
+  }
 }//End namespace cheat
