@@ -16,6 +16,7 @@ cet_make_library(
   canvas
   lardata_Utilities
   larsim_Simulation 
+  larcorealg_Geometry
   nutools_ParticleNavigation 
   lardataobj_Simulation
   nusimdata_SimulationBase
