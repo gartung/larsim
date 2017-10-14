@@ -269,6 +269,7 @@ namespace cheat{
     return (this->FindSimChannel(hit.Channel()))->TrackIDsAndEnergies(start_tdc, end_tdc);
   }
 
+  //-----------------------------------------------------------------------
   const std::vector< const sim::IDE* > BackTracker::HitToSimIDEs_Ps (recob::Hit const& hit) const{
     std::vector< const sim::IDE* > retVec;
     const auto start_tdc = hit.PeakTimeMinusRMS();
@@ -283,16 +284,16 @@ namespace cheat{
       std::sort (tdcIDEMap.begin(), tdcIDEMap.end(), pairSort);
     }
 
-    //find in the map will be faster than iterating over the entire map. We use lower_bound
-    std::vector<sim::IDE> dummyVec;
-    std::pair<double, std::vector<sim::IDE>> start_tdcPair = std::make_pair(start_tdc,dummyVec);
+    //find in the sorted map will be faster than iterating over the entire map. If it was already sorted (which it often will be), this extra logic from the previous step will pay off. We use lower_bound
+    std::vector<sim::IDE> dummyVec; //I need something to stick in a pair to compare pair<tdcVal, IDE>. This is an otherwise useless "hack".
+    std::pair<double, std::vector<sim::IDE>> start_tdcPair = std::make_pair(start_tdc,dummyVec); //This pair is a "hack" to make my comparison work for lower and upper bound.
     std::pair<double, std::vector<sim::IDE>> end_tdcPair = std::make_pair(end_tdc,dummyVec);
-    std::vector<std::pair<unsigned short, std::vector<sim::IDE> > >::iterator 
+    std::vector<std::pair<unsigned short, std::vector<sim::IDE> > >::iterator  //iterator to the first interesting IDE
       mapFirst = std::lower_bound(tdcIDEMap.begin(), tdcIDEMap.end(), start_tdcPair, pairSort);
-    std::vector<std::pair<unsigned short, std::vector<sim::IDE> > >::iterator 
+    std::vector<std::pair<unsigned short, std::vector<sim::IDE> > >::iterator  //iterator to just after the last interesting IDE
       mapLast  = std::upper_bound(tdcIDEMap.begin(), tdcIDEMap.end(), end_tdcPair, pairSort);
     for( auto mapitr = mapFirst; mapitr != mapLast; ++mapitr ){
-      for( auto ide : mapitr->second){ retVec.push_back(&ide);}
+      for( auto ide : mapitr->second){ retVec.push_back(&ide);} //Add all interesting IDEs to the retVec
     }
     return retVec;
   }

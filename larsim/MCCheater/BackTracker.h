@@ -53,9 +53,9 @@ namespace cheat{
       const std::vector<const sim::SimChannel*>& SimChannels() const { return fSimChannels; }
 
       const std::vector<const sim::IDE* >      TrackIdToSimIDEs_Ps(int const& id) const;
-      //const std::vector<const sim::IDE>       TrackIdToSimIDEs (int const& id) const; //I don't like this. It is poor use of memory. I may not include it in the release.
-      const std::vector<const sim::IDE* >      TrackIdToSimIDEs_Ps(int const& id, const geo::View_t view) const; //This function is removed as it requires the geometry service, not the geometry service provider.
-      //std::vector<const sim::IDE>       TrackIdToSimIDEs (int const& id, const geo::View_t view) const; //I don't like this. It is poor use of memory. I may not include it in the release.
+      //const std::vector<const sim::IDE>       TrackIdToSimIDEs (int const& id) const; 
+      const std::vector<const sim::IDE* >      TrackIdToSimIDEs_Ps(int const& id, const geo::View_t view) const; 
+      //std::vector<const sim::IDE>       TrackIdToSimIDEs (int const& id, const geo::View_t view) const; 
 
       const sim::SimChannel* FindSimChannel( raw::ChannelID_t channel ) const;
 
@@ -79,8 +79,9 @@ namespace cheat{
       const std::vector< sim::IDE > HitToAvgSimIDEs ( art::Ptr<recob::Hit> hit) const{ return this->HitToAvgSimIDEs(*hit);}
 
       const std::vector< const sim::IDE* > HitToSimIDEs_Ps (recob::Hit const& hit) const;
-//      std::vector< const sim::IDE* const > HitToSimIDEsPs (art::Ptr< recob::Hit > const& hit) const { return this->HitToSimIDEsPs (*hit); }
-      std::vector< const sim::IDE > HitToSimIDEs (recob::Hit const& hit);
+      const std::vector< const sim::IDE* > HitToSimIDEs_Ps (art::Ptr< recob::Hit > const& hit) const { return this->HitToSimIDEs_Ps (*hit); }
+
+      const std::vector< sim::IDE > HitToSimIDEs (recob::Hit const& hit);
 //      std::vector< const sim::IDE > HitToSimIDEs (art::Ptr< recob::Hit > const& hit) { return this->HitToSimIDEsPs (*hit); }
 
       std::vector<double> SimIDEsToXYZ( std::vector< sim::IDE > const& ides) const;
