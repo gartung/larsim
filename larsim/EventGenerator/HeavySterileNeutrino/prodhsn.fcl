@@ -37,9 +37,9 @@ physics:
       Distance:           470.
       GlobalTimeOffset:   3125.
       BeamWindow:         1600.
-      BoundariesX:        [0,500]
-      BoundariesY:        [0,500]
-      BoundariesZ:        [0,500]
+      BoundariesX:        [10,246.35]
+      BoundariesY:        [-105.53,107.47]
+      BoundariesZ:        [10.1,1026.8]
     }
 
     rns: { module_type: "RandomNumberSaver" }

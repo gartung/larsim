@@ -46,9 +46,13 @@ namespace hsngen {
 		double globalTimeOffset = set.globalTimeOffset;
 		double randomTimeOffset = set.beamWindow*flat();
 
-		obs.xPos = (236.35)*flat() + 10.;
-		obs.yPos = (213)*flat() - 105.53;
-		obs.zPos = (1016.8)*flat() + 10.1;
+    // Generate decay vertex uniformly in detector box given by boundaries
+    double widthX = set.boundariesX[1]-set.boundariesX[0];
+    double widthY = set.boundariesY[1]-set.boundariesY[0];
+    double widthZ = set.boundariesZ[1]-set.boundariesZ[0];
+		obs.xPos = (widthX)*flat() + set.boundariesX[0];
+		obs.yPos = (widthY)*flat() + set.boundariesY[0];
+		obs.zPos = (widthZ)*flat() + set.boundariesZ[0];
 		obs.time = globalTimeOffset + randomTimeOffset + sterileDelay;
 
 		return;
@@ -70,12 +74,13 @@ namespace hsngen {
 		switch(set.decayChannel)
 		{
 			case CHAN_ELECPOSI:
-			model_params.push_back(91.19); //mediator mass
-			model_params.push_back((double) CHAN_ELECPOSI);
-			model_params.push_back((double) CHAN_ELECPOSI);
-			model_params.push_back((double) PDG_E);
-			model_params.push_back(-1 * (double) PDG_E);
-			CHAN = new threebody(engine,model_params);
+			// model_params.push_back(91.19); //mediator mass
+			// model_params.push_back((double) CHAN_ELECPOSI);
+			// model_params.push_back((double) CHAN_ELECPOSI);
+			// model_params.push_back((double) PDG_E);
+			// model_params.push_back(-1 * (double) PDG_E);
+			// CHAN = new threebody(engine,model_params);
+      throw std::exception("Error! The e-e channel has not been cross-checked since the InFlight/LArSoft porting and it would be unwise to generate events without making sure first that it's working the way it should. You can try commenting out this exception in the code in Helpers/Helper.cxx at your own risk. Correct execution is not guaranteed.");
 			break;
 			case CHAN_ELECPI:
 			model_params.push_back(ME); // the electron with an incorrect mass (to try and avoid spacelike vectors...).
@@ -94,36 +99,40 @@ namespace hsngen {
 			CHAN = new twobody(engine,model_params);
 			break;
 			case CHAN_NUPI0:
-			model_params.push_back(0.00); // the neutrino
-			model_params.push_back(MPI0); // the pion0
-			model_params.push_back((double) CHAN_NUPI0);
-			model_params.push_back((double) PDG_NUMU);
-			model_params.push_back((double) PDG_PI0);
-			CHAN = new twobody(engine,model_params);
+			// model_params.push_back(0.00); // the neutrino
+			// model_params.push_back(MPI0); // the pion0
+			// model_params.push_back((double) CHAN_NUPI0);
+			// model_params.push_back((double) PDG_NUMU);
+			// model_params.push_back((double) PDG_PI0);
+			// CHAN = new twobody(engine,model_params);
+      throw std::exception("Error! The pi-nu channel has not been cross-checked since the InFlight/LArSoft porting and it would be unwise to generate events without making sure first that it's working the way it should. You can try commenting out this exception in the code in Helpers/Helper.cxx at your own risk. Correct execution is not guaranteed.");
 			break;
 			case CHAN_GAMMA:
-			model_params.push_back(91.19); //mediator mass
-			model_params.push_back((double) CHAN_GAMMA); // the pion.
-			model_params.push_back((double) CHAN_GAMMA); // the pion.
-			model_params.push_back((double) PDG_GAMMA);
-			model_params.push_back((double) PDG_NUMU);
-			CHAN = new threebody(engine,model_params);
+			// model_params.push_back(91.19); //mediator mass
+			// model_params.push_back((double) CHAN_GAMMA); // the pion.
+			// model_params.push_back((double) CHAN_GAMMA); // the pion.
+			// model_params.push_back((double) PDG_GAMMA);
+			// model_params.push_back((double) PDG_NUMU);
+			// CHAN = new threebody(engine,model_params);
+      throw std::exception("Error! The gamma-nu channel has not been cross-checked since the InFlight/LArSoft porting and it would be unwise to generate events without making sure first that it's working the way it should. You can try commenting out this exception in the code in Helpers/Helper.cxx at your own risk. Correct execution is not guaranteed.");
 			break;
 			case CHAN_MUMU:
-			model_params.push_back(91.19); //mediator mass
-			model_params.push_back((double) CHAN_MUMU); // the pion.
-			model_params.push_back((double) CHAN_MUMU); // the pion.
-			model_params.push_back((double) PDG_MU);
-			model_params.push_back(-1 * (double) PDG_MU);
-			CHAN = new threebody(engine,model_params);
+			// model_params.push_back(91.19); //mediator mass
+			// model_params.push_back((double) CHAN_MUMU); // the pion.
+			// model_params.push_back((double) CHAN_MUMU); // the pion.
+			// model_params.push_back((double) PDG_MU);
+			// model_params.push_back(-1 * (double) PDG_MU);
+			// CHAN = new threebody(engine,model_params);
+      throw std::exception("Error! The mu-mu-nu channel has not been cross-checked since the InFlight/LArSoft porting and it would be unwise to generate events without making sure first that it's working the way it should. You can try commenting out this exception in the code in Helpers/Helper.cxx at your own risk. Correct execution is not guaranteed.");
 			break;
 			case CHAN_MUE:
-			model_params.push_back(91.19); //mediator mass
-			model_params.push_back((double) CHAN_MUE); // the pion.
-			model_params.push_back((double) CHAN_MUE); // the pion.
-			model_params.push_back((double) PDG_MU);
-			model_params.push_back(-1 * (double) PDG_E);
-			CHAN = new threebody(engine,model_params);
+			// model_params.push_back(91.19); //mediator mass
+			// model_params.push_back((double) CHAN_MUE); // the pion.
+			// model_params.push_back((double) CHAN_MUE); // the pion.
+			// model_params.push_back((double) PDG_MU);
+			// model_params.push_back(-1 * (double) PDG_E);
+			// CHAN = new threebody(engine,model_params);
+      throw std::exception("Error! The e-e-nu channel has not been cross-checked since the InFlight/LArSoft porting and it would be unwise to generate events without making sure first that it's working the way it should. You can try commenting out this exception in the code in Helpers/Helper.cxx at your own risk. Correct execution is not guaranteed.");
 			break;
 
 			default:
