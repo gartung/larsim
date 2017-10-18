@@ -19,6 +19,7 @@
 
 #include "canvas/Persistency/Common/Assns.h"
 
+#include "fhiclcpp/types/Atom.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "nutools/ParticleNavigation/EmEveIdCalculator.h"
 #include "nusimdata/SimulationBase/MCParticle.h"
@@ -32,28 +33,41 @@ namespace cheat{
   class ParticleInventory
   {
     public:
-      ParticleInventory();
+      ////////////////Types/////////////////
+      struct fhiclConfig{
+        fhicl::Atom<art::InputTag> G4ModuleLabel{fhicl::Name("G4ModuleLabel"), fhicl::Comment("The label of the LArG4 module used to produce the art file we will be backtracking in"), "largeant"};
+      };
+      
+      ///////////Constructor///////////////
+      ParticleInventory(const fhiclConfig& config );
+      ParticleInventory(const fhicl::ParameterSet& pSet );
       ~ParticleInventory();
 
       template<typename Evt> //Template must be decalred and defined outside of the .cpp file.
         void PrepEvent        ( const Evt& evt );
 
-      bool CanRun()                const { return fCanRun;}
       bool ParticleListReady()     const { return !( fParticleList.empty() ); }
-      bool MCTruthListReady()      const { return !( fMCTruthList.empty()  ); }
-      bool TrackIdToMCTruthReady() const { return !(fTrackIdToMCTruthIndex.empty());}
+      bool MCTruthListReady()      const { return !( (fMCTObj.fMCTruthList).empty()  ); }
+      bool TrackIdToMCTruthReady() const { return !(fMCTObj.fTrackIdToMCTruthIndex.empty());}
 
       template<typename Evt>    
-        void PrepParticleList(const Evt& evt ) const;
+        void PrepParticleList         (const Evt& evt ) const;
       template<typename Evt>    
-        void PrepTrackIdToMCTruthIndex(Evt evt ) const;
+        void PrepTrackIdToMCTruthIndex(const Evt& evt ) const;
       template<typename Evt>    
-        void PrepMCTruthList             (Evt& evt ) const;
-      template<typename Evt>    
-        void CheckCanRun( Evt& evt);
+        void PrepMCTruthList          (const Evt& evt ) const;
+      template<typename Evt> 
+        void PrepMCTruthListAndTrackIdToMCTruthIndex(const Evt& evt ) const ;
+      template<typename Evt>
+        bool CanRun(const Evt& evt) const;
 
-      const sim::ParticleList& ParticleList() const { return fParticleList; } //This should be replaced with a public struct so we can get away from the nutools dependency.
+      const sim::ParticleList& ParticleList() const { return fParticleList; } 
       void SetEveIdCalculator(sim::EveIdCalculator *ec) { fParticleList.AdoptEveIdCalculator(ec); }
+
+      const std::vector< art::Ptr<simb::MCTruth> >& MCTruthList() const { return fMCTObj.fMCTruthList;}
+      
+        ;
+      const std::map<unsigned short, unsigned short >& TrackIdToMCTruthIndex() const { return fMCTObj.fTrackIdToMCTruthIndex; }
 
       void ClearEvent();
 
@@ -83,11 +97,15 @@ namespace cheat{
 
 
     private:
-      bool                                    fCanRun=0;
       mutable sim::ParticleList                       fParticleList;
-      mutable std::vector< art::Ptr<simb::MCTruth> >  fMCTruthList;   //there is some optimization that can be done here.
-      mutable std::map<unsigned short, unsigned short > fTrackIdToMCTruthIndex;
-      std::string fG4ModuleLabel;
+      struct MCTObjects{
+        std::vector< art::Ptr<simb::MCTruth> >  fMCTruthList;   //there is some optimization that can be done here.
+        std::map<unsigned short, unsigned short > fTrackIdToMCTruthIndex;
+      };
+      mutable MCTObjects fMCTObj;  
+      //For fhicl validation, makea config struct
+      art::InputTag fG4ModuleLabel;
+
 
 
 
