@@ -16,6 +16,8 @@
 
 #include "ParticleInventory.h"
 
+#include "canvas/Persistency/Common/FindOneP.h"
+#include "canvas/Persistency/Common/FindManyP.h"
 #include "larcorealg/Geometry/GeometryCore.h"
 #include "lardata/DetectorInfo/DetectorClocks.h"
 #include "lardataobj/Simulation/SimChannel.h"
@@ -36,7 +38,6 @@ namespace cheat{
         fhicl::Atom<art::InputTag> DefaultHitModuleLabel{fhicl::Name("DefaultHitModuleLabel"), fhicl::Comment("The label   of the module used to produce the hits in the art file we will default to when no hitlist is provided."), "hitfd"};
         fhicl::Atom<double> MinHitEnergyFraction{fhicl::Name("MinHitEnergyFraction"), fhicl::Comment("The minimum          contribution an energy deposit must make to a Hit to be considered part of that hit."),0.010};
       };
-
       BackTracker(const fhiclConfig& config, const cheat::ParticleInventory* partInv,
           const geo::GeometryCore* geom, const detinfo::DetectorClocks* detClock);
       BackTracker(const fhicl::ParameterSet& pSet, const cheat::ParticleInventory* partInv,
@@ -54,6 +55,12 @@ namespace cheat{
 
       template<typename Evt>
         void CheckCanRun( Evt& evt );
+      //These two functions need to be redesigned as templates as they MUST accept the event to use FindManyP.
+      /*
+      std::vector< art::Ptr< recob::Hit > > SpacePointsToHits_Ps(const recob::SpacePoint& spt) const;
+
+      std::vector< double > SpacePointToXYZ( art::Ptr< recob::SpacePoint > const& spt ) const;
+      */
 
       void ClearEvent();
 
@@ -68,6 +75,7 @@ namespace cheat{
 
       const std::vector< sim::TrackIDE > ChannelToTrackIDEs(raw::ChannelID_t channel, const double hit_start_time, const double hit_end_time) const;
 
+
       //Track IDEs cannot be returned as pointers, as they dont exist in the data product, and we will not be storing them.
       const std::vector< sim::TrackIDE> HitToTrackIDEs(recob::Hit const& hit) const;
       //      std::vector< const sim::TrackIDE> HitToTrackIDE(art::Ptr<recob::Hit> const& hit) { return this->HitToTrackIDE(*hit); }
@@ -75,15 +83,17 @@ namespace cheat{
       const std::vector< int > HitToTrackIds(recob::Hit const& hit) const ;
       //      std::vector< const int> HitToTrackId(art::Ptr<recob::Hit> const& hit) { return this->HitToTrackId(*hit); }
 
+      const std::vector<sim::TrackIDE> HitToEveTrackIDEs(recob::Hit const& hit) const;
+      const std::vector<sim::TrackIDE> HitToEveTrackIDEs(art::Ptr<recob::Hit> const& hit) const{ return this->HitToEveTrackIDEs(*hit);}
 
       //I will not return these by copy,  as that could get very large very quickly.
       std::vector< art::Ptr<recob::Hit> > TrackIdToHits_Ps( const int& tkId, std::vector< art::Ptr< recob::Hit > > const& hitsIn ) const; 
       std::vector< art::Ptr<recob::Hit> > TrackIdToHits_Ps( const int& tkId ) const
-        {return this->TrackIdToHits_Ps(tkId, fAllHits); }
+        {return this->TrackIdToHits_Ps(tkId, fRecoHitList); }
 
       std::vector< std::vector< art::Ptr<recob::Hit> > > TrackIdsToHits_Ps( std::vector<int> const& tkIds, std::vector< art::Ptr< recob::Hit > > const& hitsIn ) const;
       std::vector< std::vector< art::Ptr<recob::Hit> > > TrackIdsToHits_Ps( std::vector<int> const& tkIds ) const
-      {return this->TrackIdsToHits_Ps(tkIds, fAllHits);}
+      {return this->TrackIdsToHits_Ps(tkIds, fRecoHitList);}
 
       const std::vector< sim::IDE > HitToAvgSimIDEs ( recob::Hit const& hit) const;
       const std::vector< sim::IDE > HitToAvgSimIDEs ( art::Ptr<recob::Hit> hit) const{ return this->HitToAvgSimIDEs(*hit);}
@@ -95,25 +105,25 @@ namespace cheat{
       //      std::vector< const sim::IDE > HitToSimIDEs (art::Ptr< recob::Hit > const& hit) { return this->HitToSimIDEsPs (*hit); }
 
       std::vector<double> SimIDEsToXYZ( std::vector< sim::IDE > const& ides) const;
+      std::vector<double> SimIDEsToXYZ( std::vector< const sim::IDE* > const& ide_Ps) const;
 
-      std::vector<double> HitToXYZ(art::Ptr<recob::Hit> const& hit) const;
+      std::vector<double> HitToXYZ(const recob::Hit& hit) const;
+      std::vector<double> HitToXYZ(art::Ptr<recob::Hit> const& hit) const{ return this->HitToXYZ(*hit);}
 
-      std::vector< art::Ptr< recob::Hit > > SpacePointToHits(art::Ptr<recob::SpacePoint> const& spt) const;
 
-      std::vector< double > SpacePointToXYZ( art::Ptr< recob::SpacePoint > const& spt ) const;
 
-      double HitCollectionPurity( std::set<int> const& trackIDs, std::vector< art::Ptr<recob::Hit> > const& hits);
+      double HitCollectionPurity( std::set<int> const& trackIds, std::vector< art::Ptr<recob::Hit> > const& hits);
 
-      //      double HitCollectionEfficiency( std::set<int> const& trackIDs, std::vector< art::Ptr<recob::Hit> > const& hits,
+      //      double HitCollectionEfficiency( std::set<int> const& trackIds, std::vector< art::Ptr<recob::Hit> > const& hits,
       //          std::vector< art::Ptr<recob::Hit> > const& allhits, geo::View_t const& view); //This function removed as it depends on view, which causes issues with the geom service provider
 
-      double HitChargeCollectionPurity( std::set<int> const& trackIDs, std::vector< art::Ptr<recob::Hit> > const& hits);
+      double HitChargeCollectionPurity( std::set<int> const& trackIds, std::vector< art::Ptr<recob::Hit> > const& hits);
 
-      //      double HitChargeCollectionEfficiency( std::set<int> trackIDs, std::vector< art::Ptr<recob::Hit> > const& hits,
+      //      double HitChargeCollectionEfficiency( std::set<int> trackIds, std::vector< art::Ptr<recob::Hit> > const& hits,
       //          std::vector< art::Ptr<recob::Hit> > const& allhits, geo::View_t const& view); //This function removed as it depends on view, which causes issues with the geom service provider
 
-      std::set<int> GetSetOfTrackIds();
-      std::set<int> GetSetOfEveIDs();
+      std::set<int> GetSetOfTrackIds(){ return fPartInv->GetSetOfTrackIds();}
+      std::set<int> GetSetOfEveIds(){ return fPartInv->GetSetOfEveIds();}
 
       std::set<int> GetSetOfTrackIds( std::vector< art::Ptr< recob::Hit > > const& hits );
       std::set<int> GetSetOfEveIds( std::vector< art::Ptr< recob::Hit > > const& hits );
@@ -127,9 +137,9 @@ namespace cheat{
       const art::InputTag            fHitLabel;
       const double                   fMinHitEnergyFraction;
 
-      bool fCanRun=0;
+
       std::vector<const sim::SimChannel*>             fSimChannels;
-      std::vector< art::Ptr<recob::Hit> >             fAllHits;
+      std::vector< art::Ptr<recob::Hit> >             fRecoHitList;
 
   };//end class BackTracker
 

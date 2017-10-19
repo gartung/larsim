@@ -28,16 +28,16 @@ namespace cheat{
   //-----------------------------------------------------------------------
   BackTracker::BackTracker(const fhiclConfig& config, const cheat::ParticleInventory* partInv, const geo::GeometryCore* geom, const detinfo::DetectorClocks* detClock )
     :fPartInv(partInv),fGeom(geom),fDetClocks(detClock),fG4ModuleLabel(config.G4ModuleLabel()),
-     fHitLabel(config.DefaultHitModuleLabel()),fMinHitEnergyFraction(config.MinHitEnergyFraction())
+    fHitLabel(config.DefaultHitModuleLabel()),fMinHitEnergyFraction(config.MinHitEnergyFraction())
   {
   }
 
   //-----------------------------------------------------------------------
   BackTracker::BackTracker(const fhicl::ParameterSet& pSet, const cheat::ParticleInventory* partInv, const geo::GeometryCore* geom, const detinfo::DetectorClocks* detClock)
     :fPartInv(partInv),fGeom(geom),fDetClocks(detClock),
-     fG4ModuleLabel       (pSet.get<art::InputTag>("G4ModuleLabel", "largeant")),
-     fHitLabel            (pSet.get<art::InputTag>("DefaultHitModuleLabel", "hitfd")),
-     fMinHitEnergyFraction(pSet.get<double>       ("MinHitEnergyFraction", 0.010))
+    fG4ModuleLabel       (pSet.get<art::InputTag>("G4ModuleLabel", "largeant")),
+    fHitLabel            (pSet.get<art::InputTag>("DefaultHitModuleLabel", "hitfd")),
+    fMinHitEnergyFraction(pSet.get<double>       ("MinHitEnergyFraction", 0.010))
   {
   }
 
@@ -177,12 +177,34 @@ namespace cheat{
     return retVec;
   }
 
+  //These don't exist in the event. They are generated on the fly.
+  //-----------------------------------------------------------------------
+  const std::vector<sim::TrackIDE> BackTracker::HitToEveTrackIDEs( recob::Hit const& hit) const{
+    std::vector<sim::TrackIDE> eveIDEs;
+    std::vector<sim::TrackIDE> trackIDEs = this->HitToTrackIDEs(hit);
+    std::map<int, double> eveToEMap;
+    double totalE=0.0;
+    for (const auto& trackIDE : trackIDEs){
+      eveToEMap[fPartInv->TrackIdToEveTrackId(trackIDE.trackID)] += trackIDE.energy;
+      totalE+=trackIDE.energy;
+    }//End for trackIDEs
+    eveIDEs.reserve(eveToEMap.size());
+    for(const auto& eveToE : eveToEMap){
+      sim::TrackIDE eveTrackIDE_tmp;
+      eveTrackIDE_tmp.trackID = eveToE.first;
+      eveTrackIDE_tmp.energy = eveToE.second;
+      eveTrackIDE_tmp.energyFrac = (eveTrackIDE_tmp.energy)/(totalE);
+      eveIDEs.push_back(eveTrackIDE_tmp);
+    }//END eveToEMap loop
+    return eveIDEs;
+  }
+
   //-----------------------------------------------------------------------
   std::vector < art::Ptr< recob::Hit > > BackTracker::TrackIdToHits_Ps( const int& tkId, std::vector<art::Ptr<recob::Hit>> const& hitsIn ) const{
     // returns a subset of the hits in the allhits collection that are matched
     // to the given track
 
-    // temporary vector of TrackIDs and Ptrs to hits so only one
+    // temporary vector of TrackIds and Ptrs to hits so only one
     // loop through the (possibly large) allhits collection is needed
     std::vector< art::Ptr<recob::Hit>> hitList;
     std::vector<sim::TrackIDE> trackIDE;
@@ -205,7 +227,7 @@ namespace cheat{
     // returns a subset of the hits in the allhits collection that are matched
     // to MC particles listed in tkIds
 
-    // temporary vector of TrackIDs and Ptrs to hits so only one
+    // temporary vector of TrackIds and Ptrs to hits so only one
     // loop through the (possibly large) allhits collection is needed
     std::vector<std::pair<int, art::Ptr<recob::Hit>>> hitList;
     std::vector<sim::TrackIDE> tids;
@@ -277,4 +299,81 @@ namespace cheat{
   }
 
   //------------------------------------------------------------------------------
+  std::vector<double> BackTracker::SimIDEsToXYZ(std::vector<sim::IDE> const& ides) const
+  {
+    std::vector<double> xyz(3,0.0);
+    double w = 0.0;
+    for( auto const& ide : ides){
+      double weight=ide.numElectrons;
+      w      += weight;
+      xyz[0] += (weight*ide.x);
+      xyz[1] += (weight*ide.y);
+      xyz[2] += (weight*ide.z);
+    }
+    if(w<1.e-5)
+      throw cet::exception("BackTracker")<<"No sim::IDEs providing non-zero number of electrons"
+        << " can't determine originating location from truth\n";
+    xyz[0] = xyz[0]/w;
+    xyz[1] = xyz[1]/w;
+    xyz[2] = xyz[2]/w;
+    return xyz;
+  }
+
+  //-------------------------------------------------------------------------------
+  std::vector<double> BackTracker::SimIDEsToXYZ( std::vector< const sim::IDE* > const& ide_Ps) const{
+    std::vector<sim::IDE> ides;
+    for(auto ide_P : ide_Ps ){ ides.push_back(*ide_P);}
+    return this->SimIDEsToXYZ(ides);
+  }
+
+
+  //--------------------------------------------------------------------------------
+  std::vector<double> BackTracker::HitToXYZ(const recob::Hit& hit) const{
+    std::vector<const sim::IDE*> ide_Ps = this->HitToSimIDEs_Ps(hit);
+    return this->SimIDEsToXYZ(ide_Ps);
+  }
+
+  //--------------------------------------------------------------------------------
+  /*  std::vector< art::Ptr<recob::Hit> > BackTracker::SpacePointsToHits_Ps( const recob::SpacePoint& spt) const
+      {
+  //We need a list of all hits associated with the spacepoint.    
+  const art::FindManyP<recob::Hit> sptHitList(spt, fEvt, fHitLabel);
+  }*/
+
+  //-----------------------------------------------------------------------------------
+  //double HitCollectionPurity( std::set<int> const& trackIds, std::vector< art::Ptr<recob::Hit> > const& hits){
+  //}
+
+  //-----------------------------------------------------------------------------------
+  //double HitChargeCollectionPurity( std::set<int> const& trackIds, std::vector< art::Ptr<recob::Hit> > const&     hits){
+  //}
+
+  //-----------------------------------------------------------------------------------
+  std::set<int> BackTracker::GetSetOfTrackIds( std::vector< art::Ptr< recob::Hit > > const& hits ){
+    std::set<int> tids;
+    for( const auto& hit : hits){
+      const double start = hit->PeakTimeMinusRMS();
+      const double end   = hit->PeakTimePlusRMS();
+      std::vector<sim::TrackIDE> trackIDEs = this->ChannelToTrackIDEs(hit->Channel(), start, end);
+      for(const auto& ide : trackIDEs) {
+        tids.insert(ide.trackID);
+      }//End for TrackIDEs
+    }//End for hits
+    return tids;
+  }//End GetSetOfTrackIds
+
+  //-----------------------------------------------------------------------------------
+  std::set<int> BackTracker::GetSetOfEveIds( std::vector< art::Ptr< recob::Hit > > const& hits ){
+    std::set<int> eveIds;
+    for(const auto& hit : hits){
+      const std::vector<sim::TrackIDE> ides = this->HitToEveTrackIDEs(hit);
+      for(const auto& ide : ides){eveIds.insert(ide.trackID);}//end ides
+    }//End for hits
+    return eveIds;
+  }
+
+
+
+
+
 }//End namespace cheat
