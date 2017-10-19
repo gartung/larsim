@@ -21,32 +21,25 @@
 #include "larcorealg/Geometry/TPCGeo.h"
 #include "larcorealg/Geometry/WireGeo.h"
 #include "larcoreobj/SimpleTypesAndConstants/geo_types.h"
-#include "lardata/DetectorInfoServices/DetectorClocksService.h"
-
-
 
 
 namespace cheat{
+
   //-----------------------------------------------------------------------
-  BackTracker::BackTracker(const cheat::ParticleInventory* partInv, const geo::GeometryCore* geom, std::string g4label, double minHitFrac)//The normal constructor. The module using this should get g4label and minHitFrac from the fhicl config.
+  BackTracker::BackTracker(const fhiclConfig& config, const cheat::ParticleInventory* partInv, const geo::GeometryCore* geom, const detinfo::DetectorClocks* detClock )
+    :fPartInv(partInv),fGeom(geom),fDetClocks(detClock),fG4ModuleLabel(config.G4ModuleLabel()),
+     fHitLabel(config.DefaultHitModuleLabel()),fMinHitEnergyFraction(config.MinHitEnergyFraction())
   {
-    fGeom                 = geom;
-    fPartInv              = partInv;
-    fG4ModuleLabel        = g4label; //This should not be hardcoded. Get advice about fhicl configuration of ServiceProviders.
-    fMinHitEnergyFraction = minHitFrac;
   }
 
   //-----------------------------------------------------------------------
-  BackTracker::BackTracker(const cheat::ParticleInventory* partInv,
-      const geo::GeometryCore* geom)
-    //Constructor with default values for Gallery users that don't want to manually configure parameters.
+  BackTracker::BackTracker(const fhicl::ParameterSet& pSet, const cheat::ParticleInventory* partInv, const geo::GeometryCore* geom, const detinfo::DetectorClocks* detClock)
+    :fPartInv(partInv),fGeom(geom),fDetClocks(detClock),
+     fG4ModuleLabel       (pSet.get<art::InputTag>("G4ModuleLabel", "largeant")),
+     fHitLabel            (pSet.get<art::InputTag>("DefaultHitModuleLabel", "hitfd")),
+     fMinHitEnergyFraction(pSet.get<double>       ("MinHitEnergyFraction", 0.010))
   {
-    fPartInv              = partInv;
-    fGeom                 = geom;
-    fG4ModuleLabel        = "largeant";
-    fMinHitEnergyFraction = 0.001;
   }
-
 
   //-----------------------------------------------------------------------
   BackTracker::~BackTracker()
@@ -57,6 +50,7 @@ namespace cheat{
   //-----------------------------------------------------------------------
   void BackTracker::ClearEvent(){
     fSimChannels.clear();
+    //Do not clear the inventory here. This is something the service will do, or the use themselves.
   }
 
 
@@ -107,9 +101,7 @@ namespace cheat{
     const sim::SimChannel* chan = 0;
     auto ilb = std::lower_bound(fSimChannels.begin(),fSimChannels.end(),channel,[](const sim::SimChannel *a, raw::    ChannelID_t channel) {return(a->Channel()<channel);});
     if (ilb != fSimChannels.end())
-    {
-      if ( (*ilb)->Channel() == channel) chan = *ilb;
-    }
+      if ( (*ilb)->Channel() == channel) {chan = *ilb;}
     if(!chan)
       throw cet::exception("BackTracker") << "No sim::SimChannel corresponding "
         << "to channel: " << channel << "\n";
@@ -126,9 +118,8 @@ namespace cheat{
 
       // loop over the electrons in the channel and grab those that are in time
       // with the identified hit start and stop times
-      const detinfo::DetectorClocks* ts = lar::providerFrom<detinfo::DetectorClocksService>(); //This must be removed. No services. 
-      int start_tdc = ts->TPCTick2TDC( hit_start_time );
-      int end_tdc   = ts->TPCTick2TDC( hit_end_time   );
+      int start_tdc = fDetClocks->TPCTick2TDC( hit_start_time );
+      int end_tdc   = fDetClocks->TPCTick2TDC( hit_end_time   );
       if(start_tdc<0) start_tdc = 0;
       if(end_tdc<0) end_tdc = 0;
       std::vector<sim::IDE> simides = schannel->TrackIDsAndEnergies(start_tdc, end_tdc);
@@ -168,7 +159,7 @@ namespace cheat{
 
 
   //-----------------------------------------------------------------------
-  const std::vector< sim::TrackIDE > BackTracker::HitToTrackIDE( recob::Hit const& hit) const {
+  const std::vector< sim::TrackIDE > BackTracker::HitToTrackIDEs( recob::Hit const& hit) const {
     std::vector<  sim::TrackIDE > trackIDEs;
     const double start = hit.PeakTimeMinusRMS();
     const double end   = hit.PeakTimePlusRMS();
@@ -178,9 +169,9 @@ namespace cheat{
 
 
   //-----------------------------------------------------------------------
-  const std::vector< int > BackTracker::HitToTrackId(recob::Hit const& hit) const {
+  const std::vector< int > BackTracker::HitToTrackIds(recob::Hit const& hit) const {
     std::vector< int > retVec;
-    for(auto const trackIDE : this->HitToTrackIDE( hit ) ){
+    for(auto const trackIDE : this->HitToTrackIDEs( hit ) ){
       retVec.push_back( trackIDE.trackID );
     }
     return retVec;
@@ -209,11 +200,7 @@ namespace cheat{
 
 
   //-----------------------------------------------------------------------
-  std::vector < art::Ptr< recob::Hit > > BackTracker::TrackIdToHits_Ps( const int& tkId ) const{
-    return this->TrackIdToHits_Ps(tkId, fAllHits); 
-  }
-
-  //-----------------------------------------------------------------------
+  //This function could clearly be made by calling TrackIdToHits for each trackId, but that would be significantly slower because we would loop through all hits many times.
   std::vector< std::vector< art::Ptr<recob::Hit> > > BackTracker::TrackIdsToHits_Ps( std::vector<int> const& tkIds, std::vector< art::Ptr< recob::Hit > > const& hitsIn ) const{
     // returns a subset of the hits in the allhits collection that are matched
     // to MC particles listed in tkIds
@@ -251,18 +238,12 @@ namespace cheat{
   }
 
   //-----------------------------------------------------------------------
-  std::vector< std::vector< art::Ptr<recob::Hit> > > BackTracker::TrackIdsToHits_Ps( std::vector<int> const& tkIds ) const{
-    return this->TrackIdsToHits_Ps(tkIds, fAllHits);
-  }
-
-  //-----------------------------------------------------------------------
   //Cannot be returned as a pointer, as these IDEs do not exist in the event. They are constructed on the fly.
   const std::vector<  sim::IDE > BackTracker::HitToAvgSimIDEs (recob::Hit const& hit) const{
     // Get services.
-    const detinfo::DetectorClocks* ts = lar::providerFrom<detinfo::DetectorClocksService>();
 
-    int start_tdc = ts->TPCTick2TDC( hit.PeakTimeMinusRMS() );
-    int end_tdc   = ts->TPCTick2TDC( hit.PeakTimePlusRMS()   );
+    int start_tdc = fDetClocks->TPCTick2TDC( hit.PeakTimeMinusRMS() );
+    int end_tdc   = fDetClocks->TPCTick2TDC( hit.PeakTimePlusRMS()   );
     if(start_tdc<0) start_tdc = 0;
     if(end_tdc<0) end_tdc = 0;
 
@@ -275,16 +256,13 @@ namespace cheat{
     const auto start_tdc = hit.PeakTimeMinusRMS();
     const auto end_tdc = hit.PeakTimePlusRMS();
     if(start_tdc > end_tdc){throw;}
-    //const TDCIDEs_t tdcIDEMap = (this->FindSimChannel(hit.Channel())).TDCIDEMap(); //Map of TDC value to vector of IDEs
     std::vector< std::pair<unsigned short, std::vector<sim::IDE>> > tdcIDEMap = (this->FindSimChannel(hit.Channel()))->TDCIDEMap(); //This in fact does not return a map. It returns a vector... with no guarantee that it is sorted...
 
-//    bool pairSort = []( const std::pair<unsigned short, std::vector< sim::IDE > >& a, const std::pair<unsigned short, std::vector< sim::IDE > >& b ) { return ( (a.first)<(b.first) );};
     auto pairSort = [](auto& a, auto& b) { return a.first < b.first ; } ;
     if( !std::is_sorted( tdcIDEMap.begin(), tdcIDEMap.end(), pairSort)) {
       std::sort (tdcIDEMap.begin(), tdcIDEMap.end(), pairSort);
     }
 
-    //find in the sorted map will be faster than iterating over the entire map. If it was already sorted (which it often will be), this extra logic from the previous step will pay off. We use lower_bound
     std::vector<sim::IDE> dummyVec; //I need something to stick in a pair to compare pair<tdcVal, IDE>. This is an otherwise useless "hack".
     std::pair<double, std::vector<sim::IDE>> start_tdcPair = std::make_pair(start_tdc,dummyVec); //This pair is a "hack" to make my comparison work for lower and upper bound.
     std::pair<double, std::vector<sim::IDE>> end_tdcPair = std::make_pair(end_tdc,dummyVec);
@@ -297,4 +275,6 @@ namespace cheat{
     }
     return retVec;
   }
+
+  //------------------------------------------------------------------------------
 }//End namespace cheat
