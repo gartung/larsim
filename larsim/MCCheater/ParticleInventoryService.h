@@ -33,16 +33,25 @@ namespace cheat{
   {
     public:
 
+      struct fhiclConfig{
+        fhicl::Table<ParticleInventory::fhiclConfig> ParticleInventoryTable{
+          fhicl::Name("providerConfigParticleInventory"),
+          fhicl::Comment("This is the fhicl configuration for the ParticleInventory Service Provider") };
+      };
+
       //attempting to be compliant with ServiceUtil.h. Should ask LArSoft expert to review.
       using provider_type = ParticleInventory;
-      const ParticleInventory* provider() const {return &fPartInv;}
+      provider_type const* provider() const { return fPartInv.provider(); }
+//      const ParticleInventory* provider() const {return &fPartInv;}
 //      const std::shared_ptr<cheat::ParticleInventory> AccessInventory(){ return fPartInv; }
 
 //      provider_type const* provider() const {return static_cast<provider_type const*>(fPartInv);}
 
       ParticleInventoryService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg);
+      ParticleInventoryService(const fhiclConfig& config, art::ActivityRegistry& reg);
       ~ParticleInventoryService();
 
+      //Move this function into the ParticleInventory.cpp file, and give it an appropriate CheckReady and Prep before the return.
       const sim::ParticleList& ParticleList() const { return fPartInv.ParticleList(); } //This should be replaced with a public struct so we can get away from the nutools dependency.
       void SetEveIdCalculator(sim::EveIdCalculator *ec) { fPartInv.SetEveIdCalculator(ec); }
 
@@ -73,7 +82,6 @@ namespace cheat{
 
 
     private:
-      std::string fG4ModuleLabel;
 
       cheat::ParticleInventory fPartInv;
 
@@ -91,6 +99,8 @@ namespace cheat{
   };//class ParticleInventoryService
 
 }//namespace
+
+DECLARE_ART_SERVICE(cheat::ParticleInventoryService, LEGACY)
 
 
 #endif //CHEAT_PARTICLEINVENTORYSERVICESERVICE_H

@@ -37,13 +37,22 @@ namespace cheat{
     public:
       ////////////////Types/////////////////
       struct fhiclConfig{
-        fhicl::Atom<art::InputTag> G4ModuleLabel{fhicl::Name("G4ModuleLabel"), fhicl::Comment("The label of the LArG4 module used to produce the art file we will be backtracking in"), "largeant"};
+        fhicl::Atom<art::InputTag> G4ModuleLabel{
+          fhicl::Name("G4ModuleLabel"), 
+          fhicl::Comment("The label of the LArG4 module used to produce the art file we will be backtracking in"), 
+          "largeant"};
       };
+
+      using provider_type = ParticleInventory;
+      provider_type const* provider() const
+      { return static_cast<provider_type const*>(this); }
       
       ///////////Constructor///////////////
       ParticleInventory(const fhiclConfig& config );
       ParticleInventory(const fhicl::ParameterSet& pSet );
       ~ParticleInventory();
+
+
 
       template<typename Evt> //Template must be decalred and defined outside of the .cpp file.
         void PrepEvent        ( const Evt& evt );
@@ -85,6 +94,10 @@ namespace cheat{
       const art::Ptr<simb::MCTruth>& TrackIdToMCTruth_P(int const& id) const;
       simb::MCTruth                  TrackIdToMCTruth (int const& id) const//Users are encouraged to use TrackIdToMCTruthP
       { return *(this->TrackIdToMCTruth_P(id)); }
+
+      //New Functions go here.
+      //TrackIdToEveId.
+      int TrackIdToEveTrackId(const int& tid) const { return fParticleList.EveId(tid);}
 
       const art::Ptr<simb::MCTruth>& ParticleToMCTruth_P(const simb::MCParticle* p) const; //Users are encouraged to use ParticleToMCTruthP
       simb::MCTruth                  ParticleToMCTruth (const simb::MCParticle* p) const

@@ -43,48 +43,52 @@ simple_plugin(ParticleInventoryService "service"
   )
 
 #simple_plugin(PhotonBackTrackerService "service"
-#  lardata_Utilities
-#  larsim_Simulation nutools_ParticleNavigation lardataobj_Simulation
-#  lardataobj_RecoBase
-#  larcorealg_Geometry
-#  larcore_Geometry_Geometry_service
-#  nusimdata_SimulationBase
-#  ${ART_FRAMEWORK_CORE}
-#  ${ART_FRAMEWORK_PRINCIPAL}
-#  ${ART_FRAMEWORK_SERVICES_REGISTRY}
-#  ${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
-#  art_Persistency_Common
-#  art_Persistency_Provenance
-#  art_Utilities
-#  canvas
-#  ${MF_MESSAGELOGGER}
-#  ${MF_UTILITIES}
-#  ${FHICLCPP}
-#  cetlib cetlib_except
-#  ${ROOT_BASIC_LIB_LIST}
-#  )
+  #  lardata_Utilities
+  #  larsim_Simulation nutools_ParticleNavigation lardataobj_Simulation
+  #  lardataobj_RecoBase
+  #  larcorealg_Geometry
+  #  larcore_Geometry_Geometry_service
+  #  nusimdata_SimulationBase
+  #  ${ART_FRAMEWORK_CORE}
+  #  ${ART_FRAMEWORK_PRINCIPAL}
+  #  ${ART_FRAMEWORK_SERVICES_REGISTRY}
+  #  ${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
+  #  art_Persistency_Common
+  #  art_Persistency_Provenance
+  #  art_Utilities
+  #  canvas
+  #  ${MF_MESSAGELOGGER}
+  #  ${MF_UTILITIES}
+  #  ${FHICLCPP}
+  #  cetlib cetlib_except
+  #  ${ROOT_BASIC_LIB_LIST}
+  #  )
 
-#simple_plugin(BackTrackerService "service"
-#  lardata_Utilities
-#  larsim_Simulation nutools_ParticleNavigation lardataobj_Simulation
-#  lardataobj_RecoBase
-#  larcorealg_Geometry
-#  larcore_Geometry_Geometry_service
-#  nusimdata_SimulationBase
-#  ${ART_FRAMEWORK_CORE}
-#  ${ART_FRAMEWORK_PRINCIPAL}
-#  ${ART_FRAMEWORK_SERVICES_REGISTRY}
-#  ${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
-#  art_Persistency_Common
-#  art_Persistency_Provenance
-#  art_Utilities
-#  canvas
-#  ${MF_MESSAGELOGGER}
-#  ${MF_UTILITIES}
-#  ${FHICLCPP}
-#  cetlib cetlib_except
-#  ${ROOT_BASIC_LIB_LIST}
-#  )
+simple_plugin(BackTrackerService "service"
+  larsim_MCCheater_BackTracker
+  larsim_MCCheater_ParticleInventory
+  larsim_MCCheater_ParticleInventoryService_service
+  lardata_Utilities
+  larsim_Simulation nutools_ParticleNavigation 
+  lardataobj_Simulation
+  lardataobj_RecoBase
+  larcorealg_Geometry
+  larcore_Geometry_Geometry_service
+  nusimdata_SimulationBase
+  ${ART_FRAMEWORK_CORE}
+  ${ART_FRAMEWORK_PRINCIPAL}
+  ${ART_FRAMEWORK_SERVICES_REGISTRY}
+  ${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
+  art_Persistency_Common
+  art_Persistency_Provenance
+  art_Utilities
+  canvas
+  ${MF_MESSAGELOGGER}
+  ${MF_UTILITIES}
+  ${FHICLCPP}
+  cetlib cetlib_except
+  ${ROOT_BASIC_LIB_LIST}
+  )
 
 #simple_plugin(CheckBackTracking "module"
 #  larsim_MCCheater_BackTracker_service
