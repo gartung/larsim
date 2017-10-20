@@ -201,11 +201,11 @@ namespace cheat{
 
   //-----------------------------------------------------------------------
   std::vector < art::Ptr< recob::Hit > > BackTracker::TrackIdToHits_Ps( const int& tkId, std::vector<art::Ptr<recob::Hit>> const& hitsIn ) const{
-    // returns a subset of the hits in the allhits collection that are matched
+    // returns a subset of the hits in the hitsIn collection that are matched
     // to the given track
 
     // temporary vector of TrackIds and Ptrs to hits so only one
-    // loop through the (possibly large) allhits collection is needed
+    // loop through the (possibly large) hitsIn collection is needed
     std::vector< art::Ptr<recob::Hit>> hitList;
     std::vector<sim::TrackIDE> trackIDE;
     for(auto itr = hitsIn.begin(); itr != hitsIn.end(); ++itr) {
@@ -224,11 +224,11 @@ namespace cheat{
   //-----------------------------------------------------------------------
   //This function could clearly be made by calling TrackIdToHits for each trackId, but that would be significantly slower because we would loop through all hits many times.
   std::vector< std::vector< art::Ptr<recob::Hit> > > BackTracker::TrackIdsToHits_Ps( std::vector<int> const& tkIds, std::vector< art::Ptr< recob::Hit > > const& hitsIn ) const{
-    // returns a subset of the hits in the allhits collection that are matched
+    // returns a subset of the hits in the hitsIn collection that are matched
     // to MC particles listed in tkIds
 
     // temporary vector of TrackIds and Ptrs to hits so only one
-    // loop through the (possibly large) allhits collection is needed
+    // loop through the (possibly large) hitsIn collection is needed
     std::vector<std::pair<int, art::Ptr<recob::Hit>>> hitList;
     std::vector<sim::TrackIDE> tids;
     for(auto itr = hitsIn.begin(); itr != hitsIn.end(); ++itr) {
@@ -334,19 +334,110 @@ namespace cheat{
   }
 
   //--------------------------------------------------------------------------------
-  /*  std::vector< art::Ptr<recob::Hit> > BackTracker::SpacePointsToHits_Ps( const recob::SpacePoint& spt) const
-      {
+  //This function not implimented here because I can't think of any way to do it without using art::FindManyP. As such, it needs access to the event, and will have to be placed into BackTracker.tpp with appropriate parameters.
+  /*std::vector< art::Ptr<recob::Hit> > BackTracker::SpacePointsToHits_Ps( const recob::SpacePoint& spt) const
+    {
   //We need a list of all hits associated with the spacepoint.    
-  const art::FindManyP<recob::Hit> sptHitList(spt, fEvt, fHitLabel);
+  //const art::FindManyP<recob::Hit> sptHitList(spt, fEvt, fHitLabel);
   }*/
 
   //-----------------------------------------------------------------------------------
-  //double HitCollectionPurity( std::set<int> const& trackIds, std::vector< art::Ptr<recob::Hit> > const& hits){
-  //}
+  double BackTracker::HitCollectionPurity( std::set<int> const& trackIds, std::vector< art::Ptr<recob::Hit> > const& hits){
+    int desired =0;
+    for( const auto& hit : hits ){
+      std::vector<sim::TrackIDE> hitTrackIDEs=this->HitToTrackIDEs(hit);
+      for(const auto& tIDE : hitTrackIDEs){
+        if(trackIds.find(tIDE.trackID)!=trackIds.end()){ 
+          ++desired;
+          break;
+        }//End if TID Found
+      }//END for trackIDE in TrackIDEs
+    }//End for hit in hits
+    if(hits.size()>0){return double(double(desired)/double(hits.size()));}
+    return 0;
+  }
 
   //-----------------------------------------------------------------------------------
-  //double HitChargeCollectionPurity( std::set<int> const& trackIds, std::vector< art::Ptr<recob::Hit> > const&     hits){
-  //}
+  double BackTracker::HitChargeCollectionPurity( std::set<int> const& trackIds, std::vector< art::Ptr<recob::Hit> > const&     hits){
+    double totalCharge=0.,desired=0.;
+    for(const auto& hit : hits){
+      totalCharge+=hit->Integral();
+      std::vector<sim::TrackIDE> trackIDEs= this->HitToTrackIDEs(hit);
+      for(const auto& trackIDE : trackIDEs){
+        if(trackIds.find(trackIDE.trackID)!=trackIds.end()){
+          desired+=hit->Integral();
+          break;
+        }//End if trackId in trackIds.
+      }//End for trackIDE in trackIDEs
+    }//End for Hit in Hits
+    if(totalCharge>0.0){return (desired/totalCharge);}
+    return 0.0;
+  }
+
+  //-----------------------------------------------------------------------------------
+  double BackTracker::HitCollectionEfficiency( std::set<int> const& trackIds, 
+      std::vector< art::Ptr<recob::Hit> > const& hits, 
+      std::vector< art::Ptr<recob::Hit> > const& allHits, 
+      geo::View_t const& view){
+
+    int desired=0,total=0;
+
+    for( const auto& hit : hits){
+      std::vector<sim::TrackIDE> hitTrackIDEs = this->HitToTrackIDEs(hit);
+      for( const auto& trackIDE : hitTrackIDEs){
+        if( trackIds.find(trackIDE.trackID)!=trackIds.end() && trackIDE.energyFrac >= fMinHitEnergyFraction){
+          ++desired;
+          break;
+        }//End if trackID in trackIds.
+      }//end for trackIDE in TrackIDEs
+    }//end for hit in hits
+
+    for( const auto& hit : allHits){
+      if(hit->View()!=view && view != geo::k3D) {continue;}//End if hit.view = view or view = geo::k3D 
+      std::vector<sim::TrackIDE> hitTrackIDEs = this->HitToTrackIDEs(hit);
+      for( const auto& hitIDE : hitTrackIDEs){
+        if(trackIds.find(hitIDE.trackID)!=trackIds.end() && hitIDE.energyFrac>=fMinHitEnergyFraction){
+          ++total;
+          break;
+        }
+      }//END for all IDEs in HitTrackIDEs.
+    }//end for hit in allHits.
+    if(total >= 0){ return double(double(desired)/double(total));}
+    return 0.;
+  }
+
+  //-----------------------------------------------------------------------------------
+  double BackTracker::HitChargeCollectionEfficiency(std::set<int> trackIds,
+      std::vector< art::Ptr<recob::Hit> > const& hits,
+      std::vector< art::Ptr<recob::Hit> > const& allHits, 
+      geo::View_t const& view){
+    double desired=0.,total=0.;
+    for( const auto& hit : hits){
+      std::vector<sim::TrackIDE> hitTrackIDEs = this->HitToTrackIDEs(hit);
+      for(const auto& hitIDE : hitTrackIDEs){
+        if(trackIds.find(hitIDE.trackID) != trackIds.end() && hitIDE.energyFrac >= fMinHitEnergyFraction){
+          desired+=hit->Integral();
+          break;
+        }//end if hit id matches and energy sufficient.
+      }//End for IDE in HitTrackIDEs.
+    }//End for hit in hits.
+
+    for( const auto& hit : allHits ){
+      if(hit->View() != view && view != geo::k3D){ continue; }
+      std::vector<sim::TrackIDE> hitTrackIDEs = this->HitToTrackIDEs(hit);
+      for( const auto& hitIDE : hitTrackIDEs ){
+        if(trackIds.find(hitIDE.trackID) != trackIds.end() && hitIDE.energyFrac >= fMinHitEnergyFraction){
+          total += hit->Integral();
+          break;
+        }//end if hit matches
+      }//end for ide in ides
+    }//End for hit in allHits
+
+    if(total>0.) {return desired/total;}
+    return 0.;
+
+  }
+
 
   //-----------------------------------------------------------------------------------
   std::set<int> BackTracker::GetSetOfTrackIds( std::vector< art::Ptr< recob::Hit > > const& hits ){
