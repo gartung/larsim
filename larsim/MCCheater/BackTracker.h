@@ -54,7 +54,8 @@ namespace cheat{
         void PrepAllHitList ( const Evt& evt);
 
       template<typename Evt>
-        void CheckCanRun( Evt& evt );
+        bool CanRun(const Evt& evt){ return !(evt.isRealData());}
+
       //These two functions need to be redesigned as templates as they MUST accept the event to use FindManyP.
       /*
          std::vector< art::Ptr< recob::Hit > > SpacePointsToHits_Ps(const recob::SpacePoint& spt) const;
@@ -62,16 +63,18 @@ namespace cheat{
          std::vector< double > SpacePointToXYZ( art::Ptr< recob::SpacePoint > const& spt ) const;
          */
 
-      void ClearEvent();
 
-      const std::vector<const sim::SimChannel*>& SimChannels() const { return fSimChannels; }
+      bool SimChannelsReady() const { return !( fSimChannels.empty() ); }
+      bool AllHitListReady () const { return !( fAllHitList.empty() ); }
+
+      const std::vector<art::Ptr<sim::SimChannel>>& SimChannels() const { return fSimChannels; }
 
       const std::vector<const sim::IDE* >   TrackIdToSimIDEs_Ps(int const& id) const;
       //const std::vector<const sim::IDE>    TrackIdToSimIDEs (int const& id) const; 
       const std::vector<const sim::IDE* >   TrackIdToSimIDEs_Ps(int const& id, const geo::View_t view) const; 
       //std::vector<const sim::IDE>    TrackIdToSimIDEs (int const& id, const geo::View_t view) const; 
 
-      const sim::SimChannel* FindSimChannel( raw::ChannelID_t channel ) const;
+      art::Ptr<sim::SimChannel> FindSimChannel( raw::ChannelID_t channel ) const;
 
       const std::vector< sim::TrackIDE > ChannelToTrackIDEs(raw::ChannelID_t channel, const double hit_start_time, const double hit_end_time) const;
 
@@ -136,8 +139,8 @@ namespace cheat{
       const double          fMinHitEnergyFraction;
 
 
-      std::vector<const sim::SimChannel*>       fSimChannels;
-      std::vector< art::Ptr<recob::Hit> >       fAllHitList;
+      mutable std::vector<art::Ptr<sim::SimChannel>>       fSimChannels;
+      mutable std::vector< art::Ptr<recob::Hit> >          fAllHitList;
 
   };//end class BackTracker
 

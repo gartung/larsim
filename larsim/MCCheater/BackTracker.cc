@@ -46,14 +46,6 @@ namespace cheat{
   {
   }
 
-
-  //-----------------------------------------------------------------------
-  void BackTracker::ClearEvent(){
-    fSimChannels.clear();
-    //Do not clear the inventory here. This is something the service will do, or the use themselves.
-  }
-
-
   //-----------------------------------------------------------------------
   const std::vector< const sim::IDE* > BackTracker::TrackIdToSimIDEs_Ps( int const& id ) const{
     std::vector< const sim::IDE* > ideps;
@@ -79,7 +71,7 @@ namespace cheat{
   const std::vector<const sim::IDE* >   BackTracker::TrackIdToSimIDEs_Ps (int const& id, const geo::View_t view) const
   {  
     std::vector<const sim::IDE*> ide_Ps;
-    for(const sim::SimChannel* sc : fSimChannels){
+    for(const art::Ptr<sim::SimChannel> sc : fSimChannels){
       if (fGeom->View(sc->Channel()) != view) continue;
 
       // loop over the IDEMAP
@@ -97,9 +89,9 @@ namespace cheat{
 
 
   //-----------------------------------------------------------------------
-  const sim::SimChannel* BackTracker::FindSimChannel(raw::ChannelID_t channel) const{
-    const sim::SimChannel* chan = 0;
-    auto ilb = std::lower_bound(fSimChannels.begin(),fSimChannels.end(),channel,[](const sim::SimChannel *a, raw::    ChannelID_t channel) {return(a->Channel()<channel);});
+  art::Ptr<sim::SimChannel> BackTracker::FindSimChannel(raw::ChannelID_t channel) const{
+    art::Ptr<sim::SimChannel> chan;
+    auto ilb = std::lower_bound(fSimChannels.begin(),fSimChannels.end(),channel,[](art::Ptr<sim::SimChannel> a, raw::    ChannelID_t channel) {return(a->Channel()<channel);});
     if (ilb != fSimChannels.end())
       if ( (*ilb)->Channel() == channel) {chan = *ilb;}
     if(!chan)
@@ -114,7 +106,7 @@ namespace cheat{
     std::vector< sim::TrackIDE > trackIDEs;
     double totalE=0.;
     try{
-      const sim::SimChannel* schannel = this->FindSimChannel(channel);
+      art::Ptr<sim::SimChannel> schannel = this->FindSimChannel(channel);
 
       // loop over the electrons in the channel and grab those that are in time
       // with the identified hit start and stop times
