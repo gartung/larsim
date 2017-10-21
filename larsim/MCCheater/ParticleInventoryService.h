@@ -50,6 +50,7 @@ namespace cheat{
       ParticleInventoryService(const fhiclConfig& config, art::ActivityRegistry& reg);
       ~ParticleInventoryService();
 
+      //Move this function into the ParticleInventory.cpp file, and give it an appropriate CheckReady and Prep before the return.
       const sim::ParticleList& ParticleList() const { return fPartInv.ParticleList(); } //This should be replaced with a public struct so we can get away from the nutools dependency.
       void SetEveIdCalculator(sim::EveIdCalculator *ec) { fPartInv.SetEveIdCalculator(ec); }
 
