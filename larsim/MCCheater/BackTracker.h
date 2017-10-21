@@ -68,6 +68,7 @@ namespace cheat{
       bool AllHitListReady () const { return !( fAllHitList.empty() ); }
 
       const std::vector<art::Ptr<sim::SimChannel>>& SimChannels() const { return fSimChannels; }
+      //All Hit List would go here. We explicitly choose not to include it, as the user should not be using backtracker to access Hits. This could change in a concievable future use case where we also allow the user to define what the "AllHitList" should be, though this would have ramifications on other functions.
 
       const std::vector<const sim::IDE* >   TrackIdToSimIDEs_Ps(int const& id) const;
       //const std::vector<const sim::IDE>    TrackIdToSimIDEs (int const& id) const; 
@@ -107,27 +108,27 @@ namespace cheat{
       //const std::vector< sim::IDE > HitToSimIDEs (recob::Hit const& hit);
       //   std::vector< const sim::IDE > HitToSimIDEs (art::Ptr< recob::Hit > const& hit) { return this->HitToSimIDEsPs (*hit); }
 
-      std::vector<double> SimIDEsToXYZ( std::vector< sim::IDE > const& ides) const;
-      std::vector<double> SimIDEsToXYZ( std::vector< const sim::IDE* > const& ide_Ps) const;
+      const std::vector<double> SimIDEsToXYZ( std::vector< sim::IDE > const& ides) const;
+      const std::vector<double> SimIDEsToXYZ( std::vector< const sim::IDE* > const& ide_Ps) const;
 
-      std::vector<double> HitToXYZ(const recob::Hit& hit) const;
-      std::vector<double> HitToXYZ(art::Ptr<recob::Hit> const& hit) const{ return this->HitToXYZ(*hit);}
-
-
-
-      double HitCollectionPurity( std::set<int> const& trackIds, std::vector< art::Ptr<recob::Hit> > const& hits);
-      double HitChargeCollectionPurity( std::set<int> const& trackIds, std::vector< art::Ptr<recob::Hit> > const& hits);
-
-      double HitCollectionEfficiency( std::set<int> const& trackIds, std::vector< art::Ptr<recob::Hit> > const& hits, std::vector< art::Ptr<recob::Hit> > const& allhits, geo::View_t const& view); 
+      const std::vector<double> HitToXYZ(const recob::Hit& hit) const;
+      const std::vector<double> HitToXYZ(art::Ptr<recob::Hit> const& hit) const{ return this->HitToXYZ(*hit);}
 
 
-      double HitChargeCollectionEfficiency( std::set<int> trackIds, std::vector< art::Ptr<recob::Hit> > const& hits,        std::vector< art::Ptr<recob::Hit> > const& allhits, geo::View_t const& view); //This function removed as it depends on view, which causes issues with the geom service provider
 
-      std::set<int> GetSetOfTrackIds(){ return fPartInv->GetSetOfTrackIds();}
-      std::set<int> GetSetOfEveIds(){ return fPartInv->GetSetOfEveIds();}
+      const double HitCollectionPurity( std::set<int> const& trackIds, std::vector< art::Ptr<recob::Hit> > const& hits) const;
+      const double HitChargeCollectionPurity( std::set<int> const& trackIds, std::vector< art::Ptr<recob::Hit> > const& hits) const;
 
-      std::set<int> GetSetOfTrackIds( std::vector< art::Ptr< recob::Hit > > const& hits );
-      std::set<int> GetSetOfEveIds( std::vector< art::Ptr< recob::Hit > > const& hits );
+      const double HitCollectionEfficiency( std::set<int> const& trackIds, std::vector< art::Ptr<recob::Hit> > const& hits, std::vector< art::Ptr<recob::Hit> > const& allhits, geo::View_t const& view) const; 
+
+
+      const double HitChargeCollectionEfficiency( std::set<int> trackIds, std::vector< art::Ptr<recob::Hit> > const& hits,        std::vector< art::Ptr<recob::Hit> > const& allhits, geo::View_t const& view) const; 
+
+      const std::set<int> GetSetOfTrackIds() const { return fPartInv->GetSetOfTrackIds();}
+      const std::set<int> GetSetOfEveIds() const { return fPartInv->GetSetOfEveIds();}
+
+      const std::set<int> GetSetOfTrackIds( std::vector< art::Ptr< recob::Hit > > const& hits ) const;
+      const std::set<int> GetSetOfEveIds( std::vector< art::Ptr< recob::Hit > > const& hits ) const;
 
 
     private:
