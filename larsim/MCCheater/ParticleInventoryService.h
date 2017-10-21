@@ -81,7 +81,6 @@ namespace cheat{
 
 
     private:
-      std::string fG4ModuleLabel;
 
       cheat::ParticleInventory fPartInv;
 
