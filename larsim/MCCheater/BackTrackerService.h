@@ -122,8 +122,8 @@ namespace cheat{
 
   }; //class BackTrackerService
 
-DECLARE_ART_SERVICE(cheat::BackTrackerService, LEGACY)
 } //end namespace cheat
+DECLARE_ART_SERVICE(cheat::BackTrackerService, LEGACY)
 
 
 
