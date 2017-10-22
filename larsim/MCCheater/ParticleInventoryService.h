@@ -41,7 +41,9 @@ namespace cheat{
 
       //attempting to be compliant with ServiceUtil.h. Should ask LArSoft expert to review.
       using provider_type = ParticleInventory;
-      const ParticleInventory* provider() const {return &fPartInv;}
+      provider_type const* provider() const
+      { return static_cast<provider_type const*>(this); }
+//      const ParticleInventory* provider() const {return &fPartInv;}
 //      const std::shared_ptr<cheat::ParticleInventory> AccessInventory(){ return fPartInv; }
 
 //      provider_type const* provider() const {return static_cast<provider_type const*>(fPartInv);}
