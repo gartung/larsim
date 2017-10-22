@@ -16,7 +16,10 @@
 
 #include "ParticleInventory.h"
 
-#include "canvas/Persistency/Common/FindOneP.h"
+
+#include "fhiclcpp/types/Atom.h"
+#include "fhiclcpp/types/Table.h"
+
 #include "canvas/Persistency/Common/FindManyP.h"
 #include "larcorealg/Geometry/GeometryCore.h"
 #include "lardata/DetectorInfo/DetectorClocks.h"

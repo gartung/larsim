@@ -9,7 +9,20 @@
 #ifndef CHEAT_BACKTRACKERSERVICESERVICE_H
 #define CHEAT_BACKTRACKERSERVICESERVICE_H
 
+#include <vector>
+
 #include "BackTracker.h"
+#include "fhiclcpp/ParameterSet.h"
+#include "art/Framework/Services/Registry/ActivityRegistry.h"
+#include "art/Framework/Principal/Event.h"
+#include "art/Framework/Principal/View.h"
+
+//Included Services
+#include "larcore/Geometry/Geometry.h"
+#include "lardata/DetectorInfoServices/DetectorClocksService.h"
+#include "larsim/MCCheater/ParticleInventory.h"
+
+
 
 namespace cheat{
   class BackTrackerService
@@ -24,14 +37,14 @@ namespace cheat{
 
 
       using provider_type = BackTracker;
-      const BackTracker* provider() const {return fBackTracker;}
+      const BackTracker* provider() const {return &fBackTracker;}
 
-      BackTrackerService(fhicl::ParameterSet const& pSet, art::ActivityRegistry& reg);
+      BackTrackerService( const fhicl::ParameterSet& pSet, art::ActivityRegistry& reg);
       BackTrackerService(const fhiclConfig& config, art::ActivityRegistry& reg);
       ~BackTrackerService();
 
       //Move this function into the .cpp file and give it the appropriate prep and check functions
-      const std::vector < art::Ptr < sim::SimChannel > >& const { return fBackTracker.SimChannels(); }
+      const std::vector < art::Ptr < sim::SimChannel > >& SimChannels() const { return fBackTracker.SimChannels(); }
 
       const std::vector < const sim::IDE* > TrackIdToSimIDEs_Ps(int const& id) const;
       const std::vector < const sim::IDE* > TrackIdToSimIDEs_Ps(int const& id, const geo::View_t view) const;
@@ -87,13 +100,14 @@ namespace cheat{
     private:
       //FHICL parameters.
       //The BackTracker service has no parameters.
-
+      
+      //Configure services
       cheat::BackTracker fBackTracker;
 
       const art::Event* fEvt;
 
       //Prep functions go here.
-      void priv_PrepEvent ();
+      void priv_PrepEvent ( const art::Event& evt );
       void priv_PrepSimChannels ();
       void priv_PrepAllHitList ();
 
