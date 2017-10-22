@@ -49,9 +49,6 @@ namespace cheat{
       ~ParticleInventory();
 
 
-      using provider_type = ParticleInventory;
-      provider_type const* provider() const
-      { return static_cast<provider_type const*>(this); }
 
       template<typename Evt> //Template must be decalred and defined outside of the .cpp file.
         void PrepEvent        ( const Evt& evt );
