@@ -1,5 +1,17 @@
-service.ParticleInventoryService: {
-  providerConfig: {
+BEGIN_PROLOG
+
+standard_ParticleInventoryService: {
+  providerConfigParticleInventory: {
     G4Label: "largeant"
   }
 }
+
+jp250L_ParticleInventoryService:     @local::standard_ParticleInventoryService
+bo_ParticleInventoryService:         @local::standard_ParticleInventoryService
+argoneut_ParticleInventoryService:   @local::standard_ParticleInventoryService
+microboone_ParticleInventoryService: @local::standard_ParticleInventoryService
+dune35t_ParticleInventoryService:    @local::standard_ParticleInventoryService
+dunefd_ParticleInventoryService:     @local::standard_ParticleInventoryService
+
+END_PROLOG
+
