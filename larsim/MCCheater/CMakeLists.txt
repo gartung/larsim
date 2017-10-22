@@ -65,12 +65,18 @@ simple_plugin(ParticleInventoryService "service"
   #  )
 
 simple_plugin(BackTrackerService "service"
+<<<<<<< HEAD
   larsim_MCCheater_BackTracker
   larsim_MCCheater_ParticleInventory
   larsim_MCCheater_ParticleInventoryService_service
   lardata_Utilities
   larsim_Simulation nutools_ParticleNavigation 
   lardataobj_Simulation
+=======
+  lardata_Utilities
+  larsim_Simulation nutools_ParticleNavigation lardataobj_Simulation
+  larsim_MCCheater_ParticleInventoryService_service
+>>>>>>> 53a8a2d3e2bbb8eaf5af8ef58f3a926a5fbeba83
   lardataobj_RecoBase
   larcorealg_Geometry
   larcore_Geometry_Geometry_service

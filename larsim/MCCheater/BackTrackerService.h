@@ -11,6 +11,7 @@
 
 #include <vector>
 
+#include "BackTracker.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "art/Framework/Services/Registry/ActivityRegistry.h"
 #include "art/Framework/Principal/Event.h"
@@ -23,7 +24,6 @@
 #include "larsim/MCCheater/ParticleInventory.h"
 
 
-#include "BackTracker.h"
 
 namespace cheat{
   class BackTrackerService
@@ -122,9 +122,9 @@ namespace cheat{
 
   }; //class BackTrackerService
 
+DECLARE_ART_SERVICE(cheat::BackTrackerService, LEGACY)
 } //end namespace cheat
 
-DECLARE_ART_SERVICE(cheat::BackTrackerService, LEGACY)
 
 
 #endif //CHEAT_BACKTRACKERSERVICESERVICE_H
