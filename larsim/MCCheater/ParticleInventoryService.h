@@ -29,7 +29,7 @@
 
 
 namespace cheat{
-  class ParticleInventoryService
+  class ParticleInventoryService: public ParticleInventory
   {
     public:
 
