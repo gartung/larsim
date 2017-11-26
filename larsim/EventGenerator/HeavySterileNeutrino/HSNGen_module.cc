@@ -56,6 +56,18 @@
 #include "Helpers/Helper.h"
 #include "Helpers/Settings.h"
 
+// root includes
+#include "TInterpreter.h"
+#include "TROOT.h"
+#include "TH1.h"
+#include "TH2D.h"
+#include "TH2I.h"
+#include "TFile.h"
+#include "TNtuple.h"
+#include "TClonesArray.h"
+#include "TCanvas.h"
+#include "TGraph.h"
+
 #include <sqlite3.h> 
 #include "CLHEP/Random/RandomEngine.h"
 #include "CLHEP/Random/RandFlat.h"
@@ -71,12 +83,12 @@ namespace hsngen
   public:
     explicit HSNGen(fhicl::ParameterSet const& pset);
     virtual ~HSNGen();                       
-    
     void produce(art::Event& evt);  
     void beginJob();
     void endJob();
     void beginRun(art::Run& run);
     void reconfigure(fhicl::ParameterSet const& p);
+    void ClearData();
   private:
     // Fcl settings
     bool fPrintHepEvt;
@@ -91,12 +103,18 @@ namespace hsngen
     std::vector<double> fBoundariesZ;
 
     // Analysis variables
-    CLHEP::HepJamesRandom gEngine;
     Settings gSett;
     std::vector<double> gModelParams;
     twoIP_channel *gChan;
     FluxFile gFlux;
     int gFakeRunNumber;
+
+    // Diagnostic tree
+    TTree *tTree;
+    int run, subrun, event;
+    std::vector<int> pdgCode;
+    std::vector<double> Vx, Vy, Vz, T, Px, Py, Pz, E, P, Pt;
+    double OpeningAngle, InvariantMass;
 
     // Auxiliary functions
     void CompressSettings(Settings &set);
@@ -136,6 +154,23 @@ namespace hsngen
   void HSNGen::beginJob()
   {
     art::ServiceHandle<art::TFileService> tfs;
+    tTree = tfs->make<TTree>("Data","");
+    tTree->Branch("run",&run,"run/I");
+    tTree->Branch("subrun",&subrun,"subrun/I");
+    tTree->Branch("event",&event,"event/I");
+    tTree->Branch("Vx",&Vx);
+    tTree->Branch("Vy",&Vy);
+    tTree->Branch("Vz",&Vz);
+    tTree->Branch("T",&T);
+    tTree->Branch("Px",&Px);
+    tTree->Branch("Py",&Py);
+    tTree->Branch("Pz",&Pz);
+    tTree->Branch("E",&E);
+    tTree->Branch("P",&P);
+    tTree->Branch("Pt",&Pt);
+    tTree->Branch("OpeningAngle",&OpeningAngle);
+    tTree->Branch("InvariantMass",&InvariantMass);
+
     art::ServiceHandle<art::RandomNumberGenerator> rng;
     CLHEP::HepRandomEngine &gEngine = rng->getEngine("gen");
     CompressSettings(gSett);
@@ -161,8 +196,30 @@ namespace hsngen
     return;
   }
 
+  void HSNGen::ClearData()
+  {
+    run = -1;
+    subrun = -1;
+    event = -1;
+    OpeningAngle = -999;
+    InvariantMass = -999;
+    pdgCode.clear();
+    Vx.clear();
+    Vy.clear();
+    Vz.clear();
+    T.clear();
+    Px.clear();
+    Py.clear();
+    Pz.clear();
+    E.clear();
+    P.clear();
+    Pt.clear();
+  } // END function ClearData
+
   void HSNGen::produce(art::Event& evt)
   {
+    // Clear diagnostic vectors
+    ClearData();
     // Declare geometry and MCTruth objects
     art::ServiceHandle<geo::Geometry> geom;
     std::unique_ptr< std::vector<simb::MCTruth> > truthcol(new std::vector<simb::MCTruth>);
@@ -171,6 +228,8 @@ namespace hsngen
 
     // Generate observables characterizing the event
     Observables obs; 
+    art::ServiceHandle<art::RandomNumberGenerator> rng;
+    CLHEP::HepRandomEngine &gEngine = rng->getEngine("gen");
     GenerateObservables(gEngine, gChan, gFlux, gSett, obs);
     if (fPrintHepEvt) obs.PrintHepEvt(gFakeRunNumber);
 
@@ -186,6 +245,36 @@ namespace hsngen
     truth.Add(p2);
     truthcol->push_back(truth);
     evt.put(std::move(truthcol));
+
+    // Fill tree variables
+    pdgCode.push_back(p1.PdgCode());
+    Vx.push_back(p1.Vx());
+    Vy.push_back(p1.Vy());
+    Vz.push_back(p1.Vz());
+    T.push_back(p1.T());
+    Px.push_back(p1.Px());
+    Py.push_back(p1.Py());
+    Pz.push_back(p1.Pz());
+    E.push_back(p1.E());
+    P.push_back(p1.P());
+    Pt.push_back(p1.Pt());
+    pdgCode.push_back(p2.PdgCode());
+    Vx.push_back(p2.Vx());
+    Vy.push_back(p2.Vy());
+    Vz.push_back(p2.Vz());
+    T.push_back(p2.T());
+    Px.push_back(p2.Px());
+    Py.push_back(p2.Py());
+    Pz.push_back(p2.Pz());
+    E.push_back(p2.E());
+    P.push_back(p2.P());
+    Pt.push_back(p2.Pt());
+    double dotProduct = Px[0]*Px[1] + Py[0]*Py[1] + Pz[0]*Pz[1];
+    OpeningAngle = dotProduct / float(P[0]*P[1]);
+    double eTerm = pow((E[0] + E[1]),2.);
+    double pTerm = pow(P[0],2.) + pow(P[1],2.) + 2.*dotProduct;
+    InvariantMass = sqrt(eTerm - pTerm);
+    tTree->Fill();
 
     gFakeRunNumber++;
     return;

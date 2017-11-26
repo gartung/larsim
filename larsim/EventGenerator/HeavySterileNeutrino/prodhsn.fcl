@@ -33,7 +33,7 @@ physics:
       PrintHepEvt:        true
       SterileMass:        0.300
       DecayChannel:       2
-      FluxFile:           "/uboone/app/users/sporzio/HSNGen/Fluxes/sterileFlux_m0.300.dat"
+      FluxFile:           "/pnfs/uboone/persistent/users/sporzio/HeavySterileNeutrinos/FluxFiles/sterileFlux_m0.300.dat"
       Distance:           470.
       GlobalTimeOffset:   3125.
       BeamWindow:         1600.
