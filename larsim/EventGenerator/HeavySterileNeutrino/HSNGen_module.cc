@@ -101,6 +101,7 @@ namespace hsngen
     std::vector<double> fBoundariesX;
     std::vector<double> fBoundariesY;
     std::vector<double> fBoundariesZ;
+    std::vector<double> fGeneratedTimeWindow;
 
     // Analysis variables
     Settings gSett;
@@ -130,7 +131,8 @@ namespace hsngen
     fBeamWindow(p.get<double>("BeamWindow")),
     fBoundariesX(p.get<std::vector<double>>("BoundariesX")),
     fBoundariesY(p.get<std::vector<double>>("BoundariesY")),
-    fBoundariesZ(p.get<std::vector<double>>("BoundariesZ"))
+    fBoundariesZ(p.get<std::vector<double>>("BoundariesZ")),
+    fGeneratedTimeWindow(p.get<std::vector<double>>("GeneratedTimeWindow"))
   {
     // create a default random engine; obtain the random seed from NuRandomService,
     // unless overridden in configuration with key "Seed"
@@ -227,11 +229,16 @@ namespace hsngen
     truth.SetOrigin(simb::kUnknown);
 
     // Generate observables characterizing the event
-    Observables obs; 
+    double neutrinoTime = -1;
+    Observables obs;
     art::ServiceHandle<art::RandomNumberGenerator> rng;
     CLHEP::HepRandomEngine &gEngine = rng->getEngine("gen");
-    GenerateObservables(gEngine, gChan, gFlux, gSett, obs);
-    if (fPrintHepEvt) obs.PrintHepEvt(gFakeRunNumber);
+
+    while (neutrinoTime <= fGeneratedTimeWindow[0] || neutrinoTime >=fGeneratedTimeWindow[1])
+    {
+      GenerateObservables(gEngine, gChan, gFlux, gSett, obs);
+      neutrinoTime = obs.time;
+    }
 
     // Generate MCParts from observables
     simb::MCParticle p1(0,obs.pdg1,"primary",-1,obs.mass1,1);
@@ -294,6 +301,7 @@ namespace hsngen
     set.boundariesX = fBoundariesX;
     set.boundariesY = fBoundariesY;
     set.boundariesZ = fBoundariesZ;
+    set.generatedTimeWindow = fGeneratedTimeWindow;
     return;
   }
 

@@ -54,7 +54,6 @@ namespace hsngen {
 		obs.yPos = (widthY)*flat() + set.boundariesY[0];
 		obs.zPos = (widthZ)*flat() + set.boundariesZ[0];
 		obs.time = globalTimeOffset + randomTimeOffset + sterileDelay;
-
 		return;
 	} // END Function GenerateObservables
 

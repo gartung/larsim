@@ -40,6 +40,8 @@ physics:
       BoundariesX:        [10,246.35]
       BoundariesY:        [-105.53,107.47]
       BoundariesZ:        [10.1,1026.8]
+      GeneratedTimeWindow:  [0,1e10] # Useful if you want to generate HSN in a specific time window, by default every possible timing
+      # GeneratedTimeWindow:  [4725,1e10] # 3125+1600, generate only at the end of Beam window (HSNtrigger only)
     }
 
     rns: { module_type: "RandomNumberSaver" }
