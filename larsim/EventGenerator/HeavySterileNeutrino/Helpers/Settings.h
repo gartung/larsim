@@ -14,6 +14,7 @@ namespace hsngen {
 		std::vector<double> boundariesX;
 		std::vector<double> boundariesY;
 		std::vector<double> boundariesZ;
+    std::vector<double> generatedTimeWindow;
 	} Settings;
 
 } // END namespace hsngen
