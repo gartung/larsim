@@ -400,14 +400,6 @@ namespace evgen{
 
     //     std::cout << "add vector to the event " << truthcol->size() << std::endl;
     evt.put(std::move(truthcol));
- 
-    art::ServiceHandle<phot::PhotonVisibilityService> vis;
-
-    if(vis->IsBuildJob())
-      {
-	mf::LogVerbatim("LightSource") << "Light source : Stowing voxel params ";
-	vis->StoreLightProd(fCurrentVoxel,fN);
-      }
 
     if(fCurrentVoxel!=fLastVoxel) 
       {
