@@ -403,12 +403,6 @@ namespace evgen{
  
     art::ServiceHandle<phot::PhotonVisibilityService> vis;
 
-    if(vis->IsBuildJob())
-      {
-	mf::LogVerbatim("LightSource") << "Light source : Stowing voxel params ";
-	vis->StoreLightProd(fCurrentVoxel,fN);
-      }
-
     if(fCurrentVoxel!=fLastVoxel) 
       {
 	++fCurrentVoxel;
