@@ -50,7 +50,7 @@ namespace sim {
 		   int yN, 
 		   double zMin, 
 		   double zMax, 
-		   int z);
+		   int zN);
     PhotonVoxelDef();
     
   private:
