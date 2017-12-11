@@ -9,4 +9,16 @@ standard_photonlibraryanalyzer:
 
 microboone_photonlibraryanalyzer: @local::standard_photonlibraryanalyzer
 
+
+standard_createdenselibrary:
+{
+  module_type: "CreateDenseLibrary"
+
+  InputLabel: "largeant"
+  LibraryFile: "photon_library.root" # output file
+  UseLitePhotons: false
+  StoreReflected: false
+  StoreReflT0:    false
+}
+
 END_PROLOG
