@@ -136,10 +136,10 @@ namespace larg4 {
       if(MaterialTables[Material])
         PropertyPointer = MaterialTables[Material]->GetProperty("REFLECTIVITY");
 
-      if(Material=="Copper"){
-	std::cout<< "copper foil surface set "<<volume->GetName()<<std::endl;
+      if(Material=="Copper"  || Material=="Copper_Beryllium_alloy25"){
+	std::cout<< "copper/Copper_Beryllium_alloy25 surface set "<<volume->GetName()<<std::endl;
         if(PropertyPointer) {
-	  std::cout<< "defining Copper optical boundary "<<std::endl;
+	  std::cout<< "defining Copper/Copper_Beryllium_alloy25 optical boundary "<<std::endl;
           G4OpticalSurface* refl_opsurfc = new G4OpticalSurface("Surface copper",glisur,ground,dielectric_metal);
           refl_opsurfc->SetMaterialPropertiesTable(MaterialTables[Material]);
           refl_opsurfc->SetPolish(0.2);
