@@ -14,8 +14,8 @@ standard_createdenselibrary:
 {
   module_type: "CreateDenseLibrary"
 
-  InputLabel: "largeant"
-  LibraryFile: "photon_library.root" # output file
+  GeneratorLabel: "generator"
+  GeantLabel: "largeant"
   UseLitePhotons: false
   StoreReflected: false
   StoreReflT0:    false

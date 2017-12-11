@@ -41,8 +41,9 @@ namespace opdet
 
     phot::PhotonLibrary* fLib;
 
-    std::string fInputModule;
-    std::string fLibraryFile;
+    std::string fGeneratorLabel;
+    std::string fGeantLabel;
+
     bool fUseLitePhotons;
     bool fStoreReflected;
     bool fStoreReflT0;
@@ -52,8 +53,8 @@ namespace opdet
   CreateDenseLibrary::CreateDenseLibrary(const fhicl::ParameterSet& pset)
     : EDAnalyzer(pset),
       fLib(0),
-      fInputModule(pset.get<std::string>("InputModule")),
-      fLibraryFile(pset.get<std::string>("LibraryFile")),
+      fGeneratorLabel(pset.get<std::string>("GeneratorLabel")),
+      fGeantLabel(pset.get<std::string>("GeantLabel")),
       fUseLitePhotons(pset.get<bool>("UseLitePhotons")),
       fStoreReflected(pset.get<bool>("StoreReflected")),
       fStoreReflT0(pset.get<bool>("StoreReflT0"))
@@ -65,10 +66,12 @@ namespace opdet
                              pvs->NOpChannels(),
                              fStoreReflected, fStoreReflT0);
 
-    // Initialize all the t0s to large numbers
-    for(int vox = 0; vox < pvs->GetVoxelDef().GetNVoxels(); ++vox){
-      for(unsigned int opchan = 0; opchan < pvs->NOpChannels(); ++opchan){
-        fLib->SetReflT0(vox, opchan, 999);
+    if(fStoreReflT0){
+      // Initialize all the t0s to large numbers
+      for(int vox = 0; vox < pvs->GetVoxelDef().GetNVoxels(); ++vox){
+        for(unsigned int opchan = 0; opchan < pvs->NOpChannels(); ++opchan){
+          fLib->SetReflT0(vox, opchan, 999);
+        }
       }
     }
   }
@@ -97,7 +100,7 @@ namespace opdet
       } // end for opchan
     } // end for vox
 
-    fLib->StoreLibraryToFile(fLibraryFile, fStoreReflected, fStoreReflT0);
+    fLib->StoreLibraryToFile(fStoreReflected, fStoreReflT0);
   }
 
   //------------------------------------------------------------
@@ -128,7 +131,7 @@ namespace opdet
     // Figure out which voxel the light in this event (from LightSource) was
     // generated in.
     art::Handle<std::vector<simb::MCTruth>> truthcol;
-    evt.getByLabel(fInputModule, truthcol);
+    evt.getByLabel(fGeneratorLabel, truthcol);
     assert(truthcol->size() == 1);
     const TVector3 pt = (*truthcol)[0].GetParticle(0).Position().Vect();
     const int vox = pvs->GetVoxelDef().GetVoxelID(pt);
@@ -138,7 +141,7 @@ namespace opdet
 
     if(fUseLitePhotons){
       art::Handle<std::vector<sim::SimPhotonsLite>> photcol;
-      evt.getByLabel(fInputModule, photcol);
+      evt.getByLabel(fGeantLabel, photcol);
 
       const double wavelength = 128; // nm
 
@@ -154,7 +157,7 @@ namespace opdet
       } // end for phots
     } // end if lite
     else{ // otherwise use the full photons
-      sim::SimPhotonsCollection hitcol = sim::SimListUtils::GetSimPhotonsCollection(evt, fInputModule);
+      sim::SimPhotonsCollection hitcol = sim::SimListUtils::GetSimPhotonsCollection(evt, fGeantLabel);
 
       for(auto it: hitcol){
         const int opchan = it.first;

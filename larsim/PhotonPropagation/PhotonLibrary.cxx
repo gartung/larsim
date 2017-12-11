@@ -39,10 +39,8 @@ namespace phot{
   
   //------------------------------------------------------------
   
-  void PhotonLibrary::StoreLibraryToFile(std::string LibraryFile, bool storeReflected, bool storeReflT0)
+  void PhotonLibrary::StoreLibraryToFile(bool storeReflected, bool storeReflT0)
   {
-    mf::LogInfo("PhotonLibrary") << "Writing photon library to input file: " << LibraryFile.c_str()<<std::endl;
-
     art::ServiceHandle<art::TFileService> tfs;
 
     TTree *tt = tfs->make<TTree>("PhotonLibraryData","PhotonLibraryData");

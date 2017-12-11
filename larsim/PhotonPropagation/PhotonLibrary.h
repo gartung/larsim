@@ -40,7 +40,7 @@ namespace phot{
     bool hasReflectedT0() const { return fHasReflectedT0; }
 
     
-    void StoreLibraryToFile(std::string LibraryFile, bool storeReflected=false, bool storeReflT0=false);
+    void StoreLibraryToFile(bool storeReflected=false, bool storeReflT0=false);
     void LoadLibraryFromFile(std::string LibraryFile, size_t NVoxels, bool storeReflected=false, bool storeReflT0=false);
     void CreateEmptyLibrary(size_t NVoxels, size_t NChannels, bool storeReflected=false, bool storeReflT0=false);
     

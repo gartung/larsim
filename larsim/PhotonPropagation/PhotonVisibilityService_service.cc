@@ -86,8 +86,6 @@ namespace phot{
 
         size_t NOpDets = geom->NOpDets();
         size_t NVoxels = GetVoxelDef().GetNVoxels();
-	mf::LogInfo("PhotonVisibilityService") << " Vis service running library build job.  Please ensure " 
-					       << " job contains LightSource, LArG4, SimPhotonCounter"<<std::endl;
 	fTheLibrary->CreateEmptyLibrary(NVoxels, NOpDets, fStoreReflected, fStoreReflT0);
       }
     }
