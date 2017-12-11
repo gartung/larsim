@@ -36,8 +36,6 @@ namespace phot{
 
   //--------------------------------------------------------------------
   PhotonVisibilityService::PhotonVisibilityService(fhicl::ParameterSet const& pset, art::ActivityRegistry &/*reg*/) :
-    fCurrentVoxel(0),
-    fCurrentValue(0.),
     fXmin(0.),
     fXmax(0.),
     fYmin(0.),
@@ -48,7 +46,6 @@ namespace phot{
     fNy(0),
     fNz(0),
     fUseCryoBoundary(false),
-    fLibraryBuildJob(false),
     fDoNotLoadLibrary(false),
     fParameterization(false),
     fStoreReflected(false),
@@ -69,7 +66,7 @@ namespace phot{
       fTheLibrary = new PhotonLibrary();
 
 
-      if((!fLibraryBuildJob)&&(!fDoNotLoadLibrary)) {
+      if(!fDoNotLoadLibrary) {
 	std::string LibraryFileWithPath;
 	cet::search_path sp("FW_SEARCH_PATH");
 
@@ -97,28 +94,12 @@ namespace phot{
   }
 
   //--------------------------------------------------------------------
-  void PhotonVisibilityService::StoreLibrary()
-  {
-    if(fTheLibrary == 0)
-      LoadLibrary();
-
-    if(fLibraryBuildJob )
-      {
-	mf::LogInfo("PhotonVisibilityService") << " Vis service "
-					       << " Storing Library entries to file..." <<std::endl;
-	fTheLibrary->StoreLibraryToFile(fLibraryFile, fStoreReflected, fStoreReflT0);
-      }
-  }
-  
-
-  //--------------------------------------------------------------------
   void PhotonVisibilityService::reconfigure(fhicl::ParameterSet const& p)
   {
 
     art::ServiceHandle<geo::Geometry> geom;
     
     // Library details
-    fLibraryBuildJob      = p.get< bool        >("LibraryBuildJob"     );
     fParameterization     = p.get< bool        >("DUNE10ktParameterization", false);
     fLibraryFile          = p.get< std::string >("LibraryFile"         );
     fDoNotLoadLibrary     = p.get< bool        >("DoNotLoadLibrary"    );
@@ -239,10 +220,6 @@ namespace phot{
 
 
       }
-
-
-    return;
-	
   }
 
 
@@ -299,42 +276,6 @@ namespace phot{
     return GetLibraryEntry(VoxID, OpChannel, wantReflected);
   }
 
-
-  //------------------------------------------------------
-
-  void PhotonVisibilityService::StoreLightProd(int VoxID, double N)
-  {
-    fCurrentVoxel = VoxID;
-    fCurrentValue = N;
-    mf::LogInfo("PhotonVisibilityService") << " PVS notes production of " << N << " photons at Vox " << VoxID<<std::endl; 
-  }
-
-
-  //------------------------------------------------------
-
-  
-  void PhotonVisibilityService::RetrieveLightProd(int& VoxID, double& N) const
-  {
-    N     = fCurrentValue;
-    VoxID = fCurrentVoxel;
-  }
-  
-  //------------------------------------------------------
-
-  void PhotonVisibilityService::SetLibraryEntry(int VoxID, int OpChannel, float N, bool wantReflected)
-  {
-    if(fTheLibrary == 0)
-      LoadLibrary();
-    
-    if(!wantReflected) 
-      fTheLibrary->SetCount(VoxID,OpChannel, N);
-    else 
-      fTheLibrary->SetReflCount(VoxID,OpChannel, N);
-    
-    //std::cout<< " PVS logging " << VoxID << " " << OpChannel<<std::endl;
-    mf::LogDebug("PhotonVisibilityService") << " PVS logging " << VoxID << " " << OpChannel<<std::endl;
-  }
-
   //------------------------------------------------------
 
   float const* PhotonVisibilityService::GetLibraryEntries(int VoxID, bool wantReflected) const
@@ -384,19 +325,6 @@ namespace phot{
 
   //------------------------------------------------------     
 
-  void PhotonVisibilityService::SetLibraryReflT0Entry(int VoxID, int OpChannel, float T0)
-  {
-
-    if(fTheLibrary == 0)
-      LoadLibrary();
-
-    fTheLibrary->SetReflT0(VoxID,OpChannel,T0);
-
-    mf::LogDebug("PhotonVisibilityService") << " PVS logging " << VoxID << " " << OpChannel<<std::endl;
-  }
-
-  //------------------------------------------------------      
-
   float PhotonVisibilityService::GetLibraryReflT0Entry(int VoxID, int Channel) const
   {
     if(fTheLibrary == 0)
@@ -443,10 +371,6 @@ namespace phot{
     t0_max = fT0_max;
     t0_break_point = fT0_break_point;
   }
-
-} // namespace
-
-namespace phot{
  
   DEFINE_ART_SERVICE(PhotonVisibilityService)
 

@@ -10,9 +10,7 @@ standard_photonvisibilityservice:
   UseCryoBoundary: true
 
   DoNotLoadLibrary: false
-	
-  LibraryBuildJob: false
- 		
+
   #LibraryFile: "PhotonPropagation/LibraryData/lib8984855.root"	 
   LibraryFile: "PhotonPropagation/LibraryData/uboone_photon_library_v4.root"
 
@@ -35,8 +33,6 @@ standard_photonvisibilityservice_buildlib:
   UseCryoBoundary: true
 
   DoNotLoadLibrary: true
-
-  LibraryBuildJob: true
  		
   LibraryFile: "PhotonPropagation/LibraryData/Not_A_Library.root"	 
  
@@ -61,8 +57,6 @@ standard_photonvisibilityservice_par:
   DUNE10ktParameterization: true
   DoNotLoadLibrary: true
 
-  LibraryBuildJob: false
-
   LibraryFile: "PhotonPropagation/LibraryData/Not_A_Library.root"
   XMin: -627
   XMax: -389
@@ -81,8 +75,6 @@ sbnd_timeparametrization_photonvisibilityservice:
   UseCryoBoundary: true
 
   DoNotLoadLibrary: false
-
-  LibraryBuildJob: false
 
   #LibraryFile: "PhotonPropagation/LibraryData/lib8984855.root"
   LibraryFile: "PhotonPropagation/LibraryData/uboone_photon_library_v4.root"
