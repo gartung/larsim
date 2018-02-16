@@ -7,7 +7,7 @@ fcldir  product_dir job
 fwdir   product_dir G4
 #
 product         version
-larevt		v06_16_03
+larevt		v06_16_04
 marley		v1_0_0a
 larsoft_data    v1_02_00
 
