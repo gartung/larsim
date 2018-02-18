@@ -63,6 +63,9 @@ namespace sim {
     const std::vector<std::vector<std::vector<double>>> OpticalParamParameters() const{return fOpticalParamParameters;  }
     bool UseLitePhotons()                                     const { return fLitePhotons;            }
 
+    bool   FillSimEnergyDeposits()                            const { return fFillSimEnergyDeposits;  }
+    size_t InitialSimEnergyDepositSize()                      const { return fInitialSimEnergyDepositSize; }
+
   private:
     int                      fOpVerbosity;           ///< Verbosity of optical simulation - soon to be depricated
     double                   fParticleKineticECut;   ///< Minimum energy a particle needs before asking Geant4 
@@ -104,6 +107,9 @@ namespace sim {
                                                                              ///< paramaterized volumes
  
     bool fLitePhotons;
+
+    bool   fFillSimEnergyDeposits;          ///< handle to fill SimEdeps or not
+    size_t fInitialSimEnergyDepositSize;    ///< reserve size for the edep collection in LArG4
   };
 }
 
