@@ -103,6 +103,10 @@
 // ROOT Includes
 #include "TGeoManager.h"
 
+//For energy depositions
+#include "lardataobj/Simulation/SimEnergyDeposit.h"
+
+
 // Forward declarations
 class G4RunManager;
 class G4UImanager;
@@ -352,6 +356,11 @@ namespace larg4 {
       produces< std::vector<sim::OpDetBacktrackerRecord>   >();
     }
 
+    if(lgp->FillSimEnergyDeposits()){
+      produces < std::vector<sim::SimEnergyDeposit> >();
+      //produces< art::Assns<simb::MCParticle,sim::SimEnergyDeposit> >()
+    }
+
     produces< std::vector<simb::MCParticle> >();
     produces< std::vector<sim::SimChannel>  >();
     produces< std::vector<sim::AuxDetSimChannel> >();
@@ -535,6 +544,9 @@ namespace larg4 {
     
     art::PtrMaker<simb::MCParticle> makeMCPartPtr(evt, *this);
 
+    //for energy deposits
+    std::unique_ptr< std::vector<sim::SimEnergyDeposit> > edepCol (new std::vector<sim::SimEnergyDeposit>);
+    //std::unique_ptr< art::Assns<simb::MCParticle,sim::SimEnergyDeposit> > edepassn (new art::Assns<simb::MCParticle,sim::SimEnergyDeposit>);
 
     // Fetch the lists of LAr voxels and particles.
     art::ServiceHandle<sim::LArG4Parameters> lgp;
@@ -696,6 +708,12 @@ namespace larg4 {
                                         << "' is not a LArVoxelReadout object\n";
         }
 
+	if(lgp->FillSimEnergyDeposits())
+	  edepCol->insert(edepCol->end(),
+			  larVoxelReadout->GetSimEDepCollection().begin(),
+			  larVoxelReadout->GetSimEDepCollection().end());
+
+
         LArVoxelReadout::ChannelMap_t& channels = larVoxelReadout->GetSimChannelMap(c, t);
         if (!channels.empty()) {
           LOG_DEBUG("LArG4") << "now put " << channels.size() << " SimChannels"
@@ -739,9 +757,11 @@ namespace larg4 {
       } // end loop over tpcs
     }// end loop over cryostats
 
-    for (LArVoxelReadout* larVoxelReadout: ReadoutList)
+    for (LArVoxelReadout* larVoxelReadout: ReadoutList){
       larVoxelReadout->ClearSimChannels();
-    
+      if(lgp->FillSimEnergyDeposits())
+	larVoxelReadout->ClearSimEnergyDeposits();
+    }
     
     // only put the sim::AuxDetSimChannels into the event once, not once for every
     // MCTruth in the event
@@ -804,6 +824,9 @@ namespace larg4 {
       evt.put(std::move(cOpDetBacktrackerRecordCol));
     }
     evt.put(std::move(tpassn));
+
+    if(lgp->FillSimEnergyDeposits())
+      evt.put(std::move(edepCol));
 
     return;
   } // LArG4::produce()
