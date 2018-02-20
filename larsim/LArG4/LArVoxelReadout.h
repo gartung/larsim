@@ -348,7 +348,7 @@ namespace larg4 {
     G4ThreeVector                             fStepEnd;
     std::vector<sim::SimEnergyDeposit>        fSimEDepCol;    
     bool                                      fFillSimEDeps;
-
+    size_t fNSteps;
   };
 
 }
