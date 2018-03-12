@@ -24,13 +24,15 @@
 namespace cheat{
 
   ParticleInventory::ParticleInventory(const ParticleInventoryConfig& config )
-  :fG4ModuleLabel(config.G4ModuleLabel())
+  :fG4ModuleLabel(config.G4ModuleLabel()),
+   fIgnoreData(config.ignoreIsRealData)
   {
   }
 
   //----------------------------------------------------------------------
   ParticleInventory::ParticleInventory(const fhicl::ParameterSet& pSet )
-  :fG4ModuleLabel(pSet.get<art::InputTag>("G4ModuleLabel", "largeant"))
+  :fG4ModuleLabel(pSet.get<art::InputTag>("G4ModuleLabel", "largeant")),
+   fIgnoreData(pSet.get<bool>("OverrideRealData", true)
   {
   }
 

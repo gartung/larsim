@@ -183,6 +183,11 @@ namespace cheat{
           fhicl::Name("G4ModuleLabel"), 
           fhicl::Comment("The label of the LArG4 module used to produce the art file we will be examining"), 
           "largeant"};
+        fhicl::Atom<bool> ignoreIsRealData{
+          fhicl::Name("OverrideRealData"),
+          fhicl::Comment("Tell the ParticleInventory to run even though a file contains real data. This is used for MCOverLays."),
+          false};
+        };
       };
 
       //using provider_type = ParticleInventory;
@@ -259,6 +264,7 @@ namespace cheat{
       mutable MCTObjects fMCTObj;  
       //For fhicl validation, makea config struct
       art::InputTag fG4ModuleLabel;
+      bool fIgnoreData;
 
 
 

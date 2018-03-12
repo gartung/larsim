@@ -86,6 +86,7 @@ namespace cheat{
 
   template<typename Evt>
     bool ParticleInventory::CanRun(const Evt& evt) const{
+      if(fIgnoreData){ return true; }
       return !(evt.isRealData());
     }
 
