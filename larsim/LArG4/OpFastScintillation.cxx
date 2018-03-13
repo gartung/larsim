@@ -102,6 +102,7 @@
 #include "Geant4/G4EmProcessSubType.hh"
 #include "Geant4/Randomize.hh"
 #include "Geant4/G4Poisson.hh"
+#include "Geant4/G4VPhysicalVolume.hh"
 
 #include "larsim/LArG4/ParticleListAction.h"
 #include "larsim/LArG4/IonizationAndScintillation.h"
@@ -109,6 +110,7 @@
 #include "larsim/PhotonPropagation/PhotonVisibilityService.h"
 #include "larsim/LArG4/OpDetPhotonTable.h"
 #include "lardataobj/Simulation/SimPhotons.h"
+#include "lardataobj/Simulation/SimEnergyDeposit.h"
 #include "lardataobj/Simulation/OpDetBacktrackerRecord.h"
 #include "larsim/Simulation/LArG4Parameters.h"
 #include "larcore/Geometry/Geometry.h"
@@ -125,6 +127,7 @@
 
 #include "TRandom3.h"
 #include "TMath.h"
+#include "boost/algorithm/string.hpp"
 
 namespace larg4{
 
@@ -348,7 +351,24 @@ OpFastScintillation::PostStepDoIt(const G4Track& aTrack, const G4Step& aStep)
   void OpFastScintillation::ProcessStep( const G4Step& step)
   {
     if(step.GetTotalEnergyDeposit() <= 0) return;
-
+    
+    std::cout << "\tProcessing opfast step " 
+	      << OpDetPhotonTable::Instance()->GetSimEnergyDeposits().size() 
+	      << " trackID=" << step.GetTrack()->GetTrackID()
+	      << " pdgCode=" << step.GetTrack()->GetParticleDefinition()->GetPDGEncoding()
+	      << " energy=" << (step.GetTotalEnergyDeposit()/CLHEP::MeV)
+	      << " (x,y,z)=("
+	      << (float)(step.GetPreStepPoint()->GetPosition().x()/CLHEP::cm) << ","
+	      << (float)(step.GetPreStepPoint()->GetPosition().y()/CLHEP::cm) << ","
+	      << (float)(step.GetPreStepPoint()->GetPosition().z()/CLHEP::cm)
+	      << ")"
+	      << std::endl;
+    if(step.GetPreStepPoint()->GetPhysicalVolume()){
+      std::cout << "\t In volume" << step.GetPreStepPoint()->GetPhysicalVolume()->GetName() 
+		<< " active?" << boost::contains(step.GetPreStepPoint()->GetPhysicalVolume()->GetName(),"TPCActive")
+		<< std::endl;
+    }
+    
     OpDetPhotonTable::Instance()->AddEnergyDeposit
       (-1,
        -1,
@@ -362,7 +382,8 @@ OpFastScintillation::PostStepDoIt(const G4Track& aTrack, const G4Step& aStep)
        (double)(step.GetPreStepPoint()->GetGlobalTime()),
        (double)(step.GetPostStepPoint()->GetGlobalTime()),
        step.GetTrack()->GetTrackID(),
-       step.GetTrack()->GetParticleDefinition()->GetPDGEncoding()
+       step.GetTrack()->GetParticleDefinition()->GetPDGEncoding(),
+       step.GetPreStepPoint()->GetPhysicalVolume()->GetName()
        );
   }
   
@@ -380,9 +401,6 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
   art::ServiceHandle<sim::LArG4Parameters> lgp;
 
   const G4Track * aTrack = aStep.GetTrack();
-
-  if(lgp->FillSimEnergyDeposits())
-    ProcessStep(aStep);
 
   G4StepPoint* pPreStepPoint  = aStep.GetPreStepPoint();
   G4StepPoint* pPostStepPoint = aStep.GetPostStepPoint();
@@ -415,6 +433,8 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
   if (!Fast_Intensity && !Slow_Intensity )
     return 1;
   
+  if(lgp->FillSimEnergyDeposits())
+    ProcessStep(aStep);
   
   G4int nscnt = 1;
   if (Fast_Intensity && Slow_Intensity) nscnt = 2;
@@ -565,7 +585,7 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
 	  ScintillationIntegral =
 	    (G4PhysicsOrderedFreeVector*)((*theSlowIntegralTable)(materialIndex));
 	}
-      }
+      }//endif nscnt=1
       else {
 	if(YieldRatio==0) 
 	  YieldRatio = aMaterialPropertiesTable->
@@ -586,8 +606,8 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
 	}
 	ScintillationIntegral =
 	  (G4PhysicsOrderedFreeVector*)((*theFastIntegralTable)(materialIndex));
-      }
-    }
+      }//endif nscnt!=1
+    }//end scnt=1
     
     else {
       Num = MeanNumberOfPhotons - Num;
@@ -624,226 +644,228 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
     }else{
       std::map<int, int> DetectedNum;
       std::map<int, int> ReflDetectedNum;
-	    for(size_t OpDet=0; OpDet!=NOpChannels; OpDet++)
-      {
-    		G4int DetThisPMT = G4int(G4Poisson(Visibilities[OpDet] * Num));
-
-    		if(DetThisPMT>0) 
-        {
-		      DetectedNum[OpDet]=DetThisPMT;
-		      //   mf::LogInfo("OpFastScintillation") << "FastScint: " <<
-		      //   //   it->second<<" " << Num << " " << DetThisPMT;  
-
-		      //det_photon_ctr += DetThisPMT; // CASE-DEBUG DO NOT REMOVE THIS COMMENT
-        }
-		if(pvs->StoreReflected()) {
-		  G4int ReflDetThisPMT = G4int(G4Poisson(ReflVisibilities[OpDet] * Num));
-		  if(ReflDetThisPMT>0)
-		    {
-		      ReflDetectedNum[OpDet]=ReflDetThisPMT;
-		    }
-                }	
-      }
-	    // Now we run through each PMT figuring out num of detected photons
-	
+      for(size_t OpDet=0; OpDet!=NOpChannels; OpDet++)
+	{
+	  G4int DetThisPMT = G4int(G4Poisson(Visibilities[OpDet] * Num));
+	  std::cout << "\t\tHave " << DetThisPMT << " photons (" 
+		    << Visibilities[OpDet] << "*" << Num << " from " << MeanNumberOfPhotons << ")"
+		    << " for opdet " << OpDet << std::endl;
+	  if(DetThisPMT>0) 
+	    {
+	      DetectedNum[OpDet]=DetThisPMT;
+	      //   mf::LogInfo("OpFastScintillation") << "FastScint: " <<
+	      //   //   it->second<<" " << Num << " " << DetThisPMT;  
+	      
+	      //det_photon_ctr += DetThisPMT; // CASE-DEBUG DO NOT REMOVE THIS COMMENT
+	    }
+	  if(pvs->StoreReflected()) {
+	    G4int ReflDetThisPMT = G4int(G4Poisson(ReflVisibilities[OpDet] * Num));
+	    if(ReflDetThisPMT>0)
+	      {
+		ReflDetectedNum[OpDet]=ReflDetThisPMT;
+	      }
+	  }      
+	}
+      // Now we run through each PMT figuring out num of detected photons
+      
       if(lgp->UseLitePhotons())
-      {
-        std::map<int, std::map<int, int>> StepPhotonTable;
-        // And then add these to the total collection for the event     
-        for(std::map<int,int>::const_iterator itdetphot = DetectedNum.begin();
-                itdetphot!=DetectedNum.end(); ++itdetphot)
-        {
-          std::map<int, int>  StepPhotons;
-          for (G4int i = 0; i < itdetphot->second; ++i)
-          {
-            G4double deltaTime = aStep.GetStepLength() /
-                ((pPreStepPoint->GetVelocity()+ pPostStepPoint->GetVelocity())/2.);
-
-
-            if (ScintillationRiseTime==0.0) {
-                deltaTime = deltaTime -
-                    ScintillationTime * std::log( G4UniformRand() );
-            } else {
-                deltaTime = deltaTime +
-                    sample_time(ScintillationRiseTime, ScintillationTime);
-            }
-
-            G4double aSecondaryTime = t0 + deltaTime;
-            float Time = aSecondaryTime;
-            int ticks = static_cast<int>(Time);
-            StepPhotons[ticks]++;
-          }
-         StepPhotonTable[itdetphot->first] = StepPhotons;
-         //Iterate over Step Photon Table to add photons to OpDetBacktrackerRecords.
-
-         sim::OpDetBacktrackerRecord tmpOpDetBTRecord(itdetphot->first);
-         //int thisG4TrackID = (aStep.GetTrack())->GetTrackID();
-         int thisG4TrackID = ParticleListAction::GetCurrentTrackID();
-         CLHEP::Hep3Vector prePoint  = (aStep.GetPreStepPoint())->GetPosition();
-         CLHEP::Hep3Vector postPoint = (aStep.GetPostStepPoint())->GetPosition();
-         //Note the use of xO (letter O) instead of x0. This is to differentiate the positions here with the earlier declared double* x0
-         double xO = ( ( (prePoint.getX() + postPoint.getX() ) / 2.0) / CLHEP::cm );
-         double yO = ( ( (prePoint.getY() + postPoint.getY() ) / 2.0) / CLHEP::cm );
-         double zO = ( ( (prePoint.getZ() + postPoint.getZ() ) / 2.0) / CLHEP::cm );
-         double const xyzPos[3] = {xO,yO,zO};
-         double energy  = ( aStep.GetTotalEnergyDeposit() / CLHEP::GeV );
-
-         //Loop over StepPhotons to get number of photons detected at each time for this channel and G4Step.
-         for(std::map<int,int>::iterator stepPhotonsIt = StepPhotons.begin(); stepPhotonsIt != StepPhotons.end(); ++stepPhotonsIt)
-         {
-           int photonTime = stepPhotonsIt->first;
-           int numPhotons = stepPhotonsIt->second;
-           tmpOpDetBTRecord.AddScintillationPhotons(thisG4TrackID, photonTime, numPhotons, xyzPos, energy);
-         }
-         //Add OpDetBackTrackerRecord. (opdetphotonTABLE->instance().addOpDetBacktrackerRecord(sim::OpDetBacktrackerRecord BTRrecord)
-         litefst->AddOpDetBacktrackerRecord(tmpOpDetBTRecord);
-        }
-        litefst->AddPhoton(&StepPhotonTable);
-      }
+	{
+	  std::map<int, std::map<int, int>> StepPhotonTable;
+	  // And then add these to the total collection for the event     
+	  for(std::map<int,int>::const_iterator itdetphot = DetectedNum.begin();
+	      itdetphot!=DetectedNum.end(); ++itdetphot)
+	    {
+	      std::map<int, int>  StepPhotons;
+	      for (G4int i = 0; i < itdetphot->second; ++i)
+		{
+		  G4double deltaTime = aStep.GetStepLength() /
+		    ((pPreStepPoint->GetVelocity()+ pPostStepPoint->GetVelocity())/2.);
+		  
+		  
+		  if (ScintillationRiseTime==0.0) {
+		    deltaTime = deltaTime -
+		      ScintillationTime * std::log( G4UniformRand() );
+		  } else {
+		    deltaTime = deltaTime +
+		      sample_time(ScintillationRiseTime, ScintillationTime);
+		  }
+		  
+		  G4double aSecondaryTime = t0 + deltaTime;
+		  float Time = aSecondaryTime;
+		  int ticks = static_cast<int>(Time);
+		  StepPhotons[ticks]++;
+		}
+	      StepPhotonTable[itdetphot->first] = StepPhotons;
+	      //Iterate over Step Photon Table to add photons to OpDetBacktrackerRecords.
+	      
+	      sim::OpDetBacktrackerRecord tmpOpDetBTRecord(itdetphot->first);
+	      //int thisG4TrackID = (aStep.GetTrack())->GetTrackID();
+	      int thisG4TrackID = ParticleListAction::GetCurrentTrackID();
+	      CLHEP::Hep3Vector prePoint  = (aStep.GetPreStepPoint())->GetPosition();
+	      CLHEP::Hep3Vector postPoint = (aStep.GetPostStepPoint())->GetPosition();
+	      //Note the use of xO (letter O) instead of x0. This is to differentiate the positions here with the earlier declared double* x0
+	      double xO = ( ( (prePoint.getX() + postPoint.getX() ) / 2.0) / CLHEP::cm );
+	      double yO = ( ( (prePoint.getY() + postPoint.getY() ) / 2.0) / CLHEP::cm );
+	      double zO = ( ( (prePoint.getZ() + postPoint.getZ() ) / 2.0) / CLHEP::cm );
+	      double const xyzPos[3] = {xO,yO,zO};
+	      double energy  = ( aStep.GetTotalEnergyDeposit() / CLHEP::GeV );
+	      
+	      //Loop over StepPhotons to get number of photons detected at each time for this channel and G4Step.
+	      for(std::map<int,int>::iterator stepPhotonsIt = StepPhotons.begin(); stepPhotonsIt != StepPhotons.end(); ++stepPhotonsIt)
+		{
+		  int photonTime = stepPhotonsIt->first;
+		  int numPhotons = stepPhotonsIt->second;
+		  tmpOpDetBTRecord.AddScintillationPhotons(thisG4TrackID, photonTime, numPhotons, xyzPos, energy);
+		}
+	      //Add OpDetBackTrackerRecord. (opdetphotonTABLE->instance().addOpDetBacktrackerRecord(sim::OpDetBacktrackerRecord BTRrecord)
+	      litefst->AddOpDetBacktrackerRecord(tmpOpDetBTRecord);
+	    }
+	  litefst->AddPhoton(&StepPhotonTable);
+	}
       else
-       {
-	 // We need to know the positions of the different optical detectors                                                      
-	 art::ServiceHandle<geo::Geometry> geo;
-	 // And then add these to the total collection for the event	    
-	 for(std::map<int,int>::const_iterator itdetphot = DetectedNum.begin();
-	     itdetphot!=DetectedNum.end(); ++itdetphot)
-	   {
-	     G4double propagation_time = 0;
-	     std::vector<double> arrival_time_dist_vuv;
-	     if(pvs->IncludePropTime()) {
-	       // Get VUV photons arrival time distribution from the parametrization 
-	       double OpDetCenter[3];
-	       geo->OpDetGeoFromOpDet(itdetphot->first).GetCenter(OpDetCenter);
-	       G4ThreeVector OpDetPoint(OpDetCenter[0]*CLHEP::cm,OpDetCenter[1]*CLHEP::cm,OpDetCenter[2]*CLHEP::cm);
-	       double distance_in_cm = (x0 - OpDetPoint).mag()/CLHEP::cm; // this must be in CENTIMETERS! 
-	       arrival_time_dist_vuv = GetVUVTime(distance_in_cm, itdetphot->second);//in ns
-	       if(!(arrival_time_dist_vuv.size()>0)) {
-		 //G4cout<<"Number of VUV detected photons = "<<itdetphot->second<<" ... too small, => No photons simulated!"<<G4endl;
-		 continue;
-	       }
-	     }
-	     
-	        for (G4int i = 0; i < itdetphot->second; ++i) 
-          {
-            G4double deltaTime = aStep.GetStepLength() /
-                ((pPreStepPoint->GetVelocity()+
-                  pPostStepPoint->GetVelocity())/2.);
-		
-            if (ScintillationRiseTime==0.0) 
-            {
-                deltaTime = deltaTime - 
-                    ScintillationTime * std::log( G4UniformRand() );
-            } 
-            else 
-            {
-              deltaTime = deltaTime +
-                  sample_time(ScintillationRiseTime, ScintillationTime);
-            }		
-		
-            G4double aSecondaryTime = t0 + deltaTime;
-	    if(pvs->IncludePropTime())
-	      propagation_time = arrival_time_dist_vuv.at(i)*CLHEP::ns;
-	
-            // The sim photon in this case stores its production point and time
-            TVector3 PhotonPosition(x0[0],x0[1],x0[2]);
-		
-            // We don't know anything about the momentum dir, so set it to be Z		
-            float Energy = 9.7*CLHEP::eV;
-            float Time = aSecondaryTime;
-	    if(pvs->IncludePropTime())
-	      Time += propagation_time;
-	    
-            // Make a photon object for the collection
-	    sim::OnePhoton PhotToAdd;
-            PhotToAdd.InitialPosition  = PhotonPosition;
-            PhotToAdd.Energy           = Energy;
-            PhotToAdd.Time             = Time;
-            PhotToAdd.SetInSD          = false;
-	    PhotToAdd.MotherTrackID    = tracknumber;
+	{
+	  // We need to know the positions of the different optical detectors                                                      
+	  art::ServiceHandle<geo::Geometry> geo;
+	  // And then add these to the total collection for the event	    
+	  for(std::map<int,int>::const_iterator itdetphot = DetectedNum.begin();
+	      itdetphot!=DetectedNum.end(); ++itdetphot)
+	    {
+	      G4double propagation_time = 0;
+	      std::vector<double> arrival_time_dist_vuv;
+	      if(pvs->IncludePropTime()) {
+		// Get VUV photons arrival time distribution from the parametrization 
+		double OpDetCenter[3];
+		geo->OpDetGeoFromOpDet(itdetphot->first).GetCenter(OpDetCenter);
+		G4ThreeVector OpDetPoint(OpDetCenter[0]*CLHEP::cm,OpDetCenter[1]*CLHEP::cm,OpDetCenter[2]*CLHEP::cm);
+		double distance_in_cm = (x0 - OpDetPoint).mag()/CLHEP::cm; // this must be in CENTIMETERS! 
+		arrival_time_dist_vuv = GetVUVTime(distance_in_cm, itdetphot->second);//in ns
+		if(!(arrival_time_dist_vuv.size()>0)) {
+		  //G4cout<<"Number of VUV detected photons = "<<itdetphot->second<<" ... too small, => No photons simulated!"<<G4endl;
+		  continue;
+		}
+	      }
+            
+	      for (G4int i = 0; i < itdetphot->second; ++i) 
+		{
+		  G4double deltaTime = aStep.GetStepLength() /
+		    ((pPreStepPoint->GetVelocity()+
+		      pPostStepPoint->GetVelocity())/2.);
+		  
+		  if (ScintillationRiseTime==0.0) 
+		    {
+		      deltaTime = deltaTime - 
+			ScintillationTime * std::log( G4UniformRand() );
+		    } 
+		  else 
+		    {
+		      deltaTime = deltaTime +
+			sample_time(ScintillationRiseTime, ScintillationTime);
+		    }		
+		  
+		  G4double aSecondaryTime = t0 + deltaTime;
+		  if(pvs->IncludePropTime())
+		    propagation_time = arrival_time_dist_vuv.at(i)*CLHEP::ns;
+		  
+		  // The sim photon in this case stores its production point and time
+		  TVector3 PhotonPosition(x0[0],x0[1],x0[2]);
+		  
+		  // We don't know anything about the momentum dir, so set it to be Z		
+		  float Energy = 9.7*CLHEP::eV;
+		  float Time = aSecondaryTime;
+		  if(pvs->IncludePropTime())
+		    Time += propagation_time;
+		  
+		  // Make a photon object for the collection
+		  sim::OnePhoton PhotToAdd;
+		  PhotToAdd.InitialPosition  = PhotonPosition;
+		  PhotToAdd.Energy           = Energy;
+		  PhotToAdd.Time             = Time;
+		  PhotToAdd.SetInSD          = false;
+		  PhotToAdd.MotherTrackID    = tracknumber;
 
-            fst->AddPhoton(itdetphot->first, std::move(PhotToAdd));
-          }
-        }
-	 // repeat the same for the reflected light, in case it has been sored
-	 if(pvs->StoreReflected())
-	   {
-	     for(std::map<int,int>::const_iterator itdetphot = ReflDetectedNum.begin();
-		 itdetphot!=ReflDetectedNum.end(); ++itdetphot)
-	       {
-		 G4double propagation_time = 0;
-		 std::vector<double> arrival_time_dist_vis;
-		 if(pvs->IncludePropTime()) {
-		   // Get Visible photons arrival time distribution from the parametrization
-		   double OpDetCenter[3];
-		   geo->OpDetGeoFromOpDet(itdetphot->first).GetCenter(OpDetCenter);
-		   G4ThreeVector OpDetPoint(OpDetCenter[0]*CLHEP::cm,OpDetCenter[1]*CLHEP::cm,OpDetCenter[2]*CLHEP::cm);
-		   // currently unused:
-		 //  double distance_in_cm = (x0 - OpDetPoint).mag()/CLHEP::cm; // this must be in CENTIMETERS!
-		   double t0_vis_lib = ReflT0s[itdetphot->first];		   
-		   arrival_time_dist_vis = GetVisibleTimeOnlyCathode(t0_vis_lib, itdetphot->second);
-		   if(!(arrival_time_dist_vis.size()>0)) {
-		     //G4cout<<"Number of Visible detected photons = "<<itdetphot->second<<" ... too small, => No photons simulated!"<<G4endl; 
-		     continue;
-		   }
-		 }
-		 for (G4int i = 0; i < itdetphot->second; ++i)
-		   {
-		     G4double deltaTime = aStep.GetStepLength() /
-		       ((pPreStepPoint->GetVelocity()+
-			 pPostStepPoint->GetVelocity())/2.);
+		  fst->AddPhoton(itdetphot->first, std::move(PhotToAdd));
+		}
+	    }
+	  // repeat the same for the reflected light, in case it has been sored
+	  if(pvs->StoreReflected())
+	    {
+	      for(std::map<int,int>::const_iterator itdetphot = ReflDetectedNum.begin();
+		  itdetphot!=ReflDetectedNum.end(); ++itdetphot)
+		{
+		  G4double propagation_time = 0;
+		  std::vector<double> arrival_time_dist_vis;
+		  if(pvs->IncludePropTime()) {
+		    // Get Visible photons arrival time distribution from the parametrization
+		    double OpDetCenter[3];
+		    geo->OpDetGeoFromOpDet(itdetphot->first).GetCenter(OpDetCenter);
+		    G4ThreeVector OpDetPoint(OpDetCenter[0]*CLHEP::cm,OpDetCenter[1]*CLHEP::cm,OpDetCenter[2]*CLHEP::cm);
+		    // currently unused:
+		    //  double distance_in_cm = (x0 - OpDetPoint).mag()/CLHEP::cm; // this must be in CENTIMETERS!
+		    double t0_vis_lib = ReflT0s[itdetphot->first];                  
+		    arrival_time_dist_vis = GetVisibleTimeOnlyCathode(t0_vis_lib, itdetphot->second);
+		    if(!(arrival_time_dist_vis.size()>0)) {
+		      //G4cout<<"Number of Visible detected photons = "<<itdetphot->second<<" ... too small, => No photons simulated!"<<G4endl; 
+		      continue;
+		    }
+		  }
+		  for (G4int i = 0; i < itdetphot->second; ++i)
+		    {
+		      G4double deltaTime = aStep.GetStepLength() /
+			((pPreStepPoint->GetVelocity()+
+			  pPostStepPoint->GetVelocity())/2.);
 
-		     if (ScintillationRiseTime==0.0)
-		       {
-                deltaTime = deltaTime -
-		  ScintillationTime * std::log( G4UniformRand() );
-		       }
-		     else
-		       {
-              deltaTime = deltaTime +
-		sample_time(ScintillationRiseTime, ScintillationTime);
-		       }
-		     G4double aSecondaryTime = t0 + deltaTime;
-		     if(pvs->IncludePropTime())		   
-		       propagation_time = arrival_time_dist_vis.at(i)*CLHEP::ns;
+		      if (ScintillationRiseTime==0.0)
+			{
+			  deltaTime = deltaTime -
+			    ScintillationTime * std::log( G4UniformRand() );
+			}
+		      else
+			{
+			  deltaTime = deltaTime +
+			    sample_time(ScintillationRiseTime, ScintillationTime);
+			}
+		      G4double aSecondaryTime = t0 + deltaTime;
+		      if(pvs->IncludePropTime())            
+			propagation_time = arrival_time_dist_vis.at(i)*CLHEP::ns;
 
-		     TVector3 PhotonPosition(x0[0],x0[1],x0[2]);
+		      TVector3 PhotonPosition(x0[0],x0[1],x0[2]);
+		      
+		      // We don't know anything about the momentum dir, so set it to be Z           
+		      std::map<double,double> tpbemission=lar::providerFrom<detinfo::LArPropertiesService>()->TpbEm();
+		      const int nbins=tpbemission.size();
 
-		     // We don't know anything about the momentum dir, so set it to be Z                                                                     
-		     std::map<double,double> tpbemission=lar::providerFrom<detinfo::LArPropertiesService>()->TpbEm();
-		     const int nbins=tpbemission.size();
+		      double * parent=new double[nbins];
 
-		     double * parent=new double[nbins];
+		      int ii=0;
+		      for( std::map<double, double>::iterator iter = tpbemission.begin(); iter != tpbemission.end(); ++iter)
+			{ parent[ii++]=(*iter).second;
+			}
 
-		     int ii=0;
-		     for( std::map<double, double>::iterator iter = tpbemission.begin(); iter != tpbemission.end(); ++iter)
-		       { parent[ii++]=(*iter).second;
-		       }
+		      CLHEP::RandGeneral rgen0(parent,nbins);
 
-		     CLHEP::RandGeneral rgen0(parent,nbins);
+		      double energy_reemited = rgen0.fire()*((*(--tpbemission.end())).first-(*tpbemission.begin()).first)+(*tpbemission.begin()).first;
 
-		     double energy_reemited = rgen0.fire()*((*(--tpbemission.end())).first-(*tpbemission.begin()).first)+(*tpbemission.begin()).first;
+		      float Energy = energy_reemited*CLHEP::eV;
+		      float Time = aSecondaryTime;
+		      if(pvs->IncludePropTime())
+			Time += propagation_time;
 
-		     float Energy = energy_reemited*CLHEP::eV;
-		     float Time = aSecondaryTime;
-		     if(pvs->IncludePropTime())
-		       Time += propagation_time;
-
-		     // Make a photon object for the collection  
-		     sim::OnePhoton PhotToAdd;
-		     PhotToAdd.InitialPosition  = PhotonPosition;
-		     PhotToAdd.Energy           = Energy;
-		     PhotToAdd.Time             = Time;
-		     PhotToAdd.MotherTrackID    = tracknumber;
-		     PhotToAdd.SetInSD          = false;
-		     fst->AddPhoton(itdetphot->first, std::move(PhotToAdd));
-		     delete [] parent;
-		   }     
-	       }
-	   }
-      }
+		      // Make a photon object for the collection  
+		      sim::OnePhoton PhotToAdd;
+		      PhotToAdd.InitialPosition  = PhotonPosition;
+		      PhotToAdd.Energy           = Energy;
+		      PhotToAdd.Time             = Time;
+		      PhotToAdd.MotherTrackID    = tracknumber;
+		      PhotToAdd.SetInSD          = false;
+		      fst->AddPhoton(itdetphot->first, std::move(PhotToAdd));
+		      delete [] parent;
+		    }     
+		}//end for photons in opdet
+	    }//end if not lite photons
+	}
     }
   }
-
+  
   //std::cout<<gen_photon_ctr<<","<<det_photon_ctr<<std::endl; // CASE-DEBUG DO NOT REMOVE THIS COMMENT
   return 0;
   }
