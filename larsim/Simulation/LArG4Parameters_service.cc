@@ -59,8 +59,6 @@ namespace sim {
     fLitePhotons             = pset.get< bool                     >("UseLitePhotons"       );
 
     fFillSimEnergyDeposits       = pset.get< bool                 >("FillSimEnergyDeposits",false);
-    if(fFillSimEnergyDeposits)
-      fInitialSimEnergyDepositSize = pset.get< size_t               >("InitialSimEnergyDepositSize");
     fNoElectronPropagation   = pset.get< bool                     >("NoElectronPropagation",false);
     fNoPhotonPropagation     = pset.get< bool                     >("NoPhotonPropagation",false);
     
