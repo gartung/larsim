@@ -29,6 +29,7 @@
 #include "lardataobj/Simulation/sim.h"
 #include "lardataobj/Simulation/SimChannel.h"
 #include "larcore/Geometry/Geometry.h"
+#include "lardataobj/Simulation/EnergyDeposition.h"
 
 // ROOT includes
 #include "TH1.h"
@@ -68,7 +69,7 @@ namespace larg4 {
 
     std::string fG4ModuleLabel;     ///< module label for the Geant
     std::string fTruthModuleLabel;  ///< module label for the Geant
-
+    std::string fSimulationProducerLabel; 
 
     TH1D *fPDGCodes;
     TH1D *fPi0Momentum;
@@ -80,6 +81,7 @@ namespace larg4 {
     TH1D *fEventEnergy; ///< Energy collected per event
     TProfile *fChannelCharge; ///< Charge per channel.
     TProfile *fChannelEnergy; ///< Energy per channel.
+    TH1D *fDepositedEnergy; ///< Deposited energy per event 
     
     //    Int_t stringDim = 35;
 
@@ -156,7 +158,7 @@ namespace larg4 {
 				   100, 0, 2.5e8); 
     fEventEnergy = tfs->make<TH1D>("fEventEnergy", 
 				   "Energy in event;Total energy per event;# events",
-				   100, 0, 1e4); 
+				   10000, 0, 1e4); 
     fChannelCharge = tfs->make<TProfile>("fChannelCharge", 
 					 "Charge on channel;Channel;Total charge per channel",
 					 geo->Nchannels()+1,0,geo->Nchannels(),
@@ -165,6 +167,10 @@ namespace larg4 {
 					 "Energy on channel;Channel;Total energy per channel",
 					 geo->Nchannels()+1,0,geo->Nchannels(),
 					 0, 1e3); 
+
+    fDepositedEnergy = tfs->make<TH1D>("fDepositedEnergy",
+				       "Deposited energy in event;Deposited energy per event;# events",
+				       10000, 0, 1e4);
 
 
     fT4Origin = new Float_t[4];
@@ -361,6 +367,29 @@ namespace larg4 {
       mf::LogInfo("LArG4Ana") << pvec[pi0loc]->E();
       fPi0Momentum->Fill(pvec[pi0loc]->E());
     }
+
+    // EnergyDeposition info
+                                                                 
+    fSimulationProducerLabel = std::string("largeant");
+
+    art::Handle< std::vector<sim::EnergyDeposition> > energyDepositionHandle;
+    evt.getByLabel(fSimulationProducerLabel, energyDepositionHandle);
+
+    double depositedEnergy = 0.;
+    int numElectrons = 0;
+    int numPhotons = 0;
+
+    for ( auto const& ed : (*energyDepositionHandle) )
+      {
+	depositedEnergy += ed.DepositedEnergy();
+        numElectrons += ed.NumElectrons();
+        numPhotons += ed.NumPhotons();
+      }
+
+    std::cout << "edepo: " << depositedEnergy << ", num electrons: " <<
+      numElectrons << ", num photons: " << numPhotons << std::endl;
+    fDepositedEnergy->Fill(depositedEnergy);
+   
 
     return;
   }

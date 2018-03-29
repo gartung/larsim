@@ -122,6 +122,10 @@ namespace larg4 {
                                   << "\n Temperature: "     << detprop->Temperature()
                                   << "\n Drift velocity: "  << fDriftVelocity[0]
                                   <<" "<<fDriftVelocity[1]<<" "<<fDriftVelocity[2];
+
+    fDepositedEnergy = 0.;
+    fNumElectrons = 0;
+    fNumPhotons = 0;
   }
 
   //---------------------------------------------------------------------------------------
@@ -207,6 +211,10 @@ namespace larg4 {
       // Make sure we have the IonizationAndScintillation singleton
       // reset to this step
       larg4::IonizationAndScintillation::Instance()->Reset(step);
+
+      fDepositedEnergy += larg4::IonizationAndScintillation::Instance()->EnergyDeposit();
+      fNumElectrons += larg4::IonizationAndScintillation::Instance()->NumberIonizationElectrons();
+      fNumPhotons += larg4::IonizationAndScintillation::Instance()->NumberScintillationPhotons();
 
       if( !fDontDriftThem ){
 

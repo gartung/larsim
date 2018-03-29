@@ -74,8 +74,8 @@ namespace larg4{
   void ISCalculationSeparate::Reset()
   {
     fEnergyDeposit   = 0.;
-    fNumScintPhotons = 0.;
-    fNumIonElectrons = 0.;
+    fNumScintPhotons = 0;
+    fNumIonElectrons = 0;
 
     return;
   }

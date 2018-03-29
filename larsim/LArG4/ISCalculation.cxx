@@ -17,7 +17,8 @@
 namespace larg4 {
 
   //----------------------------------------------------------------------                                                    
-  ISCalculation::ISCalculation()
+  ISCalculation::ISCalculation() :
+    fEnergyDeposit(0.), fNumIonElectrons(0), fNumScintPhotons(0)
   {
   }
 

@@ -736,7 +736,7 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
 
             fst->AddPhoton(itdetphot->first, std::move(PhotToAdd));
           }
-        }
+	   }
 	 // repeat the same for the reflected light, in case it has been sored
 	 if(pvs->StoreReflected())
 	   {
@@ -812,7 +812,7 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
 		   }     
 	       }
 	   }
-      }
+       }
     }
   }
 

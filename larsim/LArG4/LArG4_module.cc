@@ -72,6 +72,7 @@
 #include "lardataobj/Simulation/SimChannel.h"
 #include "lardataobj/Simulation/OpDetBacktrackerRecord.h"
 #include "lardataobj/Simulation/AuxDetSimChannel.h"
+#include "lardataobj/Simulation/EnergyDeposition.h"
 #include "larcore/Geometry/Geometry.h"
 #include "nutools/G4Base/DetectorConstruction.h"
 #include "nutools/G4Base/UserActionManager.h"
@@ -285,7 +286,10 @@ namespace larg4 {
                                                     ///< dictate how tracks are put on stack.        
     std::vector<std::string>   fInputLabels;
     std::vector<std::string>   fKeepParticlesInVolumes; ///<Only write particles that have trajectories through these volumes
-    
+    double fDepositedEnergy;
+    int fNumElectrons;
+    int fNumPhotons;
+
     /// Configures and returns a particle filter
     std::unique_ptr<PositionInVolumeFilter> CreateParticleVolumeFilter
       (std::set<std::string> const& vol_names) const;
@@ -347,6 +351,7 @@ namespace larg4 {
     produces< std::vector<sim::SimChannel>  >();
     produces< std::vector<sim::AuxDetSimChannel> >();
     produces< art::Assns<simb::MCTruth, simb::MCParticle> >();
+    produces< std::vector<sim::EnergyDeposition> >();
 
     // constructor decides if initialized value is a path or an environment variable
     cet::search_path sp("FW_SEARCH_PATH");
@@ -523,6 +528,7 @@ namespace larg4 {
     std::unique_ptr< std::vector<sim::SimPhotons>  >               PhotonCol                  (new std::vector<sim::SimPhotons>);
     std::unique_ptr< std::vector<sim::SimPhotonsLite>  >           LitePhotonCol              (new std::vector<sim::SimPhotonsLite>);
     std::unique_ptr< std::vector< sim::OpDetBacktrackerRecord > >  cOpDetBacktrackerRecordCol (new std::vector<sim::OpDetBacktrackerRecord>);
+    std::unique_ptr<std::vector<sim::EnergyDeposition> > edcol(new std::vector<sim::EnergyDeposition>);
     
     art::PtrMaker<simb::MCParticle> makeMCPartPtr(evt, *this);
 
@@ -726,9 +732,17 @@ namespace larg4 {
       } // end loop over tpcs
     }// end loop over cryostats
 
-    for (LArVoxelReadout* larVoxelReadout: ReadoutList)
+    for (LArVoxelReadout* larVoxelReadout: ReadoutList) {
+      fDepositedEnergy = larVoxelReadout->DepositedEnergy();
+      fNumElectrons = larVoxelReadout->NumElectrons();
+      fNumPhotons = larVoxelReadout->NumPhotons();
+      sim::EnergyDeposition ed(fDepositedEnergy,
+			       fNumElectrons,
+			       fNumPhotons);
+      edcol->push_back(ed);
+
       larVoxelReadout->ClearSimChannels();
-    
+    }
     
     // only put the sim::AuxDetSimChannels into the event once, not once for every
     // MCTruth in the event
@@ -791,6 +805,7 @@ namespace larg4 {
       evt.put(std::move(cOpDetBacktrackerRecordCol));
     }
     evt.put(std::move(tpassn));
+    evt.put(std::move(edcol));
 
     return;
   } // LArG4::produce()

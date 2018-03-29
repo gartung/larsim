@@ -237,6 +237,10 @@ namespace larg4 {
     ChannelMap_t& GetSimChannelMap(unsigned short cryo, unsigned short tpc);
     //@}
 
+    const double DepositedEnergy() const;
+    const int NumElectrons() const;
+    const int NumPhotons() const;
+
   private:
 
     /**
@@ -333,8 +337,19 @@ namespace larg4 {
     CLHEP::HepRandomEngine*                   fPropGen = nullptr;  ///< random engine for charge propagation
     
     ::detinfo::ElecClock                         fClock;      ///< TPC electronics clock
+
+    double fDepositedEnergy;
+    double fNumElectrons;
+    double fNumPhotons;
   };
 
 }
+
+inline const double larg4::LArVoxelReadout::DepositedEnergy() const { return fDepositedEnergy; }
+
+inline const int larg4::LArVoxelReadout::NumElectrons() const { return fNumElectrons; }
+
+inline const int larg4::LArVoxelReadout::NumPhotons() const { return fNumPhotons; }
+
 
 #endif // LArG4_LArVoxelReadout_h
