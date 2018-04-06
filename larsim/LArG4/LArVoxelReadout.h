@@ -301,6 +301,10 @@ namespace larg4 {
                                   int trackID,
                                   unsigned short int cryostat, unsigned short int tpc);
 
+    
+    G4ThreeVector ApplyMisalignment(G4ThreeVector location, unsigned short int tpc, unsigned short int cryostat);
+    
+    
     bool Has(std::vector<unsigned short int> v, unsigned short int tpc) const
     {  	
     	for (auto c: v) if (c == tpc) return true;	
@@ -333,6 +337,16 @@ namespace larg4 {
     CLHEP::HepRandomEngine*                   fPropGen = nullptr;  ///< random engine for charge propagation
     
     ::detinfo::ElecClock                         fClock;      ///< TPC electronics clock
+    
+    
+    ///// MisAlignment hacky code
+    bool 		fUseMisalignment ;        //Simulate misalignment of SkipWireSignalInTPC
+    std::vector<float> 	fMisalignAtTPCFraction;   //Simulate misalignment at this point in TPC length.
+    G4ThreeVector 	fMisalignTransVector;     //Translation vector of Misalignment
+    std::string 	fMisalignRotateAxis;      //Rotation axis of TPC misalignment.
+    float               fMisalignRotateAngle;     //Misalignment through rotation/angle.
+    
+    
   };
 
 }

@@ -63,6 +63,16 @@ namespace sim {
     const std::vector<std::vector<std::vector<double>>> OpticalParamParameters() const{return fOpticalParamParameters;  }
     bool UseLitePhotons()                                     const { return fLitePhotons;            }
 
+    
+    bool UseMisalignment()					const { return fUseMisalignment;       }
+    const std::vector<float> GetMisalignAtTPCFraction()	      	const { return fMisalignAtTPCFraction; }
+    const std::vector<float> GetMisalignTransVector()		const { return fMisalignTransVector;   }  
+    const std::string MisalignRotateAxis()			const { return fMisalignRotateAxis;    }
+    float GetMisalignRotateAngle()				const { return fMisalignRotateAngle;   } 
+    
+    
+    
+    
   private:
     int                      fOpVerbosity;           ///< Verbosity of optical simulation - soon to be depricated
     double                   fParticleKineticECut;   ///< Minimum energy a particle needs before asking Geant4 
@@ -102,6 +112,14 @@ namespace sim {
     std::vector<std::vector<std::vector<double> > > fOpticalParamParameters; ///< Model dependent list of 
                                                                              ///< parameters for optically 
                                                                              ///< paramaterized volumes
+                                                                             
+                                                                             
+    bool 		fUseMisalignment ;        //Simulate misalignment of SkipWireSignalInTPC
+    std::vector<float> 	fMisalignAtTPCFraction;   //Simulate misalignment at this point in TPC length.
+    std::vector<float> 	fMisalignTransVector;     //Translation vector of Misalignment
+    std::string 	fMisalignRotateAxis;      //Rotation axis of TPC misalignment.
+    float               fMisalignRotateAngle;     //Misalignment through rotation/angle.
+                                                                             
  
     bool fLitePhotons;
   };

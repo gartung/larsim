@@ -23,6 +23,14 @@ standard_largeantparameters:
  DisableWireplanes:        false #if set true, charge drift simulation does not run - used for optical sim jobs OR just when you don't wanna drift the e's.
  SkipWireSignalInTPCs:     []     # put here TPC id's which should not receive ionization electrons - used to simulate TPC geom volumes which are actually dead LAr volumes in protoDUNE
  UseModBoxRecomb:          true   # use Modified Box recombination instead of Birks
+ 
+ UseMisalignment:          false          #Simulate misalignment of SkipWireSignalInTPC
+ MisalignAtTPCFraction:    [0.5]          #Simulate misalignment at this point in TPC length.
+ MisalignTransVector:      [1.0,0.0,0.0]  #Translation vector of Misalignment 
+ MisalignRotateAxis:       "Y"   	  #Rotation axis of TPC misalignment.
+ MisalignRotateAngle:      5   	  	  #Misalignment through rotation/angle.
+  
+ 
 
  # The following parameters specify details of wireplanes or similar
  #  areas with optically parameterized transmissions (Ben J 2013)

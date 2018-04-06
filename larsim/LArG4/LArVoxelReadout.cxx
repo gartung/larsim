@@ -122,6 +122,17 @@ namespace larg4 {
                                   << "\n Temperature: "     << detprop->Temperature()
                                   << "\n Drift velocity: "  << fDriftVelocity[0]
                                   <<" "<<fDriftVelocity[1]<<" "<<fDriftVelocity[2];
+				  
+
+    ////////////////////////////////////
+    ///// MisAlignment hacky code
+    fUseMisalignment 		= fLgpHandle->UseMisalignment();        //Simulate misalignment of SkipWireSignalInTPC
+    fMisalignAtTPCFraction     	= fLgpHandle->GetMisalignAtTPCFraction();                          //Simulate misalignment at this point in TPC length.
+    fMisalignTransVector       	= G4ThreeVector((double)fLgpHandle->GetMisalignTransVector()[0],(double)fLgpHandle->GetMisalignTransVector()[1],(double)fLgpHandle->GetMisalignTransVector()[2]);     //Translation vector of Misalignment
+    fMisalignRotateAxis		= fLgpHandle->MisalignRotateAxis();	      //Rotation axis of TPC misalignment.
+    fMisalignRotateAngle	= fLgpHandle->GetMisalignRotateAngle();     //Misalignment through rotation/angle.				  
+				  
+ 
   }
 
   //---------------------------------------------------------------------------------------
@@ -363,19 +374,28 @@ namespace larg4 {
 
     // Already know which TPC we're in because we have been told
 
+ 
+			   
     try{
       const geo::TPCGeo &tpcg = fGeoHandle->TPC(tpc, cryostat);
 
+      G4ThreeVector kMisAlignment=ApplyMisalignment(G4ThreeVector(xyz[0],xyz[1],xyz[2]),tpc, cryostat);
+      
+ 
       // X drift distance - the drift direction can be either in
       // the positive or negative direction, so use std::abs
 
       /// \todo think about effects of drift between planes 
       double XDrift = std::abs(stepMidPoint.x()/CLHEP::cm - tpcg.PlaneLocation(0)[0]);
+      
+      
+      
       //std::cout<<tpcg.DriftDirection()<<std::endl;
       if (tpcg.DriftDirection() == geo::kNegX)
-	XDrift = stepMidPoint.x()/CLHEP::cm - tpcg.PlaneLocation(0)[0];
+	XDrift = stepMidPoint.x()/CLHEP::cm - tpcg.PlaneLocation(0)[0]-kMisAlignment[0];
       else if (tpcg.DriftDirection() == geo::kPosX)
-	XDrift = tpcg.PlaneLocation(0)[0] - stepMidPoint.x()/CLHEP::cm;
+	XDrift = tpcg.PlaneLocation(0)[0] - stepMidPoint.x()/CLHEP::cm+-kMisAlignment[0];
+      
       
       if(XDrift < 0.) return;
 
@@ -450,11 +470,14 @@ namespace larg4 {
         else               nEnDiff[xx] = 0.;
       }
       
-      double const avegageYtransversePos
-        = (stepMidPoint.y()/CLHEP::cm) + posOffsets.Y();
-      double const avegageZtransversePos
-        = (stepMidPoint.z()/CLHEP::cm) + posOffsets.Z();
       
+      
+      double const avegageYtransversePos
+        = (stepMidPoint.y()/CLHEP::cm) + posOffsets.Y()-kMisAlignment[1];
+      double const avegageZtransversePos
+        = (stepMidPoint.z()/CLHEP::cm) + posOffsets.Z()-kMisAlignment[2];
+      
+   	
       // Smear drift times by x position and drift time
       if (LDiffSig > 0.0)
         PropRand.fireArray( nClus, &XDiff[0], 0., LDiffSig);
@@ -569,6 +592,78 @@ namespace larg4 {
 
     return;
   }
+  
+  
+  G4ThreeVector LArVoxelReadout::ApplyMisalignment(G4ThreeVector location, unsigned short int tpc,unsigned short int cryostat)
+  {
+    G4ThreeVector translation(0,0,0);
+    
+    if(!fUseMisalignment)     // Do not apply misalignment.
+      return translation;
+    
+    //otherwise, first calculate where bad things happen.
+    
+    const geo::TPCGeo &tpcg = fGeoHandle->TPC(tpc, cryostat);
+     
+    double Zcutoff = (tpcg.MaxZ()-tpcg.MinZ())*fMisalignAtTPCFraction[0];
+    
+    
+    
+    //then, Apply translation part. 
+    if(location[2] >= Zcutoff )
+    {
+    translation[0] -= fMisalignTransVector[0]; // subtracting as effect will be inverted. 
+    translation[1] -= fMisalignTransVector[1]; // subtracting as effect will be inverted. 
+    translation[2] -= fMisalignTransVector[2]; // subtracting as effect will be inverted. 
+    }
+      
+     
+    //then, Apply rotation part. 
+    
+    
+    
+    G4ThreeVector rotation(0,0,0);
+    
+ 
+    
+    if( fMisalignRotateAxis == "Y" ) 
+    { 
+       if(location[2] >= Zcutoff )
+       { 
+	 rotation[2]=location[2]-Zcutoff;
+	 
+	 rotation.rotateY(-fMisalignRotateAngle*3.1415/180.);	//minus angle to correspond to the strange way of thinking about angles going from Z
+	 
+	 rotation[2]+=(Zcutoff-location[2]); 
+        
+       }
+	
+ 
+    }
+    else if(fMisalignRotateAxis == "Z")  
+    {
+       if(location[1] >= Zcutoff )
+       { 
+	rotation[1]=location[1]-Zcutoff;
+        rotation.rotateZ(fMisalignRotateAngle*3.1415/180.);   // this shouldn't be used for now.
+        rotation[1]+=(Zcutoff-location[1]); 
+       }
+	
+    }
+      
+     // fMisalignRotateAngle
+     
+    
+    
+    //if(location[2] >= Zcutoff )
+      translation-=rotation;
+    
+    
+    
+    return translation;
+    
+  }
+  
 
   //---------------------------------------------------------------------------------------
   // Never used but still have to be defined for G4
