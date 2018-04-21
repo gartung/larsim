@@ -222,11 +222,15 @@ namespace larg4 {
        mf::LogInfo("OpticalPhysics") << " AddDiscreteProcess to OpticalPhoton ";
 	pmanager->AddDiscreteProcess(fTheAbsorptionProcess);
 	pmanager->AddDiscreteProcess(fTheRayleighScatteringProcess);
-	if(detp->SimpleBoundary())
+	if(detp->SimpleBoundary()){
 	  pmanager->AddDiscreteProcess(fTheBoundaryProcess);
-	else
+	std::cout<<"optical physics wls not added simple boundary value "<<detp->SimpleBoundary()<<std::endl;
+	}
+	else{
 	  pmanager->AddDiscreteProcess(fTheBoundaryProcess_g4);
 	pmanager->AddDiscreteProcess(fTheWLSProcess);
+	std::cout<<"Optical Physics - WLS process added "<<std::endl;
+	}
       }
     }
     
