@@ -694,7 +694,7 @@ namespace cheat{
 
     //      art::FindManyP< recob::OpHit > fmoh(std::vector<art::Ptr<recob::OpFlash>>({flash_P}), evt, fOpHitLabel.label());
     //      std::vector<art::Ptr<recob::OpHit>> const& hits_Ps = fmoh.at(0);
-    std::vector<art::Ptr<recob::OpHit>> const& hits_Ps = fFindOpFlashToOpHits.at(flash_P.key());
+    std::vector<art::Ptr<recob::OpHit>> const& hits_Ps = fOpFlashToOpHits.at(flash_P);
     return hits_Ps;
 
   }

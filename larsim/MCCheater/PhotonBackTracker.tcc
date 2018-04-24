@@ -33,7 +33,12 @@ namespace cheat{
   template<typename Evt>
     void PhotonBackTracker::PrepOpFlashToOpHits( Evt const& evt)
     {
+      if(this->OpFlashToOpHitsReady()){ return;}
       auto const& flashHandle = evt.template getValidHandle < std::vector < recob::OpFlash > > (fOpFlashLabel.label());
+      if(flashHandle.failedToGet()){
+        mf::LogWarning("PhotonBackTracker")<<" failed to get handle to recob::OpFlash. Has reco run yet?";
+        return;
+      }
       auto const& fmp = art::FindManyP<recob::OpHit>(flashHandle, evt, fOpHitLabel.label());
       for ( int i=0; i<flashHandle.size(); i++)
         fFlashToOpHits[flashHandle.at(i)] = fmp.at(i);
