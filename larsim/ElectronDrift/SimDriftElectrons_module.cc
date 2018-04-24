@@ -53,7 +53,7 @@
 #include "larcore/Geometry/Geometry.h"
 #include "lardataobj/Simulation/SimEnergyDeposit.h"
 #include "lardataobj/Simulation/SimChannel.h"
-#include "larcore/Geometry/GeometryCore.h"
+#include "larcorealg/Geometry/GeometryCore.h"
 #include "larsim/Simulation/LArG4Parameters.h"
 #include "lardata/DetectorInfoServices/LArPropertiesService.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
@@ -357,7 +357,7 @@ namespace detsim {
 
 	// Space-charge effect (SCE): Get SCE {x,y,z} offsets for
 	// particular location in TPC
-	std::vector<double> posOffsets{0.0,0.0,0.0};
+	geo::Vector_t posOffsets;
 	auto const* SCE = lar::providerFrom<spacecharge::SpaceChargeService>();
 	if (SCE->EnableSimSpatialSCE() == true)
 	  {

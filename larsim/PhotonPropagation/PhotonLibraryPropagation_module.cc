@@ -60,7 +60,7 @@ public:
   void produce(art::Event & e) override;
 
   // Selected optional functions.
-  void reconfigure(fhicl::ParameterSet const & p) override;
+  void reconfigure(fhicl::ParameterSet const & p);
   void beginJob() override;
 
 private:
@@ -80,7 +80,7 @@ private:
   unsigned long N_VOXELS_X;
   unsigned long N_VOXELS_Y;
   unsigned long N_VOXELS_Z;
-  std::unordered_map< unsigned long, std::vector< std::vector<double> > > fSCCalcMap;
+  std::unordered_map< unsigned long, std::vector<geo::Vector_t> > fSCCalcMap;
   
   void PrecalculateSC(std::vector<sim::SimEnergyDeposit> const&,bool cleanmap=true);
   unsigned long GetSCMapIndex(float,float,float);
@@ -204,7 +204,7 @@ void phot::PhotonLibraryPropagation::produce(art::Event & e)
       
       yieldRatio = GetScintYield(edep,*larp);
       //yieldRatio = 1.;
-      auto efieldoffsets = fSCE->GetEfieldOffsets(edep.X(),edep.Y(),edep.Z());
+      auto efieldoffsets = fSCE->GetEfieldOffsets(geo::Point_t(edep.X(),edep.Y(),edep.Z()));
       fISAlg.Reset();
       fISAlg.CalculateIonizationAndScintillation(edep,
 						 efieldoffsets);
@@ -289,8 +289,8 @@ void phot::PhotonLibraryPropagation::PrecalculateSC(std::vector<sim::SimEnergyDe
       double y = (double)((unsigned long)edep.Y()) + 0.5 - (geo.DetHalfHeight());
       double z = (double)((unsigned long)edep.Z()) + 0.5;
       
-	fSCCalcMap[index].push_back(fSCE->GetPosOffsets(edep.X(),edep.Y(),edep.Z()));
-	fSCCalcMap[index].push_back(fSCE->GetEfieldOffsets(edep.X(),edep.Y(),edep.Z()));
+      fSCCalcMap[index].push_back(fSCE->GetPosOffsets(geo::Point_t(edep.X(),edep.Y(),edep.Z())));
+      fSCCalcMap[index].push_back(fSCE->GetEfieldOffsets(geo::Point_t(edep.X(),edep.Y(),edep.Z())));
     }
   }
   

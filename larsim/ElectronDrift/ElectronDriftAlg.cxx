@@ -12,7 +12,7 @@
 #include "lardata/DetectorInfo/DetectorProperties.h"
 #include "larsim/Simulation/LArG4Parameters.h"
 #include "larevt/SpaceCharge/SpaceCharge.h"
-#include "larcore/Geometry/GeometryCore.h"
+#include "larcorealg/Geometry/GeometryCore.h"
 
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "cetlib/exception.h"
@@ -87,8 +87,8 @@ namespace larg4{
 	double y = (double)((unsigned long)edep.Y()) + 0.5 - (fGeo->DetHalfHeight());
 	double z = (double)((unsigned long)edep.Z()) + 0.5;
 
-	fSCCalcMap[index].push_back(fSCE->GetPosOffsets(edep.X(),edep.Y(),edep.Z()));
-	fSCCalcMap[index].push_back(fSCE->GetEfieldOffsets(edep.X(),edep.Y(),edep.Z()));
+	fSCCalcMap[index].push_back(fSCE->GetPosOffsets(geo::Point_t(edep.X(),edep.Y(),edep.Z())));
+	fSCCalcMap[index].push_back(fSCE->GetEfieldOffsets(geo::Point_t(edep.X(),edep.Y(),edep.Z())));
       }
     }
 
@@ -125,9 +125,9 @@ namespace larg4{
 
     //determine xdrift distance
     if(tpcgeo.DriftDirection() == geo::kNegX)
-      fXDrift = edep.X() - tpcgeo.PlaneLocation(0)[0] - fPosOffsets[0];
+      fXDrift = edep.X() - tpcgeo.PlaneLocation(0)[0] - fPosOffsets.X();
     else if(tpcgeo.DriftDirection() == geo::kPosX)
-      fXDrift = tpcgeo.PlaneLocation(0)[0] - edep.X() - fPosOffsets[0];
+      fXDrift = tpcgeo.PlaneLocation(0)[0] - edep.X() - fPosOffsets.X();
 
     if(fXDrift<0)
       fXDrift = 0.0;
@@ -182,8 +182,8 @@ namespace larg4{
     randGauss.fireArray(fNElectronClusters, &fXDiff[0], 0., fLongitudinalDiffSigma);
     
     // Smear the Y,Z position by the transverse diffusion
-    randGauss.fireArray(fNElectronClusters, &fYDiff[0], edep.Y()+fPosOffsets[1],fTransverseDiffSigma);
-    randGauss.fireArray(fNElectronClusters, &fZDiff[0], edep.Z()+fPosOffsets[2],fTransverseDiffSigma);
+    randGauss.fireArray(fNElectronClusters, &fYDiff[0], edep.Y()+fPosOffsets.Y(),fTransverseDiffSigma);
+    randGauss.fireArray(fNElectronClusters, &fZDiff[0], edep.Z()+fPosOffsets.Z(),fTransverseDiffSigma);
     
     //auto t9 = std::chrono::high_resolution_clock::now();
 

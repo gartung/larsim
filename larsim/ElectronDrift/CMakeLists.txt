@@ -6,7 +6,7 @@ art_make(
 			lardataobj_Simulation
 			lardata_DetectorInfo
 			larevt_SpaceCharge
-			larcore_Geometry
+			larcorealg_Geometry
                         ${MF_MESSAGELOGGER}
                         ${MF_UTILITIES}
                         ${FHICLCPP}
@@ -18,8 +18,8 @@ art_make(
 		      larsim_IonizationScintillation
                       lardataobj_RawData
 		      larevt_SpaceCharge
-                      larcore_Geometry
-                      larcore_Geometry_Geometry_service
+                      larcorealg_Geometry
+                      larcorealg_Geometry_Geometry_service
                       lardata_Utilities
                       nutools_RandomUtils_NuRandomService_service
                       ${ART_FRAMEWORK_CORE}

@@ -74,7 +74,7 @@ namespace larg4 {
     geo::TPCID fTPC_id;
     double fXDrift;
     double fTDrift;
-    std::vector<double> fPosOffsets;
+    geo::Vector_t fPosOffsets;
     
     ISCalculationSeparate fISAlg;
     double fNElectrons;
@@ -94,7 +94,7 @@ namespace larg4 {
     unsigned long N_VOXELS_X;
     unsigned long N_VOXELS_Y;
     unsigned long N_VOXELS_Z;
-    std::unordered_map< unsigned long, std::vector< std::vector<double> > > fSCCalcMap;
+    std::unordered_map< unsigned long, std::vector<geo::Vector_t> > fSCCalcMap;
 
     unsigned long GetSCMapIndex(float,float,float);
     

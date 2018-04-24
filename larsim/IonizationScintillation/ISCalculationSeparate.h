@@ -14,6 +14,7 @@
 #define IS_ISCALCULATIONSEPARATE_H
 
 #include <vector>
+#include "larcoreobj/SimpleTypesAndConstants/geo_vectors.h"
 
 // forward declaration
 namespace detinfo { class LArProperties; class DetectorProperties; }
@@ -35,13 +36,13 @@ namespace larg4 {
 		     const spacecharge::SpaceCharge* sce);
    void   Reset();
    void   CalculateIonizationAndScintillation(sim::SimEnergyDeposit const& edep);
-   void   CalculateIonizationAndScintillation(sim::SimEnergyDeposit const& edep, std::vector<double> const&);
+   void   CalculateIonizationAndScintillation(sim::SimEnergyDeposit const& edep, geo::Vector_t const&);
    double EnergyDeposit()              const { return fEnergyDeposit;       }
    double NumberIonizationElectrons()  const { return fNumIonElectrons;     }
    double NumberScintillationPhotons() const { return fNumScintPhotons;     }
 
    double EFieldAtStep(double efield, sim::SimEnergyDeposit const& edep); //value of field with any corrections for this step  
-   double EFieldAtStep(double efield, sim::SimEnergyDeposit const& edep, std::vector<double> const&); //value of field with any corrections for this step  
+   double EFieldAtStep(double efield, sim::SimEnergyDeposit const& edep, geo::Vector_t const&); //value of field with any corrections for this step  
 
  private:
 
@@ -59,9 +60,9 @@ namespace larg4 {
    double fNumIonElectrons; ///< number of ionization electrons for this step
    double fNumScintPhotons; ///< number of scintillation photons for this step   
    
-   std::vector<double> fEfieldOffsets;
+   geo::Vector_t fEfieldOffsets;
    double EFieldAtStep(double efield, float x, float y, float z);
-   double EFieldAtStep(double efield, float x, float y, float z, std::vector<double> const&);
+   double EFieldAtStep(double efield, float x, float y, float z, geo::Vector_t const&);
 
    const detinfo::LArProperties*      fLArProp;   
    const spacecharge::SpaceCharge*    fSCE;
@@ -71,8 +72,8 @@ namespace larg4 {
    void CalculateIonization(float e, float ds, float x, float y, float z);
    void CalculateIonization(sim::SimEnergyDeposit const& edep);
 
-   void CalculateIonization(float e, float ds, float x, float y, float z, std::vector<double> const&);
-   void CalculateIonization(sim::SimEnergyDeposit const& edep, std::vector<double> const&);
+   void CalculateIonization(float e, float ds, float x, float y, float z, geo::Vector_t const&);
+   void CalculateIonization(sim::SimEnergyDeposit const& edep, geo::Vector_t const&);
 
    void CalculateScintillation(float e, int pdg);
    void CalculateScintillation(sim::SimEnergyDeposit const& edep);
