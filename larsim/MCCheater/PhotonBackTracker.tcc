@@ -33,8 +33,10 @@ namespace cheat{
   template<typename Evt>
     void PhotonBackTracker::PrepOpFlashToOpHits( Evt const& evt)
     {
-      auto const& flashHandle = evt.template getValidHandle < std::vector < recob::OpFlash > > (fOpFlashLabel);
-      fFlashToOpHits = art::FindManyP<recob::OpHit>(flashHandle, evt, fOpHitLabel.label());
+      auto const& flashHandle = evt.template getValidHandle < std::vector < recob::OpFlash > > (fOpFlashLabel.label());
+      auto const& fmp = art::FindManyP<recob::OpHit>(flashHandle, evt, fOpHitLabel.label());
+      for ( int i=0; i<flashHandle.size(); i++)
+        fFlashToOpHits[flashHandle.at(i)] = fmp.at(i);
     }
 
   //----------------------------------------------------------------
@@ -48,6 +50,7 @@ namespace cheat{
       }
       priv_OpDetBTRs.clear();
       this->PrepOpDetBTRs(evt);
+      this->PrepOpFlashToOpHits;
     } 
 
 

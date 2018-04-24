@@ -42,6 +42,7 @@ namespace cheat{
     fDelay     (config.Delay()),
     fG4ModuleLabel(config.G4ModuleLabel()),
     fOpHitLabel(config.OpHitLabel()),
+    fOpFlashLabel(config.OpFlashLabel()),
     fMinOpHitEnergyFraction(config.MinOpHitEnergyFraction())
   {}
 
@@ -56,6 +57,7 @@ namespace cheat{
     fDelay(pSet.get<double>("Delay")),
     fG4ModuleLabel(pSet.get<art::InputTag>("G4ModuleLabel", "largeant")),
     fOpHitLabel(pSet.get<art::InputTag>("OpHitLabel", "ophit")),
+    fOpFlashLabel(pSet.get<art::InputTag>("OpFlashLabel", "opflash")),
     fMinOpHitEnergyFraction(pSet.get<double>("MinimumOpHitEnergyFraction", 0.1))
   {}
 
