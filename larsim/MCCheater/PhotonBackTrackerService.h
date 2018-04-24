@@ -127,6 +127,7 @@ namespace cheat{
       void priv_PrepEvent( art::Event const& evt) ;
       void priv_PrepFailed();
       void priv_PrepOpDetBTRs(art::Event const& evt);
+      void priv_PrepOpFlashToOpHits(art::Event const& evt);
 
       bool priv_CanRun(art::Event const& evt);
       bool priv_OpDetBTRsReady() {return PhotonBackTracker::BTRsReady();}

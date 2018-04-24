@@ -68,6 +68,7 @@ namespace cheat{
     PhotonBackTracker::ClearEvent();
     if( ! this->priv_CanRun(evt) ){ return; }
     this->priv_PrepOpDetBTRs(evt);
+    this->priv_PrepFlashToOpHits(evt);
   }
 
   //----------------------------------------------------------------------
@@ -91,6 +92,16 @@ namespace cheat{
     catch(...){ mf::LogWarning("PhotonBackTrackerService")
       <<"Rebuild failed to get the OpDetBTRs. This is expected when "
         <<"running on a generation or simulation step.";}
+  }
+
+  void PhotonBackTrackerService::priv_PrepOpFlashToOpHits(art::Event const& evt){
+    if( !this->priv_CanRun(evt) ) {this->priv_PrepFailed();}
+    if( this->priv_OpFlashToOpHitsReady()){ return; }
+    try{PhotonBackTracker::PrepOpFlashToOpHits(evt);}
+    catch{...}{
+      mf::LogWarning("PhotonBackTrackerService")
+        <<"Rebuild failed to get the OpFlashToOpHits. This is bad.";
+    }
   }
 
   /////////////////////////////////////////////

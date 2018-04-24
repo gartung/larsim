@@ -73,23 +73,27 @@ namespace cheat{
       template<typename Evt>
         void PrepOpDetBTRs(Evt const& evt);
 
-      //----------------------------------------------------- /*NEW*/
+      //-----------------------------------------------------
       template<typename Evt>
-        const std::vector<art::Ptr<recob::OpHit>> OpFlashToOpHits_Ps(art::Ptr<recob::OpFlash>& flash_P, Evt const& evt) const;
+        void PrepOpFlashToOpHits(Evt const& evt);
 
       //----------------------------------------------------- /*NEW*/
-      template<typename Evt>
-        const std::vector<double> OpFlashToXYZ(art::Ptr<recob::OpFlash>& flash_P, Evt& evt) const ;
+      const std::vector<art::Ptr<recob::OpHit>> OpFlashToOpHits_Ps(art::Ptr<recob::OpFlash>& flash_P) const;
 
       //----------------------------------------------------- /*NEW*/
-      template<typename Evt>
-      const std::set<int> OpFlashToTrackIds(art::Ptr<recob::OpFlash>& flash_P, Evt& evt) const;
+      const std::vector<double> OpFlashToXYZ(art::Ptr<recob::OpFlash>& flash_P) const ;
+
+      //----------------------------------------------------- /*NEW*/
+      const std::set<int> OpFlashToTrackIds(art::Ptr<recob::OpFlash>& flash_P) const;
 
       //-----------------------------------------------------
       void ClearEvent();
 
       //-----------------------------------------------------
       const bool BTRsReady() ;
+
+      //-----------------------------------------------------
+      const bool FlashToOphitsReady();
 
       //-----------------------------------------------------
       std::vector<art::Ptr<sim::OpDetBacktrackerRecord>> const& OpDetBTRs() ;
@@ -141,9 +145,9 @@ namespace cheat{
 
       //-----------------------------------------------------
       const std::vector< const sim::SDP* > OpHitToSimSDPs_Ps( art::Ptr<recob::OpHit> const& opHit_P) const;
-//
+      //
       //-----------------------------------------------------
-//      const std::vector< const sim::SDP* > OpHitsToSimSDPs_Ps( const std::vector< art::Ptr < recob::OpHit > >& opHits_Ps) ;
+      //      const std::vector< const sim::SDP* > OpHitsToSimSDPs_Ps( const std::vector< art::Ptr < recob::OpHit > >& opHits_Ps) ;
       const std::vector< const sim::SDP* > OpHitsToSimSDPs_Ps( std::vector< art::Ptr < recob::OpHit  > > const& opHits_Ps) const;
 
       //-----------------------------------------------------
@@ -232,6 +236,7 @@ namespace cheat{
       const art::InputTag fOpHitLabel;
       const double fMinOpHitEnergyFraction;
       mutable std::vector<art::Ptr<sim::OpDetBacktrackerRecord> > priv_OpDetBTRs;
+      art::FindManyP< recob::OpHit > fFlashToOpHits;
 
 
   };//Class
