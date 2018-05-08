@@ -69,7 +69,7 @@ namespace sim {
     const std::vector<float> GetMisalignTransVector()		const { return fMisalignTransVector;   }  
     const std::string MisalignRotateAxis()			const { return fMisalignRotateAxis;    }
     float GetMisalignRotateAngle()				const { return fMisalignRotateAngle;   } 
-    
+    bool UseModifyMisalignmentEfield()				const { return fModifyMisalignmentEfield; }
     
     
     
@@ -119,7 +119,7 @@ namespace sim {
     std::vector<float> 	fMisalignTransVector;     //Translation vector of Misalignment
     std::string 	fMisalignRotateAxis;      //Rotation axis of TPC misalignment.
     float               fMisalignRotateAngle;     //Misalignment through rotation/angle.
-                                                                             
+    bool                fModifyMisalignmentEfield;  // switch to modify electric field, if the TPC changes size.                           
  
     bool fLitePhotons;
   };

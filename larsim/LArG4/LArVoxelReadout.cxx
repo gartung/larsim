@@ -131,7 +131,7 @@ namespace larg4 {
     fMisalignTransVector       	= G4ThreeVector((double)fLgpHandle->GetMisalignTransVector()[0],(double)fLgpHandle->GetMisalignTransVector()[1],(double)fLgpHandle->GetMisalignTransVector()[2]);     //Translation vector of Misalignment
     fMisalignRotateAxis		= fLgpHandle->MisalignRotateAxis();	      //Rotation axis of TPC misalignment.
     fMisalignRotateAngle	= fLgpHandle->GetMisalignRotateAngle();     //Misalignment through rotation/angle.				  
-				  
+    fModifyMisalignmentEfield   = fLgpHandle->UseModifyMisalignmentEfield();   // 				  
  
   }
 
@@ -607,7 +607,7 @@ namespace larg4 {
      
     double Zcutoff = (tpcg.MaxZ()-tpcg.MinZ())*fMisalignAtTPCFraction[0];
     
-    
+    double YhangingPoint = tpcg.MaxY();
     
     //then, Apply translation part. 
     if(location[2] >= Zcutoff )
@@ -635,18 +635,22 @@ namespace larg4 {
 	 rotation.rotateY(-fMisalignRotateAngle*3.1415/180.);	//minus angle to correspond to the strange way of thinking about angles going from Z
 	 
 	 rotation[2]+=(Zcutoff-location[2]); 
-        
+         
        }
 	
  
     }
     else if(fMisalignRotateAxis == "Z")  
     {
-       if(location[1] >= Zcutoff )
+       if(location[2] >= Zcutoff )  //check that we're in the second APA
        { 
-	rotation[1]=location[1]-Zcutoff;
-        rotation.rotateZ(fMisalignRotateAngle*3.1415/180.);   // this shouldn't be used for now.
-        rotation[1]+=(Zcutoff-location[1]); 
+	//std::cout << "Z rotation, Y pos: " << location[1] << " hanging point " << YhangingPoint << std::endl; 
+	rotation[1]=location[1]-YhangingPoint;   //interested in distance from top.
+	//std::cout << "rotation before, Y pos: " << rotation[1]  << std::endl; 
+        rotation.rotateZ(fMisalignRotateAngle*3.1415/180.);   // this should work now.
+	//std::cout << "rotation after, Y pos: " << rotation[1]  << std::endl; 
+        rotation[1]+=(location[1]+YhangingPoint); 
+	//std::cout << "Z rotation, Y pos rotated: " << rotation[1] << " XPos rotated " << rotation[0] << std::endl; 
        }
 	
     }

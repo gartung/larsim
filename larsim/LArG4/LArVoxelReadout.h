@@ -345,7 +345,7 @@ namespace larg4 {
     G4ThreeVector 	fMisalignTransVector;     //Translation vector of Misalignment
     std::string 	fMisalignRotateAxis;      //Rotation axis of TPC misalignment.
     float               fMisalignRotateAngle;     //Misalignment through rotation/angle.
-    
+    bool                fModifyMisalignmentEfield;  // switch to modify electric field, if the TPC changes size.  
     
   };
 

@@ -66,8 +66,7 @@ namespace sim {
     fMisalignTransVector     = pset.get< std::vector<float>       >("MisalignTransVector");    
     fMisalignRotateAxis      = pset.get< std::string              >("MisalignRotateAxis","Y"); //   	  #Rotation axis of TPC misalignment.
     fMisalignRotateAngle     = pset.get< float       		  >("MisalignRotateAngle");  //	  	  #Misalignment through rotation/angle.
-    
-    
+    fModifyMisalignmentEfield   = pset.get< bool                  >("ModifyMisalignmentEfield");  //Modify electric field if size of detector has changed
     
     return;
   }
