@@ -61,12 +61,12 @@ namespace sim {
     //Crude way to simulate TPC misalignment. Assuming a split of an existing TPC in a fraction. 
     //Can then apply a translation or rotation. 
     
-    fUseMisalignment         = pset.get< bool                     >("UseMisalignment");  //Simulate misalignment of SkipWireSignalInTPC
+    fUseMisalignment         = pset.get< bool                     >("UseMisalignment", false);  //Simulate misalignment of SkipWireSignalInTPC
     fMisalignAtTPCFraction   = pset.get< std::vector<float>       >("MisalignAtTPCFraction");
     fMisalignTransVector     = pset.get< std::vector<float>       >("MisalignTransVector");    
     fMisalignRotateAxis      = pset.get< std::string              >("MisalignRotateAxis","Y"); //   	  #Rotation axis of TPC misalignment.
     fMisalignRotateAngle     = pset.get< float       		  >("MisalignRotateAngle");  //	  	  #Misalignment through rotation/angle.
-    fModifyMisalignmentEfield   = pset.get< bool                  >("ModifyMisalignmentEfield");  //Modify electric field if size of detector has changed
+    fModifyMisalignmentEfield   = pset.get< bool                  >("ModifyMisalignmentEfield", false);  //Modify electric field if size of detector has changed
     
     return;
   }

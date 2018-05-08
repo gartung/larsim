@@ -303,7 +303,8 @@ namespace larg4 {
 
     
     G4ThreeVector ApplyMisalignment(G4ThreeVector location, unsigned short int tpc, unsigned short int cryostat);
-    
+    void ModifyMisalignmentDriftVelocity(double * RecipDriftVel, G4ThreeVector misAlignment, unsigned short int tpc,unsigned short int cryostat);
+  
     
     bool Has(std::vector<unsigned short int> v, unsigned short int tpc) const
     {  	

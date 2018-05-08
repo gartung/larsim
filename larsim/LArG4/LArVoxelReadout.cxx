@@ -355,6 +355,9 @@ namespace larg4 {
                                         1./fDriftVelocity[1], 
                                         1./fDriftVelocity[2]};
 
+					
+    					
+					
     struct Deposit_t {
       double energy = 0.;
       double electrons = 0.;
@@ -380,6 +383,10 @@ namespace larg4 {
       const geo::TPCGeo &tpcg = fGeoHandle->TPC(tpc, cryostat);
 
       G4ThreeVector kMisAlignment=ApplyMisalignment(G4ThreeVector(xyz[0],xyz[1],xyz[2]),tpc, cryostat);
+      
+      ModifyMisalignmentDriftVelocity(RecipDriftVel, kMisAlignment, tpc, cryostat);
+      
+  
       
  
       // X drift distance - the drift direction can be either in
@@ -667,6 +674,45 @@ namespace larg4 {
     return translation;
     
   }
+  
+  
+  void LArVoxelReadout::ModifyMisalignmentDriftVelocity(double * RecipDriftVel, G4ThreeVector misAlignment, unsigned short int tpc,unsigned short int cryostat)
+  {
+  
+  
+     if(!fUseMisalignment || !fModifyMisalignmentEfield)     // Do not apply misalignment or do not change Efield.
+      return;
+    
+    
+     auto const * detprop = lar::providerFrom<detinfo::DetectorPropertiesService>();
+     const geo::TPCGeo &tpcg = fGeoHandle->TPC(tpc, cryostat);
+     
+     double DriftDist = tpcg.MaxX()-tpcg.MinX();
+     double ModDriftDist = tpcg.MaxX()-tpcg.MinX();
+     
+     if(misAlignment[0]!=0)
+        ModDriftDist-=misAlignment[0];
+     else
+       return;
+     
+     double Efield[3]={0,0,0};
+     double localDriftVelocity[3]={0,0,0};
+     for (int i = 0; i<3; ++i)
+     {
+       Efield[i]=detprop->Efield(i);
+       if(i==0 && ModDriftDist!=0)
+	  Efield[i]*=DriftDist/ModDriftDist;
+       localDriftVelocity[i]    = detprop->DriftVelocity(Efield[i],
+						    detprop->Temperature())/1000.;
+						    
+	RecipDriftVel[i]   = 1./localDriftVelocity[i]; 
+                                        					    
+     }
+						    
+     return;						    
+
+						    
+  }						    
   
 
   //---------------------------------------------------------------------------------------
