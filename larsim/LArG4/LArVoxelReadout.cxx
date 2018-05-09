@@ -382,12 +382,16 @@ namespace larg4 {
     try{
       const geo::TPCGeo &tpcg = fGeoHandle->TPC(tpc, cryostat);
 
+      //Andrzej - begin hacky misalignment simulation
       G4ThreeVector kMisAlignment=ApplyMisalignment(G4ThreeVector(xyz[0],xyz[1],xyz[2]),tpc, cryostat);
       
+      // Andrzej - need to be redefing RecipDriftVel, because we're changing it now because of misalignment.
+      RecipDriftVel[0]  = 1./fDriftVelocity[0];
+      RecipDriftVel[1]  = 1./fDriftVelocity[1];
+      RecipDriftVel[2]  = 1./fDriftVelocity[2];
       ModifyMisalignmentDriftVelocity(RecipDriftVel, kMisAlignment, tpc, cryostat);
       
-  
-      
+      //end hacky misalignment simulation (if fhicl tag is not set kMisAlignment should be (0,0,0))
  
       // X drift distance - the drift direction can be either in
       // the positive or negative direction, so use std::abs
@@ -708,7 +712,10 @@ namespace larg4 {
 	RecipDriftVel[i]   = 1./localDriftVelocity[i]; 
                                         					    
      }
-						    
+	
+  std::cout << "inside function kmisalignment " << misAlignment[0] << " " << misAlignment[1] << " " << misAlignment[2] << " driftvel " 
+      << localDriftVelocity[0] << " RecipDriftVel " << RecipDriftVel[0] << std::endl;	
+	
      return;						    
 
 						    

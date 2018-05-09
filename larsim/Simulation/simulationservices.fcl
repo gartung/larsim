@@ -29,7 +29,8 @@ standard_largeantparameters:
  MisalignTransVector:      [1.0,0.0,0.0]  #Translation vector of Misalignment 
  MisalignRotateAxis:       "Y"   	  #Rotation axis of TPC misalignment.
  MisalignRotateAngle:      5   	  	  #Misalignment through rotation/angle.
-  
+ ModifyMisalignmentEfield: false          #recalculate drift velocity because of Electric field 
+					  #change if APA is "shifted" wrt to CPA  
  
 
  # The following parameters specify details of wireplanes or similar
