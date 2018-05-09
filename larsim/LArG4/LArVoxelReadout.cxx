@@ -695,9 +695,12 @@ namespace larg4 {
      double ModDriftDist = tpcg.MaxX()-tpcg.MinX();
      
      if(misAlignment[0]!=0)
-        ModDriftDist-=misAlignment[0];
+        ModDriftDist+=misAlignment[0];    // plus because the misalignment is now the "modified particle position", aka "- the original shift"
      else
        return;
+     
+    // std::cout << "general drift velocity " << detprop->DriftVelocity(detprop->Efield(0),
+//						    detprop->Temperature())/1000. << std::endl;
      
      double Efield[3]={0,0,0};
      double localDriftVelocity[3]={0,0,0};
@@ -713,8 +716,8 @@ namespace larg4 {
                                         					    
      }
 	
-  std::cout << "inside function kmisalignment " << misAlignment[0] << " " << misAlignment[1] << " " << misAlignment[2] << " driftvel " 
-      << localDriftVelocity[0] << " RecipDriftVel " << RecipDriftVel[0] << std::endl;	
+  //std::cout << "inside function kmisalignment " << misAlignment[0] << " " << misAlignment[1] << " " << misAlignment[2] << " driftvel " 
+  //    << localDriftVelocity[0] << " RecipDriftVel " << RecipDriftVel[0] << std::endl;	
 	
      return;						    
 
