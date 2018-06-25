@@ -1,3 +1,4 @@
+//vim: set sw=2 expandtab:
 /**
  * @file SimDriftElectrons_module.cxx
  *
@@ -53,6 +54,7 @@
 #include "larcore/Geometry/Geometry.h"
 #include "lardataobj/Simulation/SimEnergyDeposit.h"
 #include "lardataobj/Simulation/SimChannel.h"
+#include "lardataobj/Simulation/SimDriftedElectronCluster.h"
 //#include "larcore/Geometry/GeometryCore.h"
 #include "larsim/Simulation/LArG4Parameters.h"
 #include "lardata/DetectorInfoServices/LArPropertiesService.h"
@@ -139,6 +141,7 @@ namespace detsim {
     // Define type: channel -> sim::SimChannel's bookkeeping. 
     typedef std::map<raw::ChannelID_t, ChannelBookKeeping_t> ChannelMap_t;
 
+
     // Array of maps of channel data indexed by [cryostat,tpc]
     std::vector< std::vector<ChannelMap_t> > fChannelMaps; 
     // The above ensemble may be thought of as a 3D array of
@@ -176,6 +179,7 @@ namespace detsim {
     this->reconfigure(pset);
 
     produces< std::vector<sim::SimChannel> >();
+    produces< std::vector<sim::SimDriftedElectronCluster> >();
     //produces< art::Assns<sim::SimChannel, sim::SimEnergyDeposit> >();
     
     // create a default random engine; obtain the random seed from
@@ -269,6 +273,9 @@ namespace detsim {
   //-------------------------------------------------
   void SimDriftElectrons::produce(art::Event& event)
   {
+
+	       std::cout << "Running SimDriftElectrons::produce"<<std::endl;
+
     // Fetch the SimEnergyDeposit objects for this event.
     typedef art::Handle< std::vector<sim::SimEnergyDeposit> > energyDepositHandle_t;
     energyDepositHandle_t energyDepositHandle;
@@ -281,7 +288,8 @@ namespace detsim {
 
     // Define the container for the SimChannel objects that will be
     // transferred to the art::Event after the put statement below.
-    std::unique_ptr< std::vector<sim::SimChannel> > channels(new std::vector<sim::SimChannel>);
+    std::unique_ptr< std::vector<sim::SimChannel> > 		channels(new std::vector<sim::SimChannel>);
+    std::unique_ptr< std::vector<sim::SimDriftedElectronCluster> > SimDriftedElectronClusterCollection(new std::vector<sim::SimDriftedElectronCluster>);
 
     // Clear the channel maps from the last event. Remember,
     // fChannelMaps is an array[cryo][tpc] of maps.
@@ -301,6 +309,9 @@ namespace detsim {
     // For each energy deposit in this event
     for ( size_t edIndex = 0; edIndex < energyDepositsSize; ++edIndex )
       {
+
+	std::cout << "running over all energy deposits "<< edIndex<< std::endl;
+
 	auto const& energyDeposit = energyDeposits[edIndex];
 
 	// "xyz" is the position of the energy deposit in world
@@ -385,6 +396,10 @@ namespace detsim {
 	const double lifetimecorrection = TMath::Exp(TDrift / fLifetimeCorr_const);
 	const int    nIonizedElectrons  = fISAlg.NumberIonizationElectrons();
 	const double energy             = energyDeposit.Energy();
+
+
+	std::cout << "nIonizedElectrons "<< nIonizedElectrons<< std::endl;
+
       
 	// if we have no electrons (too small energy or too large recombination)
 	// we are done already here
@@ -397,7 +412,7 @@ namespace detsim {
 
 	// includes the effect of lifetime
 	const double nElectrons = nIonizedElectrons * lifetimecorrection;
-	//std::cout << "After lifetime, " << nElectrons << " electrons." << std::endl;
+	std::cout << "After lifetime, " << nElectrons << " electrons." << std::endl;
 
 	// Longitudinal & transverse diffusion sigma (cm)
 	double SqrtT    = std::sqrt(TDrift);
@@ -416,7 +431,8 @@ namespace detsim {
 	      }
 	    nClus = (int) std::ceil(nElectrons / electronclsize);
 	  }
-      
+      	std::cout << "nClus "<< nClus<< std::endl;
+      	std::cout << "electronclsize "<< electronclsize<< std::endl;
 	// Empty and resize the electron-cluster vectors.
 	fXDiff.clear();
 	fYDiff.clear();
@@ -477,9 +493,9 @@ namespace detsim {
 	  // Drift nClus electron clusters to the induction plane
 	  for(int k = 0; k < nClus; ++k){
 
-	    //std::cout << "\tCluser " << k << " diffs are " 
-	    //	      << fXDiff[k] << " " << fYDiff[k] << " " << fZDiff[k]
-	    //	      << std::endl;
+	    std::cout << "\tCluster " << k << " diffs are " 
+	    	      << fXDiff[k] << " " << fYDiff[k] << " " << fZDiff[k]
+	    	      << std::endl;
 
 	    // Correct drift time for longitudinal diffusion and plane
 	    double TDiff = TDrift + fXDiff[k] * fRecipDriftVel[0];
@@ -578,6 +594,7 @@ namespace detsim {
 		}
 	      }
 	      sim::SimChannel* channelPtr = &(channels->at(channelIndex));
+
 	      //std::cout << "\tAdding electrons to SimChannel" << std::endl;
 	      //std::cout << "\t\t" 
 	      //	<< energyDeposit.TrackID() << " " << tdc
@@ -594,6 +611,23 @@ namespace detsim {
 						 fnElDiff[k],
 						 xyz,
 						 fnEnDiff[k]);
+
+	      //sim::SimDriftedElectronCluster *SimDriftedElectronClusterPtr = new sim::SimDriftedElectronCluster(nElectrons, //number of electrons
+	      SimDriftedElectronClusterCollection->push_back(sim::SimDriftedElectronCluster(		fnElDiff[k],
+													tdc,		//timing
+													{mp.X(),		//mean position of the deposited energy
+													mp.Y(),		
+													mp.Z()},
+													{fDriftClusterPos[0],	//final position of the drifted cluster
+													fDriftClusterPos[1],
+													fDriftClusterPos[2]},
+													{LDiffSig,		//longitudinal diffusion (in X)
+													TDiffSig,		// transversal diffusion (in Y and Z)
+													TDiffSig},
+													fnEnDiff[k],			//deposited energy that origined this cluster
+													energyDeposit.TrackID()) );
+	       std::cout << "storing simdriftedelectroncluster in collection"<<std::endl;
+	     //SimDriftedElectronClusterCollection->emplace_back(SimDriftedElectronClusterPtr);
 
 	      //std::cout << "\tAdded the electrons." << std::endl;
 
@@ -644,6 +678,9 @@ namespace detsim {
     */
     // Write the sim::SimChannel collection. 
     event.put(std::move(channels));
+    event.put(std::move(SimDriftedElectronClusterCollection));
+	       std::cout << "saving collection"<<std::endl;
+
     // ... and its associations.
     //event.put(std::move(step2channel));
 
