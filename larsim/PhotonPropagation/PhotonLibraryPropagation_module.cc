@@ -125,6 +125,8 @@ double phot::PhotonLibraryPropagation::GetScintYield(sim::SimEnergyDeposit const
 
 void phot::PhotonLibraryPropagation::produce(art::Event & e)
 {
+
+//std::cout <<"phot::PhotonLibraryPropagation::produce(art::Event & e) " << std::endl;
   art::ServiceHandle<PhotonVisibilityService> pvs;
   art::ServiceHandle<sim::LArG4Parameters> lgpHandle;
   const detinfo::LArProperties* larp = lar::providerFrom<detinfo::LArPropertiesService>();
@@ -144,7 +146,7 @@ void phot::PhotonLibraryPropagation::produce(art::Event & e)
   sim::OnePhoton photon;
   photon.Energy = 9.7e-6;
   photon.SetInSD = false;
-  
+  //std::cout <<"fISAlg.Initialize" << std::endl;
   fISAlg.Initialize(larp,
 		    lar::providerFrom<detinfo::DetectorPropertiesService>(),
 		    &(*lgpHandle),
@@ -166,10 +168,11 @@ void phot::PhotonLibraryPropagation::produce(art::Event & e)
   }
 
   for(auto const& edeps : edep_vecs){
-
+  //std::cout <<"edeps" << std::endl; int counter=0;
     for(auto const& edep : *edeps){
+	 //std::cout <<"edeps " <<counter << std::endl; counter++;
       /*
-      std::cout << "Processing edep with trackID=" 
+      //std::cout << "Processing edep with trackID=" 
 		<< edep.TrackID()
 		<< " pdgCode="
 		<< edep.PdgCode() 
@@ -182,24 +185,27 @@ void phot::PhotonLibraryPropagation::produce(art::Event & e)
       double const xyz[3] = { edep.X(), edep.Y(), edep.Z() };
       
       photon.InitialPosition = TVector3(xyz[0],xyz[1],xyz[2]);
-      
+      	 //std::cout <<"visibilities " << std::endl;
       float const* Visibilities = pvs->GetAllVisibilities(xyz);
       if(!Visibilities)
 	continue;
-      
+            	 //std::cout <<"visibilities loaded " << std::endl;
       yieldRatio = GetScintYield(edep,*larp);
-      fISAlg.Reset();
+      fISAlg.Reset();//std::cout <<"fISAlg.Reset() " << std::endl;
       fISAlg.CalculateIonizationAndScintillation(edep);
+            	 //std::cout <<"NumberScintillationPhotons " << std::endl;
       nphot =fISAlg.NumberScintillationPhotons();
       nphot_fast = yieldRatio*nphot;
-
+            	 //std::cout <<"NumberScintillationPhotons " << nphot << " "<<edep.T()<<  std::endl;
       photon.Time = edep.T() + GetScintTime(larp->ScintFastTimeConst(),fRiseTimeFast,
 					    randflatscinttime(),randflatscinttime());
-      //std::cout << "\t\tPhoton fast time is " << photon.Time << " (" << edep.T() << " orig)" << std::endl;
+      ////std::cout << "\t\tPhoton fast time is " << photon.Time << " (" << edep.T() << " orig)" << std::endl;
+
+      	 //std::cout <<"channels loop " << std::endl;
       for(size_t i_op=0; i_op<NOpChannels; ++i_op){
 	auto nph = randpoisphot.fire(nphot_fast*Visibilities[i_op]);
 	/*
-	  std::cout << "\t\tHave " << nph << " fast photons ("
+	  //std::cout << "\t\tHave " << nph << " fast photons ("
 	  << Visibilities[i_op] << "*" << nphot_fast << " from " << nphot << ")"
 	  << " for opdet " << i_op << std::endl;
 	  //photonCollection[i_op].insert(photonCollection[i_op].end(),randpoisphot.fire(nphot_fast*Visibilities[i_op]),photon);
@@ -207,15 +213,16 @@ void phot::PhotonLibraryPropagation::produce(art::Event & e)
 	photonCollection[i_op].insert(photonCollection[i_op].end(),nph,photon);
       }
       if(fDoSlowComponent){
+      	 //std::cout <<"fDoSlowComponent " << std::endl;
 	nphot_slow = nphot - nphot_fast;
 	
 	if(nphot_slow>0){
 	  photon.Time = edep.T() + GetScintTime(larp->ScintSlowTimeConst(),fRiseTimeSlow,
 						randflatscinttime(),randflatscinttime());
-	  //std::cout << "\t\tPhoton slow time is " << photon.Time << " (" << edep.T() << " orig)" << std::endl;
+	  ////std::cout << "\t\tPhoton slow time is " << photon.Time << " (" << edep.T() << " orig)" << std::endl;
 	  for(size_t i_op=0; i_op<NOpChannels; ++i_op){
 	    auto nph = randpoisphot.fire(nphot_slow*Visibilities[i_op]);
-	    //std::cout << "\t\tHave " << nph << " slow photons ("
+	    ////std::cout << "\t\tHave " << nph << " slow photons ("
 	    //	      << Visibilities[i_op] << "*" << nphot_slow << " from " << nphot << ")"
 	    //	      << " for opdet " << i_op << std::endl;
 	    photonCollection[i_op].insert(photonCollection[i_op].end(),nph,photon);
@@ -226,7 +233,7 @@ void phot::PhotonLibraryPropagation::produce(art::Event & e)
       
     }//end loop over edeps
   }//end loop over edep vectors
-  
+    //std::cout <<"  e.put(std::move(photCol));" << std::endl;
   e.put(std::move(photCol));
   
 }

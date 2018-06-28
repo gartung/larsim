@@ -46,7 +46,9 @@ art_make(
 			cetlib cetlib_except
 			${ROOT_BASIC_LIB_LIST}
           MODULE_LIBRARIES larsim_PhotonPropagation
-                       larsim_PhotonPropagation_PhotonVisibilityService_service
+                        larsim_PhotonPropagation_PhotonVisibilityService_service
+                        larsim_PhotonPropagation_PhotonVisibilityServiceS2_service
+			larsim_LArG4
                         larsim_IonizationScintillation
                         lardataobj_Simulation                   
                         larsim_Simulation nutools_ParticleNavigation lardataobj_Simulation

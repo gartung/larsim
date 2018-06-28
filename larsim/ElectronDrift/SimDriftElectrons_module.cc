@@ -128,6 +128,9 @@ namespace detsim {
     double fLDiff_const;
     double fTDiff_const;
     double fRecipDriftVel[3];
+
+    bool fStoreDriftedElectronClusters;
+
     //double fOffPlaneMargin;
     
     // In order to create the associations, for each channel we create
@@ -179,7 +182,7 @@ namespace detsim {
     this->reconfigure(pset);
 
     produces< std::vector<sim::SimChannel> >();
-    produces< std::vector<sim::SimDriftedElectronCluster> >();
+    if(fStoreDriftedElectronClusters)produces< std::vector<sim::SimDriftedElectronCluster> >();
     //produces< art::Assns<sim::SimChannel, sim::SimEnergyDeposit> >();
     
     // create a default random engine; obtain the random seed from
@@ -206,6 +209,9 @@ namespace detsim {
   {
     std::string label= p.get< std::string >("SimulationLabel");
     fSimModuleLabel = art::InputTag(label);
+
+    fStoreDriftedElectronClusters = p.get< bool >("StoreDriftedElectronClusters", false);
+
 
     return;
   }
@@ -274,7 +280,7 @@ namespace detsim {
   void SimDriftElectrons::produce(art::Event& event)
   {
 
-	       std::cout << "Running SimDriftElectrons::produce"<<std::endl;
+	       //std::cout << "Running SimDriftElectrons::produce"<<std::endl;
 
     // Fetch the SimEnergyDeposit objects for this event.
     typedef art::Handle< std::vector<sim::SimEnergyDeposit> > energyDepositHandle_t;
@@ -289,7 +295,7 @@ namespace detsim {
     // Define the container for the SimChannel objects that will be
     // transferred to the art::Event after the put statement below.
     std::unique_ptr< std::vector<sim::SimChannel> > 		channels(new std::vector<sim::SimChannel>);
-    std::unique_ptr< std::vector<sim::SimDriftedElectronCluster> > SimDriftedElectronClusterCollection(new std::vector<sim::SimDriftedElectronCluster>);
+    std::unique_ptr< std::vector<sim::SimDriftedElectronCluster> > SimDriftedElectronClusterCollection( new std::vector<sim::SimDriftedElectronCluster>);
 
     // Clear the channel maps from the last event. Remember,
     // fChannelMaps is an array[cryo][tpc] of maps.
@@ -310,7 +316,7 @@ namespace detsim {
     for ( size_t edIndex = 0; edIndex < energyDepositsSize; ++edIndex )
       {
 
-	std::cout << "running over all energy deposits "<< edIndex<< std::endl;
+	//std::cout << "running over all energy deposits "<< edIndex<< std::endl;
 
 	auto const& energyDeposit = energyDeposits[edIndex];
 
@@ -358,7 +364,7 @@ namespace detsim {
 
 	/// \todo think about effects of drift between planes 
 	double XDrift = std::abs(xyz[0] - tpcGeo.PlaneLocation(0)[0]);
-	//std::cout<<tpcGeo.DriftDirection()<<std::endl;
+	////std::cout<<tpcGeo.DriftDirection()<<std::endl;
 	if (tpcGeo.DriftDirection() == geo::kNegX)
 	  XDrift = xyz[0] - tpcGeo.PlaneLocation(0)[0];
 	else if (tpcGeo.DriftDirection() == geo::kPosX)
@@ -391,14 +397,14 @@ namespace detsim {
           
 	fISAlg.Reset();
 	fISAlg.CalculateIonizationAndScintillation(energyDeposit);
-	//std::cout << "Got " << fISAlg.NumberIonizationElectrons() << "." << std::endl;
+	////std::cout << "Got " << fISAlg.NumberIonizationElectrons() << "." << std::endl;
 
 	const double lifetimecorrection = TMath::Exp(TDrift / fLifetimeCorr_const);
 	const int    nIonizedElectrons  = fISAlg.NumberIonizationElectrons();
 	const double energy             = energyDeposit.Energy();
 
 
-	std::cout << "nIonizedElectrons "<< nIonizedElectrons<< std::endl;
+	//std::cout << "nIonizedElectrons "<< nIonizedElectrons<< std::endl;
 
       
 	// if we have no electrons (too small energy or too large recombination)
@@ -412,7 +418,7 @@ namespace detsim {
 
 	// includes the effect of lifetime
 	const double nElectrons = nIonizedElectrons * lifetimecorrection;
-	std::cout << "After lifetime, " << nElectrons << " electrons." << std::endl;
+	//std::cout << "After lifetime, " << nElectrons << " electrons." << std::endl;
 
 	// Longitudinal & transverse diffusion sigma (cm)
 	double SqrtT    = std::sqrt(TDrift);
@@ -431,8 +437,8 @@ namespace detsim {
 	      }
 	    nClus = (int) std::ceil(nElectrons / electronclsize);
 	  }
-      	std::cout << "nClus "<< nClus<< std::endl;
-      	std::cout << "electronclsize "<< electronclsize<< std::endl;
+      	//std::cout << "nClus "<< nClus<< std::endl;
+      	//std::cout << "electronclsize "<< electronclsize<< std::endl;
 	// Empty and resize the electron-cluster vectors.
 	fXDiff.clear();
 	fYDiff.clear();
@@ -453,7 +459,7 @@ namespace detsim {
 	  else               fnEnDiff[xx] = 0.;
 	}
 
-	//std::cout << "Split into, " << nClus << " clusters." << std::endl;
+	////std::cout << "Split into, " << nClus << " clusters." << std::endl;
 	  
 	double const avegageYtransversePos
 	  = xyz[1] + posOffsets.Y();
@@ -476,12 +482,12 @@ namespace detsim {
 	  fZDiff.assign(nClus, avegageZtransversePos);
 	}
 
-	//std::cout << "Smeared the " << nClus << " clusters." << std::endl;
+	////std::cout << "Smeared the " << nClus << " clusters." << std::endl;
 	
 	// make a collection of electrons for each plane
 	for(size_t p = 0; p < tpcGeo.Nplanes(); ++p){
 	  
-	  //std::cout << "Doing plane " << p << std::endl;
+	  ////std::cout << "Doing plane " << p << std::endl;
 
 	  //geo::PlaneGeo const& plane = tpcGeo.Plane(p); // unused
 
@@ -493,7 +499,7 @@ namespace detsim {
 	  // Drift nClus electron clusters to the induction plane
 	  for(int k = 0; k < nClus; ++k){
 
-	    std::cout << "\tCluster " << k << " diffs are " 
+	    //std::cout << "\tCluster " << k << " diffs are " 
 	    	      << fXDiff[k] << " " << fYDiff[k] << " " << fZDiff[k]
 	    	      << std::endl;
 
@@ -530,7 +536,7 @@ namespace detsim {
 	      */
 	      raw::ChannelID_t channel = fGeometry->NearestChannel(fDriftClusterPos, p, tpc, cryostat);
 
-	      //std::cout << "\tgot channel " << channel << " for cluster " << k << std::endl;
+	      ////std::cout << "\tgot channel " << channel << " for cluster " << k << std::endl;
             
 	      /// \todo check on what happens if we allow the tdc value to be
 	      /// \todo beyond the end of the expected number of ticks
@@ -551,7 +557,7 @@ namespace detsim {
 	      // channel ID?
 	      if (search == channelDataMap.end())
 		{
-		  //std::cout << "\tHaven't done this channel before." << std::endl;
+		  ////std::cout << "\tHaven't done this channel before." << std::endl;
 
 		  // We haven't. Initialize the bookkeeping information
 		  // for this channel.
@@ -579,7 +585,7 @@ namespace detsim {
 		// We've created this SimChannel for a previous energy
 		// deposit. Get its address.
 
-		//std::cout << "\tHave seen this channel before." << std::endl;
+		////std::cout << "\tHave seen this channel before." << std::endl;
 
 		auto& bookKeeping = search->second;
 		channelIndex = bookKeeping.channelIndex;
@@ -595,15 +601,15 @@ namespace detsim {
 	      }
 	      sim::SimChannel* channelPtr = &(channels->at(channelIndex));
 
-	      //std::cout << "\tAdding electrons to SimChannel" << std::endl;
-	      //std::cout << "\t\t" 
+	      ////std::cout << "\tAdding electrons to SimChannel" << std::endl;
+	      ////std::cout << "\t\t" 
 	      //	<< energyDeposit.TrackID() << " " << tdc
 	      //	<< " " << xyz[0] << " " << xyz[1] << " " << xyz[2]
 	      //	<< " " << fnEnDiff[k] << " " << fnElDiff[k]
 	      //	<< std::endl;
 
-	      //if(!channelPtr) std::cout << "\tUmm...ptr is NULL?" << std::endl;
-	      //else std::cout << "\tChannel is " << channelPtr->Channel() << std::endl;
+	      //if(!channelPtr) //std::cout << "\tUmm...ptr is NULL?" << std::endl;
+	      //else //std::cout << "\tChannel is " << channelPtr->Channel() << std::endl;
 	      // Add the electron clusters and energy to the
 	      // sim::SimChannel
 	      channelPtr->AddIonizationElectrons(energyDeposit.TrackID(),
@@ -613,7 +619,7 @@ namespace detsim {
 						 fnEnDiff[k]);
 
 	      //sim::SimDriftedElectronCluster *SimDriftedElectronClusterPtr = new sim::SimDriftedElectronCluster(nElectrons, //number of electrons
-	      SimDriftedElectronClusterCollection->push_back(sim::SimDriftedElectronCluster(		fnElDiff[k],
+	      if(fStoreDriftedElectronClusters) SimDriftedElectronClusterCollection->push_back(sim::SimDriftedElectronCluster(		fnElDiff[k],
 													tdc,		//timing
 													{mp.X(),		//mean position of the deposited energy
 													mp.Y(),		
@@ -626,10 +632,10 @@ namespace detsim {
 													TDiffSig},
 													fnEnDiff[k],			//deposited energy that origined this cluster
 													energyDeposit.TrackID()) );
-	       std::cout << "storing simdriftedelectroncluster in collection"<<std::endl;
+	       //std::cout << "storing simdriftedelectroncluster in collection"<<std::endl;
 	     //SimDriftedElectronClusterCollection->emplace_back(SimDriftedElectronClusterPtr);
 
-	      //std::cout << "\tAdded the electrons." << std::endl;
+	      ////std::cout << "\tAdded the electrons." << std::endl;
 
  	    }
 	    catch(cet::exception &e) {
@@ -678,8 +684,8 @@ namespace detsim {
     */
     // Write the sim::SimChannel collection. 
     event.put(std::move(channels));
-    event.put(std::move(SimDriftedElectronClusterCollection));
-	       std::cout << "saving collection"<<std::endl;
+    if (fStoreDriftedElectronClusters) event.put(std::move(SimDriftedElectronClusterCollection));
+	       //std::cout << "saving collection"<<std::endl;
 
     // ... and its associations.
     //event.put(std::move(step2channel));
