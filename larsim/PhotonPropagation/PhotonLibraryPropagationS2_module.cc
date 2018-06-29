@@ -139,8 +139,8 @@ void phot::PhotonLibraryPropagationS2::produce(art::Event & e)
 
   int counter=0;
 
-  if(fUseLitePhotons) //std::cout << "... USING LITE PHOTONS" << std::endl;
-  else //std::cout << "... NOT USING LITE PHOTONS!!!! ---ERROR---" << std::endl;
+  if(fUseLitePhotons) std::cout << "... USING LITE PHOTONS" << std::endl;
+  else std::cout << "... NOT USING LITE PHOTONS!!!! ---ERROR---" << std::endl;
   for (sim::SimDriftedElectronCluster const& ElectronCluster: *ElectronClusters_handle)
   {	
 	//std::cout << "reading a cluster " << counter <<std::endl; counter ++;
@@ -256,7 +256,7 @@ void phot::PhotonLibraryPropagationS2::produce(art::Event & e)
 			////std::cout << "total map....."<<std::endl;
 			//Print(&(litefst->GetLitePhotons()));
 		}
-		else //std::cout << "SIMPHOTONS NOT SUPPORTED!!! "<< std::endl;
+		else std::cout << "SIMPHOTONS NOT SUPPORTED!!! "<< std::endl;
 	}
 
 //	OpDetSensitiveDetector *theOpDetDet = dynamic_cast<OpDetSensitiveDetector*>(sdManager->FindSensitiveDetector("OpDetSensitiveDetector"));

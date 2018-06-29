@@ -500,8 +500,8 @@ namespace detsim {
 	  for(int k = 0; k < nClus; ++k){
 
 	    //std::cout << "\tCluster " << k << " diffs are " 
-	    	      << fXDiff[k] << " " << fYDiff[k] << " " << fZDiff[k]
-	    	      << std::endl;
+	    //	      << fXDiff[k] << " " << fYDiff[k] << " " << fZDiff[k]
+	   // 	      << std::endl;
 
 	    // Correct drift time for longitudinal diffusion and plane
 	    double TDiff = TDrift + fXDiff[k] * fRecipDriftVel[0];
