@@ -55,6 +55,7 @@ namespace phot{
     fStoreReflT0(false),
     fIncludePropTime(false),
     fParPropTime(false),
+    fMCParPropTime(false),
     fTheLibrary(0)
   {
     this->reconfigure(pset);
@@ -132,9 +133,12 @@ namespace phot{
     fInterpolate          = p.get< bool        >("Interpolate", false);
 
     fParPropTime          = p.get< bool        >("ParametrisedTimePropagation", false);
+    fMCParPropTime          = p.get< bool        >("ParametrisedMCTimePropagation", false);
     fParPropTime_npar     = p.get< size_t      >("ParametrisedTimePropagationNParameters", 0);
     fParPropTime_formula  = p.get< std::string >("ParametrisedTimePropagationFittedFormula","");
     
+    if (fParPropTime==false) fParPropTime_npar=0;
+
     if(fUseCryoBoundary)
       {
 	double CryoBounds[6];

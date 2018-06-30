@@ -139,8 +139,8 @@ void phot::PhotonLibraryPropagationS2::produce(art::Event & e)
 
   int counter=0;
 
-  if(fUseLitePhotons) std::cout << "... USING LITE PHOTONS" << std::endl;
-  else std::cout << "... NOT USING LITE PHOTONS!!!! ---ERROR---" << std::endl;
+  if(fUseLitePhotons)  mf::LogDebug("PhotonLibraryPropagationS2") << "Creating S2 photons as a SimPhotonsLite data product."<<std::endl;
+  else  mf::LogError("PhotonLibraryPropagationS2") << "Error creating S2 light, SimPhotons data product is not supported."<<std::endl;
   for (sim::SimDriftedElectronCluster const& ElectronCluster: *ElectronClusters_handle)
   {	
 	//std::cout << "reading a cluster " << counter <<std::endl; counter ++;
@@ -164,6 +164,7 @@ void phot::PhotonLibraryPropagationS2::produce(art::Event & e)
 	}
 	else
 	{
+		mf::LogInfo("PhotonLibraryPropagationS2") << "S2 Visibilities have been loaded."<<std::endl;
 
 		//std::cout <<"\t\tVisibilities loaded. Let's calculate the number of detected photons. OpChannels: " <<NOpChannels<<std::endl;	
 
@@ -173,6 +174,8 @@ void phot::PhotonLibraryPropagationS2::produce(art::Event & e)
 		for(size_t OpDet=0; OpDet!=NOpChannels; OpDet++)
 		{
 			G4int DetThisPMT = G4int(randpoisphot.fire(Visibilities[OpDet] * nphot));
+
+			mf::LogDebug("PhotonLibraryPropagationS2") << DetThisPMT <<" photons arrive to OpChannel " << OpDet<<std::endl;
 
 			//std::cout <<"\t\tVisibilities loaded. Let's calculate the number of detected photons. OpChannels: " <<Visibilities[OpDet] << " "<< nphot << " " << Visibilities[OpDet] * nphot << std::endl;	
 			if(DetThisPMT>0) 
@@ -197,6 +200,7 @@ void phot::PhotonLibraryPropagationS2::produce(art::Event & e)
 	
 		if(fUseLitePhotons)
 		{
+
 			//std::cout << "\t\tLet's create our StepPhotonTable Map." << std::endl;	
 
 			std::map<int, std::map<int, int>> StepPhotonTable;
@@ -211,20 +215,39 @@ void phot::PhotonLibraryPropagationS2::produce(art::Event & e)
 
 				//std::cout << "... iterating! " <<  std::endl;
 				std::map<int, int>  StepPhotons;
-				for (G4int i = 0; i < itdetphot->second; ++i)
-				{
-					G4double deltaTime = ElectronCluster.getTime();
 
-					if(pvs->IncludeParPropTime())
+				if(!pvs->IncludeMCParPropTime())
+				{
+
+					G4double deltaTime = ElectronCluster.getTime();
+					deltaTime += PropTimeFunction[itdetphot->first].GetRandom(); 
+					int maxarrivaltimerange=1000;
+					double integral=PropTimeFunction[itdetphot->first].Integral(PropParameters[itdetphot->first][0]);
+					for (int ticks=static_cast<int>(deltaTime);ticks<static_cast<int>(deltaTime+maxarrivaltimerange);ticks++)
 					{
-						deltaTime += PropTimeFunction[itdetphot->first].GetRandom(); 
+						StepPhotons[ticks]=deltaTime+PropTimeFunction[itdetphot->first].Eval(PropParameters[itdetphot->first][0]+ticks)/integral;
 					}
 
-					G4double aSecondaryTime = deltaTime;
-					float Time = aSecondaryTime;
-					int ticks = static_cast<int>(Time);
-					StepPhotons[ticks]++;
-			 	}
+				}
+				else
+				{
+
+					for (G4int i = 0; i < itdetphot->second; ++i)
+					{
+						G4double deltaTime = ElectronCluster.getTime();
+
+						if(pvs->IncludeParPropTime())
+						{
+							deltaTime += PropTimeFunction[itdetphot->first].GetRandom(); 
+						}
+
+						G4double aSecondaryTime = deltaTime;
+						float Time = aSecondaryTime;
+						int ticks = static_cast<int>(Time);
+						StepPhotons[ticks]++;
+				 	}
+				}
+
 				 StepPhotonTable[itdetphot->first] = StepPhotons;
 				 //Iterate over Step Photon Table to add photons to OpDetBacktrackerRecords.
 
@@ -256,7 +279,7 @@ void phot::PhotonLibraryPropagationS2::produce(art::Event & e)
 			////std::cout << "total map....."<<std::endl;
 			//Print(&(litefst->GetLitePhotons()));
 		}
-		else std::cout << "SIMPHOTONS NOT SUPPORTED!!! "<< std::endl;
+		else mf::LogError("PhotonLibraryPropagationS2") << "Error creating S2 light, SimPhotons data product is not supported."<<std::endl;
 	}
 
 //	OpDetSensitiveDetector *theOpDetDet = dynamic_cast<OpDetSensitiveDetector*>(sdManager->FindSensitiveDetector("OpDetSensitiveDetector"));

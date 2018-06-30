@@ -70,6 +70,7 @@ namespace phot{
     std::string ParPropTimeFormula() const { return fParPropTime_formula; }
 
     bool IncludePropTime() const { return fIncludePropTime; }
+    bool IncludeMCParPropTime() const { return fMCParPropTime; }
 
     sim::PhotonVoxelDef GetVoxelDef() const {return fVoxelDef; }
     size_t NOpChannels() const;
@@ -98,6 +99,7 @@ namespace phot{
     bool                 fParPropTime;
     size_t               fParPropTime_npar;
     std::string		 fParPropTime_formula;
+    bool 		 fMCParPropTime;
 
     bool                 fInterpolate;
 

@@ -620,7 +620,7 @@ namespace detsim {
 
 	      //sim::SimDriftedElectronCluster *SimDriftedElectronClusterPtr = new sim::SimDriftedElectronCluster(nElectrons, //number of electrons
 	      if(fStoreDriftedElectronClusters) SimDriftedElectronClusterCollection->push_back(sim::SimDriftedElectronCluster(		fnElDiff[k],
-													tdc,		//timing
+													TDiff + simTime,		//timing
 													{mp.X(),		//mean position of the deposited energy
 													mp.Y(),		
 													mp.Z()},
