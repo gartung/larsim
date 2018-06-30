@@ -222,7 +222,7 @@ void phot::PhotonLibraryPropagationS2::produce(art::Event & e)
 					G4double deltaTime = ElectronCluster.getTime();
 					deltaTime += PropTimeFunction[itdetphot->first].GetRandom(); 
 					int maxarrivaltimerange=1000;
-					double integral=PropTimeFunction[itdetphot->first].Integral(PropParameters[itdetphot->first][0]);
+					double integral=PropTimeFunction[itdetphot->first].Integral(PropParameters[itdetphot->first][0],maxarrivaltimerange);
 					for (int ticks=static_cast<int>(deltaTime);ticks<static_cast<int>(deltaTime+maxarrivaltimerange);ticks++)
 					{
 						StepPhotons[ticks]=deltaTime+PropTimeFunction[itdetphot->first].Eval(PropParameters[itdetphot->first][0]+ticks)/integral;
