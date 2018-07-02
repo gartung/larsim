@@ -164,7 +164,7 @@ void phot::PhotonLibraryPropagationS2::produce(art::Event & e)
 	}
 	else
 	{
-		mf::LogInfo("PhotonLibraryPropagationS2") << "S2 Visibilities have been loaded."<<std::endl;
+		mf::LogDebug("PhotonLibraryPropagationS2") << "S2 Visibilities have been loaded."<<std::endl;
 
 		//std::cout <<"\t\tVisibilities loaded. Let's calculate the number of detected photons. OpChannels: " <<NOpChannels<<std::endl;	
 

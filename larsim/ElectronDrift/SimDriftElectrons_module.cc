@@ -230,10 +230,11 @@ namespace detsim {
     // Define the physical constants we'll use.
 
     auto const * detprop = lar::providerFrom<detinfo::DetectorPropertiesService>();
-    fElectronLifetime      = detprop->ElectronLifetime();
+    fElectronLifetime      = detprop->ElectronLifetime() * CLHEP::us; // lifetime in us
     for (int i = 0; i<3; ++i) {
       double driftVelocity = detprop->DriftVelocity(detprop->Efield(i),
-						    detprop->Temperature())/1000.;
+						    detprop->Temperature()) * (CLHEP::cm/CLHEP::us); // drift velocity units, as specified in lardataalg/DetectorInfo: cm/us
+
       fRecipDriftVel[i] = 1./driftVelocity;
     }      
 
@@ -324,7 +325,7 @@ namespace detsim {
 	// coordinates. Note that the units of distance in
 	// sim::SimEnergyDeposit are supposed to be cm.
 	auto const mp = energyDeposit.MidPoint();
-	double const xyz[3] = { mp.X(), mp.Y(), mp.Z() };
+	double const xyz[3] = { mp.X() * CLHEP::cm, mp.Y() * CLHEP::cm, mp.Z() * CLHEP::cm};
 
 	// From the position in world coordinates, determine the
 	// cryostat and tpc. If somehow the step is outside a tpc
@@ -362,14 +363,15 @@ namespace detsim {
 	if(tpcGeo.DriftDirection()==geo::kPosX && tpcGeo.PlaneLocation(0)[0]<xyz[0])
 	  continue;
 
-	/// \todo think about effects of drift between planes 
-	double XDrift = std::abs(xyz[0] - tpcGeo.PlaneLocation(0)[0]);
+	/// \todo think about effects of drift between planes. Center of plane is also returned in cm units 
+	double XDrift = std::abs(xyz[0] - tpcGeo.PlaneLocation(0)[0]*CLHEP::cm);
 	////std::cout<<tpcGeo.DriftDirection()<<std::endl;
 	if (tpcGeo.DriftDirection() == geo::kNegX)
-	  XDrift = xyz[0] - tpcGeo.PlaneLocation(0)[0];
+	  XDrift = xyz[0] - tpcGeo.PlaneLocation(0)[0]*CLHEP::cm;
 	else if (tpcGeo.DriftDirection() == geo::kPosX)
-	  XDrift = tpcGeo.PlaneLocation(0)[0] - xyz[0];
-      
+	  XDrift = tpcGeo.PlaneLocation(0)[0]*CLHEP::cm - xyz[0];
+
+
 	if(XDrift < 0.) continue;
 
 	// Space-charge effect (SCE): Get SCE {x,y,z} offsets for
@@ -388,13 +390,14 @@ namespace detsim {
 	// should be enough for the time being.
 	if (XDrift < 0.) XDrift = 0.;
       
-	// Drift time (nano-sec)
+	// Drift time
 	double TDrift = XDrift * fRecipDriftVel[0];
 	if (tpcGeo.Nplanes() == 2){// special case for ArgoNeuT (plane 0 is the second wire plane)
 	  TDrift = ((XDrift - tpcGeo.PlanePitch(0,1)) * fRecipDriftVel[0] 
 		    + tpcGeo.PlanePitch(0,1) * fRecipDriftVel[1]);
-	}
-          
+	} 
+	//std::cout << "XDrift (mm): " << XDrift / CLHEP::mm << ", TDrift (us): " << TDrift / CLHEP::us << std::endl;
+
 	fISAlg.Reset();
 	fISAlg.CalculateIonizationAndScintillation(energyDeposit);
 	////std::cout << "Got " << fISAlg.NumberIonizationElectrons() << "." << std::endl;
