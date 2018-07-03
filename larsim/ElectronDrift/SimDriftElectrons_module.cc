@@ -230,10 +230,10 @@ namespace detsim {
     // Define the physical constants we'll use.
 
     auto const * detprop = lar::providerFrom<detinfo::DetectorPropertiesService>();
-    fElectronLifetime      = detprop->ElectronLifetime() * CLHEP::us; // lifetime in us
+    fElectronLifetime      = detprop->ElectronLifetime(); // Electron lifetime as returned by the DetectorProperties service assumed to be in us;
     for (int i = 0; i<3; ++i) {
       double driftVelocity = detprop->DriftVelocity(detprop->Efield(i),
-						    detprop->Temperature()) * (CLHEP::cm/CLHEP::us); // drift velocity units, as specified in lardataalg/DetectorInfo: cm/us
+						    detprop->Temperature())*1.e-3; //  Drift velocity as returned by the DetectorProperties service assumed to be in cm/us. Multiply by 1.e-3 to convert into LArSoft standard velocity units, ie cm/ns;
 
       fRecipDriftVel[i] = 1./driftVelocity;
     }      
@@ -243,14 +243,15 @@ namespace detsim {
     art::ServiceHandle<sim::LArG4Parameters> paramHandle;
     fElectronClusterSize   = paramHandle->ElectronClusterSize();
     fMinNumberOfElCluster  = paramHandle->MinNumberOfElCluster();
-    fLongitudinalDiffusion = paramHandle->LongitudinalDiffusion();
-    fTransverseDiffusion   = paramHandle->TransverseDiffusion();
+    fLongitudinalDiffusion = paramHandle->LongitudinalDiffusion(); // cm^2/ns units
+    fTransverseDiffusion   = paramHandle->TransverseDiffusion(); // cm^2/ns units
 
-    LOG_DEBUG("SimDriftElectrons")  << " e lifetime: "        << fElectronLifetime
-				    << "\n Temperature: "     << detprop->Temperature()
-				    << "\n Drift velocity: "  << 1./fRecipDriftVel[0]
+    LOG_DEBUG("SimDriftElectrons")  << " e lifetime (ns): "        << fElectronLifetime
+				    << "\n Temperature (K): "     << detprop->Temperature()
+				    << "\n Drift velocity (cm/ns): "  << 1./fRecipDriftVel[0]
 				    <<" "<<1./fRecipDriftVel[1]<<" "<<1./fRecipDriftVel[2];
 
+    // Opposite of lifetime. Convert from us to standard LArSoft yime units, ie ns;
     fLifetimeCorr_const = -1000. * fElectronLifetime;
     fLDiff_const        = std::sqrt(2.*fLongitudinalDiffusion);
     fTDiff_const        = std::sqrt(2.*fTransverseDiffusion);
@@ -325,7 +326,7 @@ namespace detsim {
 	// coordinates. Note that the units of distance in
 	// sim::SimEnergyDeposit are supposed to be cm.
 	auto const mp = energyDeposit.MidPoint();
-	double const xyz[3] = { mp.X() * CLHEP::cm, mp.Y() * CLHEP::cm, mp.Z() * CLHEP::cm};
+	double const xyz[3] = { mp.X(), mp.Y(), mp.Z()};
 
 	// From the position in world coordinates, determine the
 	// cryostat and tpc. If somehow the step is outside a tpc
@@ -364,12 +365,12 @@ namespace detsim {
 	  continue;
 
 	/// \todo think about effects of drift between planes. Center of plane is also returned in cm units 
-	double XDrift = std::abs(xyz[0] - tpcGeo.PlaneLocation(0)[0]*CLHEP::cm);
+	double XDrift = std::abs(xyz[0] - tpcGeo.PlaneLocation(0)[0]);
 	////std::cout<<tpcGeo.DriftDirection()<<std::endl;
 	if (tpcGeo.DriftDirection() == geo::kNegX)
-	  XDrift = xyz[0] - tpcGeo.PlaneLocation(0)[0]*CLHEP::cm;
+	  XDrift = xyz[0] - tpcGeo.PlaneLocation(0)[0];
 	else if (tpcGeo.DriftDirection() == geo::kPosX)
-	  XDrift = tpcGeo.PlaneLocation(0)[0]*CLHEP::cm - xyz[0];
+	  XDrift = tpcGeo.PlaneLocation(0)[0] - xyz[0];
 
 
 	if(XDrift < 0.) continue;
@@ -390,13 +391,13 @@ namespace detsim {
 	// should be enough for the time being.
 	if (XDrift < 0.) XDrift = 0.;
       
-	// Drift time
+	// Drift time in ns
 	double TDrift = XDrift * fRecipDriftVel[0];
 	if (tpcGeo.Nplanes() == 2){// special case for ArgoNeuT (plane 0 is the second wire plane)
 	  TDrift = ((XDrift - tpcGeo.PlanePitch(0,1)) * fRecipDriftVel[0] 
 		    + tpcGeo.PlanePitch(0,1) * fRecipDriftVel[1]);
 	} 
-	//std::cout << "XDrift (mm): " << XDrift / CLHEP::mm << ", TDrift (us): " << TDrift / CLHEP::us << std::endl;
+	std::cout << "XDrift (cm): " << XDrift << ", TDrift (ns): " << TDrift << std::endl;
 
 	fISAlg.Reset();
 	fISAlg.CalculateIonizationAndScintillation(energyDeposit);
@@ -419,7 +420,7 @@ namespace detsim {
 	  continue;
 	}
 
-	// includes the effect of lifetime
+	// includes the effect of lifetime: lifetimecorrection = exp[-tdrift/tau]
 	const double nElectrons = nIonizedElectrons * lifetimecorrection;
 	//std::cout << "After lifetime, " << nElectrons << " electrons." << std::endl;
 
