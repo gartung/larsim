@@ -187,9 +187,7 @@ namespace phot{
     Float_t   Visibility;
     Float_t   ReflVisibility;
     Float_t   ReflTfirst;
-//    Double_t   *timing_par = nullptr;
     std::vector<Float_t>   timing_par;
-//Float_t *timing_par = new Float_t[NPAR];
 
     tt->SetBranchAddress("Voxel",      &Voxel);
     tt->SetBranchAddress("OpChannel",  &OpChannel);
@@ -200,8 +198,6 @@ namespace phot{
       timing_par.resize(getTiming);
       tt->SetBranchAddress("timing_par", timing_par.data());
     }
-
-
 
     fHasReflected = getReflected;
     if(getReflected)
@@ -238,8 +234,6 @@ namespace phot{
 	uncheckedAccessReflT(Voxel, OpChannel) = ReflTfirst; 
       if(fHasTiming!=0)
       {
-//	tt->Draw("timing_par","","goff",1,i);
-//	timing_par=tt->GetV1();
 	for (size_t k=0;k<fHasTiming;k++){ uncheckedAccessTimingPar(Voxel, OpChannel,k) = timing_par[k];}
       }
     } // for entries
