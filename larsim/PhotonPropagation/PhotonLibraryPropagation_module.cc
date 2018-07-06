@@ -225,7 +225,7 @@ void phot::PhotonLibraryPropagation::produce(art::Event & e)
       }//end doing slow component
       
     }//end loop over edeps
-  }//end loop over edep vector
+  }//end loop over edep vectors
 
   e.put(std::move(photCol));
   
