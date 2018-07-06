@@ -195,11 +195,11 @@ void phot::PhotonLibraryPropagation::produce(art::Event & e)
 
       photon.Time = edep.T() + GetScintTime(larp->ScintFastTimeConst(),fRiseTimeFast,
 					    randflatscinttime(),randflatscinttime());
-      	 //std::cout <<"channels loop " << std::endl;
+      //std::cout << "\t\tPhoton fast time is " << photon.Time << " (" << edep.T() << " orig)" << std::endl;
       for(size_t i_op=0; i_op<NOpChannels; ++i_op){
 	auto nph = randpoisphot.fire(nphot_fast*Visibilities[i_op]);
 	/*
-	  //std::cout << "\t\tHave " << nph << " fast photons ("
+	  std::cout << "\t\tHave " << nph << " fast photons ("
 	  << Visibilities[i_op] << "*" << nphot_fast << " from " << nphot << ")"
 	  << " for opdet " << i_op << std::endl;
 	  //photonCollection[i_op].insert(photonCollection[i_op].end(),randpoisphot.fire(nphot_fast*Visibilities[i_op]),photon);
@@ -207,16 +207,15 @@ void phot::PhotonLibraryPropagation::produce(art::Event & e)
 	photonCollection[i_op].insert(photonCollection[i_op].end(),nph,photon);
       }
       if(fDoSlowComponent){
-      	 //std::cout <<"fDoSlowComponent " << std::endl;
 	nphot_slow = nphot - nphot_fast;
 	
 	if(nphot_slow>0){
 	  photon.Time = edep.T() + GetScintTime(larp->ScintSlowTimeConst(),fRiseTimeSlow,
 						randflatscinttime(),randflatscinttime());
-	  ////std::cout << "\t\tPhoton slow time is " << photon.Time << " (" << edep.T() << " orig)" << std::endl;
+	  //std::cout << "\t\tPhoton slow time is " << photon.Time << " (" << edep.T() << " orig)" << std::endl;
 	  for(size_t i_op=0; i_op<NOpChannels; ++i_op){
 	    auto nph = randpoisphot.fire(nphot_slow*Visibilities[i_op]);
-	    ////std::cout << "\t\tHave " << nph << " slow photons ("
+	    //std::cout << "\t\tHave " << nph << " slow photons ("
 	    //	      << Visibilities[i_op] << "*" << nphot_slow << " from " << nphot << ")"
 	    //	      << " for opdet " << i_op << std::endl;
 	    photonCollection[i_op].insert(photonCollection[i_op].end(),nph,photon);
@@ -226,8 +225,8 @@ void phot::PhotonLibraryPropagation::produce(art::Event & e)
       }//end doing slow component
       
     }//end loop over edeps
-  }//end loop over edep vectors
-    //std::cout <<"  e.put(std::move(photCol));" << std::endl;
+  }//end loop over edep vector
+
   e.put(std::move(photCol));
   
 }
