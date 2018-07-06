@@ -125,8 +125,6 @@ double phot::PhotonLibraryPropagation::GetScintYield(sim::SimEnergyDeposit const
 
 void phot::PhotonLibraryPropagation::produce(art::Event & e)
 {
-
-//std::cout <<"phot::PhotonLibraryPropagation::produce(art::Event & e) " << std::endl;
   art::ServiceHandle<PhotonVisibilityService> pvs;
   art::ServiceHandle<sim::LArG4Parameters> lgpHandle;
   const detinfo::LArProperties* larp = lar::providerFrom<detinfo::LArPropertiesService>();
@@ -146,7 +144,7 @@ void phot::PhotonLibraryPropagation::produce(art::Event & e)
   sim::OnePhoton photon;
   photon.Energy = 9.7e-6;
   photon.SetInSD = false;
-  //std::cout <<"fISAlg.Initialize" << std::endl;
+
   fISAlg.Initialize(larp,
 		    lar::providerFrom<detinfo::DetectorPropertiesService>(),
 		    &(*lgpHandle),
@@ -168,11 +166,10 @@ void phot::PhotonLibraryPropagation::produce(art::Event & e)
   }
 
   for(auto const& edeps : edep_vecs){
-  //std::cout <<"edeps" << std::endl; int counter=0;
+
     for(auto const& edep : *edeps){
-	 //std::cout <<"edeps " <<counter << std::endl; counter++;
       /*
-      //std::cout << "Processing edep with trackID=" 
+	std::cout << "Processing edep with trackID=" 
 		<< edep.TrackID()
 		<< " pdgCode="
 		<< edep.PdgCode() 
@@ -185,22 +182,19 @@ void phot::PhotonLibraryPropagation::produce(art::Event & e)
       double const xyz[3] = { edep.X(), edep.Y(), edep.Z() };
       
       photon.InitialPosition = TVector3(xyz[0],xyz[1],xyz[2]);
-      	 //std::cout <<"visibilities " << std::endl;
+
       float const* Visibilities = pvs->GetAllVisibilities(xyz);
       if(!Visibilities)
 	continue;
-            	 //std::cout <<"visibilities loaded " << std::endl;
+
       yieldRatio = GetScintYield(edep,*larp);
-      fISAlg.Reset();//std::cout <<"fISAlg.Reset() " << std::endl;
+      fISAlg.Reset();
       fISAlg.CalculateIonizationAndScintillation(edep);
-            	 //std::cout <<"NumberScintillationPhotons " << std::endl;
       nphot =fISAlg.NumberScintillationPhotons();
       nphot_fast = yieldRatio*nphot;
-            	 //std::cout <<"NumberScintillationPhotons " << nphot << " "<<edep.T()<<  std::endl;
+
       photon.Time = edep.T() + GetScintTime(larp->ScintFastTimeConst(),fRiseTimeFast,
 					    randflatscinttime(),randflatscinttime());
-      ////std::cout << "\t\tPhoton fast time is " << photon.Time << " (" << edep.T() << " orig)" << std::endl;
-
       	 //std::cout <<"channels loop " << std::endl;
       for(size_t i_op=0; i_op<NOpChannels; ++i_op){
 	auto nph = randpoisphot.fire(nphot_fast*Visibilities[i_op]);
