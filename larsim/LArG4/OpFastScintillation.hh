@@ -279,6 +279,8 @@ private:
         double ft0_max, ft0_break_point; 
         //double fGlobalTimeOffset;  
 
+        TF1* fAuxFunction;
+
         void ProcessStep( const G4Step& step);
 
 };

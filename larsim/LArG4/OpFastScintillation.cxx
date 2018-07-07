@@ -182,6 +182,11 @@ namespace larg4{
 	  pvs->SetDirectLightPropFunctions(functions_vuv, fd_break, fd_max, ftf1_sampling_factor);
 	  pvs->SetReflectedCOLightPropFunctions(functions_vis, ft0_max, ft0_break_point);
 	}
+
+	if(pvs->IncludeParPropTime()) {
+	  fAuxFunction = new TF1("timingfunc",Form("%s",pvs->ParPropTimeFormula().c_str()),0.,300.);
+	} 
+	
 }
 
   OpFastScintillation::OpFastScintillation(const OpFastScintillation& rhs)
@@ -637,7 +642,7 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
       std::map<int, int> DetectedNum;
 
       std::map<int, int> ReflDetectedNum;
-      std::map<int, TF1> PropTimeFunction;
+      std::map<int, TF1*> PropTimeFunction;
 
       for(size_t OpDet=0; OpDet!=NOpChannels; OpDet++)
       {
@@ -660,12 +665,12 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
                 }
 
 	    	if(pvs->IncludeParPropTime() && PropParameters) {
-            	  double range=0;
-	          for(size_t i=0; i<pvs->ParPropTimeNpar();i++) range+=300*TMath::Abs(PropParameters[OpDet][i]);
-		  TF1 AuxFunction(Form("timingfunc%i",(int)((size_t)OpDet)),Form("%s",pvs->ParPropTimeFormula().c_str()),PropParameters[OpDet][0],PropParameters[OpDet][0]+range); 
-		  for(size_t i=1; i<pvs->ParPropTimeNpar();i++) AuxFunction.SetParameter(i-1, PropParameters[OpDet][i]);
-
-		  PropTimeFunction[OpDet]=AuxFunction;
+            	  //double range=0;
+	          //for(size_t i=0; i<pvs->ParPropTimeNpar();i++) range+=300*TMath::Abs(PropParameters[OpDet][i]);
+		  //TF1 AuxFunction(Form("timingfunc%i",(int)((size_t)OpDet)),Form("%s",pvs->ParPropTimeFormula().c_str()),PropParameters[OpDet][0],PropParameters[OpDet][0]+range); 
+		  for(size_t i=1; i<pvs->ParPropTimeNpar();i++) fAuxFunction->SetParameter(i-1, PropParameters[OpDet][i]);
+		  fAuxFunction->SetRange(PropParameters[OpDet][0],300.);
+		  PropTimeFunction[OpDet]=fAuxFunction;
   		}
 
       }
@@ -694,7 +699,7 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
             }
 
 	    if(pvs->IncludeParPropTime()) {
-               	deltaTime += PropTimeFunction[itdetphot->first].GetRandom(); 
+	      deltaTime += PropTimeFunction[itdetphot->first]->GetRandom();
 	    }
 
             G4double aSecondaryTime = t0 + deltaTime;

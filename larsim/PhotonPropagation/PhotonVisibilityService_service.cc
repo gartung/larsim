@@ -134,7 +134,7 @@ namespace phot{
     fParPropTime          = p.get< bool        >("ParametrisedTimePropagation", false);
     fParPropTime_npar     = p.get< size_t      >("ParametrisedTimePropagationNParameters", 0);
     fParPropTime_formula  = p.get< std::string >("ParametrisedTimePropagationFittedFormula","");
-    
+
     if(fUseCryoBoundary)
       {
 	double CryoBounds[6];
