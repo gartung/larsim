@@ -184,7 +184,9 @@ namespace larg4{
 	}
 
 	if(pvs->IncludeParPropTime()) {
-	  fAuxFunction = new TF1("timingfunc",Form("%s",pvs->ParPropTimeFormula().c_str()),0.,300.);
+	  for(size_t OpDet=0; OpDet!=pvs->NOpChannels(); OpDet++) {
+	    fPropTimeFunction[OpDet] = new TF1(Form("timingfunc%i",(int)((size_t)OpDet)),Form("%s",pvs->ParPropTimeFormula().c_str()),0.,300.);
+	  }
 	} 
 	
 }
@@ -642,7 +644,6 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
       std::map<int, int> DetectedNum;
 
       std::map<int, int> ReflDetectedNum;
-      std::map<int, TF1*> PropTimeFunction;
 
       for(size_t OpDet=0; OpDet!=NOpChannels; OpDet++)
       {
@@ -665,12 +666,8 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
                 }
 
 	    	if(pvs->IncludeParPropTime() && PropParameters) {
-            	  //double range=0;
-	          //for(size_t i=0; i<pvs->ParPropTimeNpar();i++) range+=300*TMath::Abs(PropParameters[OpDet][i]);
-		  //TF1 AuxFunction(Form("timingfunc%i",(int)((size_t)OpDet)),Form("%s",pvs->ParPropTimeFormula().c_str()),PropParameters[OpDet][0],PropParameters[OpDet][0]+range); 
-		  for(size_t i=1; i<pvs->ParPropTimeNpar();i++) fAuxFunction->SetParameter(i-1, PropParameters[OpDet][i]);
-		  fAuxFunction->SetRange(PropParameters[OpDet][0],300.);
-		  PropTimeFunction[OpDet]=fAuxFunction;
+		  for(size_t i=1; i<pvs->ParPropTimeNpar();i++) fPropTimeFunction[OpDet]->SetParameter(i-1, PropParameters[OpDet][i]);
+		  fPropTimeFunction[OpDet]->SetRange(PropParameters[OpDet][0],300.);
   		}
 
       }
@@ -687,7 +684,7 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
           for (G4int i = 0; i < itdetphot->second; ++i)
           {
             G4double deltaTime = aStep.GetStepLength() /
-                ((pPreStepPoint->GetVelocity()+ pPostStepPoint->GetVelocity())/2.);
+	      ((pPreStepPoint->GetVelocity()+ pPostStepPoint->GetVelocity())/2.);
 
 
             if (ScintillationRiseTime==0.0) {
@@ -699,7 +696,7 @@ bool OpFastScintillation::RecordPhotonsProduced(const G4Step& aStep, double Mean
             }
 
 	    if(pvs->IncludeParPropTime()) {
-	      deltaTime += PropTimeFunction[itdetphot->first]->GetRandom();
+	      deltaTime += fPropTimeFunction[itdetphot->first]->GetRandom();
 	    }
 
             G4double aSecondaryTime = t0 + deltaTime;
