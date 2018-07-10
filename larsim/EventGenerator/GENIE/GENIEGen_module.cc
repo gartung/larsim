@@ -54,6 +54,15 @@
 #include "nutools/EventGeneratorBase/GENIE/GENIEHelper.h"
 #include "lardata/Utilities/AssociationUtil.h"
 
+//dk2nu extension 
+#include "dk2nu/tree/dk2nu.h"
+#include "dk2nu/tree/NuChoice.h"
+#include "dk2nu/genie/GDk2NuFlux.h"
+
+#include "GENIE/EVGCore/EventRecord.h"
+#include "nutools/EventGeneratorBase/GENIE/EVGBAssociationUtil.h"
+#include "nutools/EventGeneratorBase/evgenbase.h"
+
 ///Event Generation using GENIE, cosmics or single particles
 namespace evgen {
   /**
@@ -170,6 +179,12 @@ namespace evgen{
     produces< art::Assns<simb::MCTruth, simb::MCFlux> >();
     produces< art::Assns<simb::MCTruth, simb::GTruth> >();
     produces< std::vector<sim::BeamGateInfo> >();
+
+    //dk2nu additions 
+    produces< std::vector<bsim::Dk2Nu>     >();
+    produces< std::vector<bsim::NuChoice>  >();
+    produces< art::Assns<simb::MCTruth, bsim::Dk2Nu>    >();
+    produces< art::Assns<simb::MCTruth, bsim::NuChoice> >();
 
     std::string beam_type_name = pset.get<std::string>("BeamName");
 
@@ -331,6 +346,15 @@ namespace evgen{
     std::unique_ptr< art::Assns<simb::MCTruth, simb::GTruth> > tgtassn(new art::Assns<simb::MCTruth, simb::GTruth>);
     std::unique_ptr< std::vector<sim::BeamGateInfo> > gateCollection(new std::vector<sim::BeamGateInfo>);
 
+    std::unique_ptr< std::vector<bsim::Dk2Nu> > 
+      dk2nucol(new std::vector<bsim::Dk2Nu>);
+    std::unique_ptr< std::vector<bsim::NuChoice> > 
+      nuchoicecol(new std::vector<bsim::NuChoice>);    
+    std::unique_ptr< art::Assns<simb::MCTruth, bsim::Dk2Nu> > 
+      dk2nuassn(new art::Assns<simb::MCTruth, bsim::Dk2Nu>);
+    std::unique_ptr< art::Assns<simb::MCTruth, bsim::NuChoice> > 
+      nuchoiceassn(new art::Assns<simb::MCTruth, bsim::NuChoice>);
+
     while(truthcol->size() < 1){
       while(!fGENIEHelp->Stop()){
 	
@@ -351,7 +375,21 @@ namespace evgen{
 	  util::CreateAssn(*this, evt, *truthcol, *gtruthcol, *tgtassn, gtruthcol->size()-1, gtruthcol->size());
 	  
 	  FillHistograms(truth);
-	  
+
+	  genie::GFluxI* fdriver = fGENIEHelp->GetFluxDriver(true);
+	  genie::flux::GDk2NuFlux* dk2nuDriver = 
+	    dynamic_cast<genie::flux::GDk2NuFlux*>(fdriver);
+	  if ( dk2nuDriver ) {
+	    const bsim::Dk2Nu& dk2nuObj = dk2nuDriver->GetDk2Nu();
+	    dk2nucol   ->push_back(dk2nuObj);
+	    const bsim::NuChoice& nuchoiceObj = dk2nuDriver->GetNuChoice();
+	    nuchoicecol->push_back(nuchoiceObj);
+	    util::CreateAssn(*this, evt, *truthcol, *dk2nucol, *dk2nuassn,
+			     dk2nucol->size()-1, dk2nucol->size());
+	    util::CreateAssn(*this, evt, *truthcol, *nuchoicecol, *nuchoiceassn,
+			     nuchoicecol->size()-1, nuchoicecol->size());
+
+	  }
 	  // check that the process code is not unsupported by GENIE
 	  // (see issue #18025 for reference);
 	  // if it is, print all the information we can about this truth record
@@ -396,9 +434,14 @@ namespace evgen{
     evt.put(std::move(tgtassn));
     evt.put(std::move(gateCollection));
 
-    return;
-  }
+    evt.put(std::move(dk2nucol));
+    evt.put(std::move(nuchoicecol));
+    evt.put(std::move(dk2nuassn));
+    evt.put(std::move(nuchoiceassn));
 
+    return;
+    }
+  
   //......................................................................
   std::string GENIEGen::ParticleStatus(int StatusCode)
   {
