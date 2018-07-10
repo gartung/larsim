@@ -67,6 +67,7 @@ namespace evwgh {
   MCEventWeight WeightManager::Run(art::Event & e, const int inu)
   {     
 
+
     if (!_configured)
       throw cet::exception(__PRETTY_FUNCTION__) << "Have not configured yet!" << std::endl;
 
@@ -75,9 +76,7 @@ namespace evwgh {
     //
     MCEventWeight mcwgh;
     for (auto it = fWeightCalcMap.begin() ;it != fWeightCalcMap.end(); it++) {
-      
       auto const & weights = it->second->GetWeight(e);
-      
       if(weights.size() == 0){
         std::vector<double> empty;
         std::pair<std::string, std::vector <double> > p("empty",empty);

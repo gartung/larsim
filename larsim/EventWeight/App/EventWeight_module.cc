@@ -103,10 +103,9 @@ namespace evwgh {
     { 
   
       MCEventWeight mcwgh = _wgt_manager.Run(e, inu);
-  
       (*mcwghvec).push_back(mcwgh);
-  
     }
+
   
     e.put(std::move(mcwghvec));
   }
