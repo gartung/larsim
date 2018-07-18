@@ -77,9 +77,7 @@ namespace evwgh {
     std::vector<art::Handle<std::vector<bsim::Dk2Nu>>> dk2nus2;
     e.getManyByType(dk2nus2);	
     for (size_t dk2=0; dk2 < dk2nus2.size(); ++dk2) {
-      std::cout << "start... " << std::endl;
       art::Handle<std::vector<bsim::Dk2Nu>> dk2nus = dk2nus2[dk2];
-      std::cout<<" Looping over dk2nus "<<dk2<<"\t"<<dk2nus->size()<<std::endl;
     }
     while ( ( flag = mcitr.Next() ) ) {
       std::string label                  = mcitr.GetLabel();
@@ -120,7 +118,6 @@ namespace evwgh {
       //RWH// these _should_ be "const <class>*" because we don't need to change them
       //RWH// and the pointers we get out of the ART record are going to be const.
       bsim::Dk2Nu* tmp_dk2nu = const_cast<bsim::Dk2Nu*>(pdk2nu);  // remove const-ness
-      std::cerr<<"Calculate PPFX weights "<<tmp_dk2nu<<"\t"<<tmp_dkmeta<<std::endl;
       try {
 	fPPFXrw->calculateWeights(tmp_dk2nu,tmp_dkmeta);
       } catch (...) {
@@ -130,7 +127,6 @@ namespace evwgh {
       //Get weights:
       if (fMode=="reweight") {
 	double ppfx_cv_wgt = fPPFXrw->GetCVWeight();
-	std::cerr<<"========>  CV weight "<<ppfx_cv_wgt<<std::endl;
 	std::vector<double> wvec = {ppfx_cv_wgt};
 	weight.push_back(wvec);
       } else {
@@ -140,14 +136,9 @@ namespace evwgh {
 	for(unsigned int iuniv=0;iuniv<vabsorp.size();iuniv++){
 	  tmp_vhptot.push_back(float(vabsorp[iuniv]));
 	}
-	for (int ii=0;ii<10;ii++) {
-	  std::cout<<"\t"<<ii<<"\t"<<tmp_vhptot[ii]<<std::endl;
-	}
 	weight.push_back(tmp_vhptot);
       }
     }
-
-    std::cout << "all done!... " << std::endl; 
     return weight;
   }
   REGISTER_WEIGHTCALC(PPFXTotAbsorpWeightCalc)
