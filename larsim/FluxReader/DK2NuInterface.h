@@ -13,6 +13,8 @@ class TFile;
 #include "dk2nu/tree/dk2nu.h"
 #include "dk2nu/tree/NuChoice.h"
 
+#include "fhiclcpp/ParameterSet.h"
+
 namespace fluxr {
   class DK2NuInterface : public FluxInterface
     {
@@ -32,7 +34,7 @@ namespace fluxr {
       bsim::Dk2Nu* GetDk2Nu() {return fDk2Nu;};
       bsim::NuChoice* GetNuChoice() {return fNuChoice;};
       
-      void Init();
+      void Init(fhicl::ParameterSet const & ps);
       void User2BeamPos(const TLorentzVector& usrxyz, TLorentzVector& beamxyz) const;
       void Beam2UserPos(const TLorentzVector& beamxyz, TLorentzVector& usrxyz) const;
       void Beam2UserP4(const TLorentzVector& beamp4, TLorentzVector& usrp4) const;
@@ -58,6 +60,7 @@ namespace fluxr {
       TLorentzVector fFluxWindowBase, fFluxWindowDir1, fFluxWindowDir2;
       TVector3 fWindowNormal; 
       Double_t fFluxWindowLen1, fFluxWindowLen2;
+      Double_t fWindowArea;
       TRandom3 fRnd;
   };
 

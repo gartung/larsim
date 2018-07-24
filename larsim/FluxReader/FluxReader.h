@@ -34,7 +34,6 @@ namespace fluxr {
 		  art::SubRunPrincipal* &outSR,
 		  art::EventPrincipal* &outE);
 
-    void endJob();
   private:
     art::SourceHelper const      &fSourceHelper;
     art::SubRunID                 fSubRunID;
@@ -52,6 +51,8 @@ namespace fluxr {
     TH1D*                         fHFlux[4];
     TH1D*                         fHFluxParent[4][4];
     TH1D*                         fHFluxSec[4][5];
+
+    fhicl::ParameterSet           fConfigPS;
 
     art::TypeLabel                fTLmctruth;
     art::TypeLabel                fTLmcflux;
