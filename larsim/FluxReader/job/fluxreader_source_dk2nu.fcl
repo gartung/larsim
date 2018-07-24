@@ -1,0 +1,112 @@
+#include "services_microboone.fcl"
+#include "eventweight_microboone_MCC8.fcl"
+#include "seedservice_microboone.fcl"
+
+process_name: FluxReader
+
+services:
+{
+  TFileService: { fileName: "flux_hist_test.root" }
+  RandomNumberGenerator: {} #ART native random number generator
+  NuRandomService:   @local::microboone_seedservice
+  TimeTracker:       {}
+  FileCatalogMetadata:     @local::art_file_catalog_mc
+}
+
+
+source:
+{
+  fileNames:       []
+  module_type:	   FluxReader
+  skipEvents:      0
+  maxEvents:       -1
+  inputType:       "dk2nu"
+  nBins:           200
+  Elow:            0
+  Ehigh:           10
+  dk2nuConfig:     "dk2nu_numi_at_uboone_v1"
+  //dk2nuConfig:     "dk2nu_bnb_at_uboone_v1"
+
+  //dk2nu config for numi@uboone version 1
+  dk2nu_numi_at_uboone_v1: {
+  	 userorigin: [ 5502, 7259, 67761.1 ] //origin of detector coordinate system in beam coordinates (in cm)
+	 //rotation matrix between detector coordinate system and beam coordinate system
+	 rotmatrix:    [   0.921228671  ,  0.0226872648,   0.388359401,  
+	 	           0.00136256111,  0.998103714 ,  -0.061539578,  
+      			  -0.389019125  ,  0.0572211871,   0.919450845  ]
+         //flux window in detector coordinate system (in cm)
+	 windowBase: [ 500, -500, -3500 ]
+	 window1:    [-500,  200, -3500 ]
+	 window2:    [ 500, -500,  2000 ]	 
+	 }
+  //dk2nu config for numi@uboone version 2 - updated detector location docdb-15522 and 13804
+  dk2nu_numi_at_uboone: {
+  	 userorigin: [ 5502, 7259, 67270 ] //origin of detector coordinate system in beam coordinates (in cm)
+	 //rotation matrix between detector coordinate system and beam coordinate system
+	 rotmatrix:  [ 0.92103853804025682,       0.0227135048039241207,  0.38880857519374290,
+	 	       0.0000462540012621546684,  0.99829162468141475,   -0.0584279894529063024,
+		      -0.38947144863934974,       0.0538324139386641073,  0.91946400794392302 ] 	     
+         //flux window in detector coordinate system (in cm)
+	 windowBase: [ 500, -500, -3500 ]
+	 window1:    [-500,  200, -3500 ]
+	 window2:    [ 500, -500,  2000 ]	 
+	 }
+
+  //dk2nu config for bnb@uboone version 1
+  dk2nu_bnb_at_uboone_v1: {
+  	 userorigin: [ -130., 0., 47000 ] //origin of detector coordinate system in beam coordinates (in cm)
+	 //rotation matrix between detector coordinate system and beam coordinate system
+	 rotmatrix:  [ 1,  0,  0,
+	               0,  1,  0,
+		       0,  0,  1  ]
+         //flux window in detector coordinate system (in cm)
+	 windowBase: [  630,  500, -1000 ]
+	 window1:    [  630, -500, -1000 ]
+	 window2:    [ -370,  500, -1000 ]	 
+	 }
+
+  //dk2nu config for bnb@uboone version 2 - updated detector location docdb-15522 and 13804
+  dk2nu_bnb_at_uboone_v2: {
+  	 userorigin: [ -124.325, 0.93, 46336.35 ] //origin of detector coordinate system in beam coordinates (in cm)
+	 //rotation matrix between detector coordinate system and beam coordinate system
+	 rotmatrix:  [ 1,  0,  0,
+	               0,  1,  0,
+		       0,  0,  1  ]
+         //flux window in detector coordinate system (in cm)
+	 windowBase: [  624.325,  499.07, -1000 ]
+	 window1:    [  624.325, -500.93, -1000 ]
+	 window2:    [ -376.675,  499.07, -1000 ]	 
+	 }
+
+}	
+
+outputs:
+{
+ out1:
+  {
+   module_type: RootOutput
+   fileName:    "fluxreader_dk2nu.root" 
+   compressionLevel: 1
+   dataTier:    "simulated"
+  }
+}
+
+physics:
+{
+ producers:
+ {
+#   eventweight:    @local::microboone_eventweight
+   rns:            { module_type: "RandomNumberSaver" }
+ }
+ analyzers:
+ {
+ }
+ ana: []
+
+ simulate: [ rns ]
+ stream1:   [ out1 ]
+ end_paths: [ stream1 ]
+}
+
+#physics.producers.eventweight.genie_module_label: flux
+#physics.producers.eventweight.weight_functions: [bnbcorrection, piplus, piminus, kplus, kzero, kminus, horncurrent, pioninexsec, nucleontotxsec, nucleonqexsec, nucleoninexsec, pionqexsec, piontotxsec, expskin]
