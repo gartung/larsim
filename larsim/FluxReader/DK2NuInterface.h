@@ -38,6 +38,7 @@ namespace fluxr {
       void User2BeamPos(const TLorentzVector& usrxyz, TLorentzVector& beamxyz) const;
       void Beam2UserPos(const TLorentzVector& beamxyz, TLorentzVector& usrxyz) const;
       void Beam2UserP4(const TLorentzVector& beamp4, TLorentzVector& usrp4) const;
+      TVector3 AnglesToAxis(double theta, double phi);
 
     private:
       TTree*                      fDk2NuTree;
