@@ -33,32 +33,33 @@ namespace fluxr {
     fDkMetaTree->GetEntry(0);
     fRun=fDkMeta->job;
     fPOT=fDkMeta->pots;
+  }
 
+  void DK2NuInterface::Init(fhicl::ParameterSet const & ps)
+  {
     //overwrite dkmeta
     fDkMeta->location.clear();
     fDkMeta->location.resize(2);
     fDkMeta->location[0].x=0;
     fDkMeta->location[0].y=0;
     fDkMeta->location[0].z=0;
-    fDkMeta->location[1].x=5502; 
-    fDkMeta->location[1].y=7259;
-    fDkMeta->location[1].z=67270;
+    std::vector<double> detxyz=ps.get<std::vector<double> >("userorigin"); 
+    fDkMeta->location[1].x=detxyz[0];
+    fDkMeta->location[1].y=detxyz[1];
+    fDkMeta->location[1].z=detxyz[2];
 
     std::cout<<"Locations "<<std::endl;
     for (unsigned int i=0;i<fDkMeta->location.size();i++) {
       std::cout<<i<<"\t"<<fDkMeta->location[i].x<<"\t"
-	     <<fDkMeta->location[i].y<<"\t"
-	     <<fDkMeta->location[i].z<<std::endl;
+	       <<fDkMeta->location[i].y<<"\t"
+	       <<fDkMeta->location[i].z<<std::endl;
     }
-  }
-
-  void DK2NuInterface::Init()
-  {
     //code to handle flux window stolen from GENIE_R21210/src/FluxDrivers/GNuMIFlux.cxx
     //rotation matrix
-    TVector3 newX=TVector3(0.92103853804025682,       0.0227135048039241207,  0.38880857519374290);
-    TVector3 newY=TVector3(0.0000462540012621546684,  0.99829162468141475,   -0.0584279894529063024);
-    TVector3 newZ=TVector3(-0.38947144863934974,       0.0538324139386641073,  0.91946400794392302);
+    std::vector<double> rotmat=ps.get<std::vector<double> >("rotmatrix");
+    TVector3 newX=TVector3(rotmat[0], rotmat[1], rotmat[2]);
+    TVector3 newY=TVector3(rotmat[3], rotmat[4], rotmat[5]);
+    TVector3 newZ=TVector3(rotmat[6], rotmat[7], rotmat[8]);
     fTempRot.RotateAxes(newX,newY,newZ);
     fBeamRotXML = fTempRot.Inverse();
     fBeamRot    = TLorentzRotation(fBeamRotXML);
@@ -81,7 +82,7 @@ namespace fluxr {
     std::cout << std::endl;
 
     TVector3 userpos(0,0,0);
-    TVector3 beampos(5502,7259,67270); //beampos from GNuMIFlux.xml
+    TVector3 beampos(detxyz[0], detxyz[1], detxyz[2]); //beampos from GNuMIFlux.xml
     fBeamPosXML = userpos - fBeamRotXML*beampos;
     fBeamZero=TLorentzVector(fBeamPosXML,0);
 
@@ -92,13 +93,14 @@ namespace fluxr {
               << std::setw(w) << fBeamPosXML.Z() << " ] "
               << std::endl;
 
-    fFluxWindowPtUser[0]=TVector3(500, -500, -3500);
-    fFluxWindowPtUser[1]=TVector3(-500,  200, -3500);
-    fFluxWindowPtUser[2]=TVector3( 500, -500,  2000);
-    //fFluxWindowPtUser[0]=TVector3(-5, -5, -35);
-    //fFluxWindowPtUser[1]=TVector3(-5,  5, -35);
-    //fFluxWindowPtUser[2]=TVector3( 5, -5, -35);
-    
+    std::vector<double> windowBase=ps.get<std::vector<double> >("windowBase");
+    std::vector<double> window1   =ps.get<std::vector<double> >("window1");
+    std::vector<double> window2   =ps.get<std::vector<double> >("window2");
+
+    fFluxWindowPtUser[0]=TVector3( windowBase[0], windowBase[1], windowBase[2] );
+    fFluxWindowPtUser[1]=TVector3( window1[0]   , window1[1]   , window1[2] );
+    fFluxWindowPtUser[2]=TVector3( window2[0]   , window2[1]   , window2[2] );
+     
     // convert from user to beam coord and from 3 points to base + 2 directions
     // apply units conversion
     TLorentzVector ptbm0, ptbm1, ptbm2;
@@ -113,6 +115,10 @@ namespace fluxr {
     fFluxWindowLen1 = fFluxWindowDir1.Mag();
     fFluxWindowLen2 = fFluxWindowDir2.Mag();
     fWindowNormal = fFluxWindowDir1.Vect().Cross(fFluxWindowDir2.Vect()).Unit();
+    //in genie flux driver area is divided out when calculating effective POT
+    //here we will keeep the POT of dk2nu file, so boost up weights 
+    //convert to m^2 (since window specified in cm)
+    fWindowArea   = fFluxWindowDir1.Vect().Cross(fFluxWindowDir2.Vect()).Mag()/10000.;
 
     double dot = fFluxWindowDir1.Dot(fFluxWindowDir2);
     if ( TMath::Abs(dot) > 1.0e-8 ) 
@@ -144,16 +150,24 @@ namespace fluxr {
       return false;
 
     TLorentzVector x4beam=fFluxWindowBase+fRnd.Uniform()*fFluxWindowDir1+fRnd.Uniform()*fFluxWindowDir2;
-    //    x4beam.Print();
-    TLorentzVector x4usr;
-    Beam2UserPos(x4beam,x4usr);
-    //x4usr.Print();
-    bsim::NuRay rndnuray=fDk2Nu->nuray[0];	
-    fDk2Nu->nuray.clear();
     double enu,wgt;
     bsim::calcEnuWgt(fDk2Nu, x4beam.Vect(),enu,wgt);
-    TVector3 xyzDk(fDk2Nu->decay.vx*100,fDk2Nu->decay.vy*100,fDk2Nu->decay.vz*100);  // origin of decay
-    TVector3 p3beam = enu * (x4beam.Vect() - xyzDk).Unit();
+
+    TLorentzVector x4usr;
+    Beam2UserPos(x4beam,x4usr);
+
+    bsim::NuRay rndnuray=fDk2Nu->nuray[0];	
+    fDk2Nu->nuray.clear();
+
+    TVector3 xyzDk(fDk2Nu->decay.vx,fDk2Nu->decay.vy,fDk2Nu->decay.vz);  // origin of decay
+    TVector3 p3beam = enu * (x4beam.Vect()-xyzDk).Unit();
+
+    //weight due to window being tilted with respect to beam direction
+    double tiltwgt = p3beam.Unit().Dot( fWindowNormal );
+    wgt*=tiltwgt;
+    //weight for the window area and divide by pi (since wgt returned by calcEnuWgt function is flux/(pi*m^2)
+    wgt*=fWindowArea/3.14159;
+
     bsim::NuRay anuray(p3beam.x(), p3beam.y(), p3beam.z(), enu, wgt);	
     fDk2Nu->nuray.push_back(rndnuray);
     fDk2Nu->nuray.push_back(anuray);
@@ -162,14 +176,13 @@ namespace fluxr {
     TLorentzVector p4usr;
     Beam2UserP4(p4beam,p4usr);
 
-    //bsim::calcLocationWeights(fDkMeta,fDk2Nu);
+    fNuPos=TLorentzVector(x4usr);
+    fNuMom=TLorentzVector(p4usr);
+
     x4usr.SetX(x4usr.X()/100.);
     x4usr.SetY(x4usr.Y()/100.);
     x4usr.SetZ(x4usr.Z()/100.);
     
-    fNuPos=TLorentzVector(x4usr);
-    fNuMom=TLorentzVector(p4usr);
-
     fNuChoice->clear();
     fNuChoice->pdgNu=fDk2Nu->decay.ntype;
     fNuChoice->xyWgt=fDk2Nu->nuray[1].wgt;
@@ -199,7 +212,6 @@ namespace fluxr {
     flux.fmuparpz  = fDk2Nu->decay.muparpz;
     flux.fmupare   = fDk2Nu->decay.mupare;
     flux.fnecm     = fDk2Nu->decay.necm;
-    flux.fnimpwt   = fDk2Nu->decay.nimpwt;
 
     flux.ftpx      = fDk2Nu->tgtexit.tpx;
     flux.ftpy      = fDk2Nu->tgtexit.tpy;

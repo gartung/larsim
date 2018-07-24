@@ -59,7 +59,9 @@ namespace fluxr {
       helper.reconstitutes<art::Assns<simb::MCTruth, bsim::NuChoice>, art::InEvent>("flux");
       helper.reconstitutes<art::Assns<simb::MCTruth, simb::MCFlux>, art::InEvent>("flux");
 
+      fConfigPS=ps.get<fhicl::ParameterSet>(ps.get<std::string>("dk2nuConfig"));
     }
+
     art::ServiceHandle<art::TFileService> tfs;
     //initialize beam histograms specified in fhicl file
     art::TFileDirectory tffluxdir = tfs->mkdir( "Flux" ); 
@@ -132,11 +134,12 @@ namespace fluxr {
     if (fInputType=="gsimple") {
       fFluxDriver=new GSimpleInterface();
       ((GSimpleInterface*)fFluxDriver)->SetRootFile(fFluxInputFile);
-    } else {
+    } else if (fInputType=="dk2nu") {
       fFluxDriver=new DK2NuInterface();
       ((DK2NuInterface*)fFluxDriver)->SetRootFile(fFluxInputFile);
-      ((DK2NuInterface*)fFluxDriver)->Init();
-      //throw cet::exception(__PRETTY_FUNCTION__) << "Ntuple format "<<fInputType<<" not supported"<<std::endl;
+      ((DK2NuInterface*)fFluxDriver)->Init(fConfigPS);
+    } else {
+      throw cet::exception(__PRETTY_FUNCTION__) << "Ntuple format "<<fInputType<<" not supported"<<std::endl;
     }
 
     std::cout<<"File has "<<fFluxDriver->GetEntries()<<" entries"<<std::endl;
@@ -174,10 +177,10 @@ namespace fluxr {
     if (!fFluxDriver->FillMCFlux(fEntry,flux))
       return false;
 
-    std::cout<<fEventCounter<<std::endl;
+    //    std::cout<<fEventCounter<<std::endl;
     //fake mctruth product to cheat eventweight that gets neutrino energy from it
     simb::MCTruth mctruth;
-    simb::MCParticle mcpnu(0,flux.fntype,"Flux");    
+    simb::MCParticle mcpnu(0,flux.fntype,"Flux");
     mcpnu.AddTrajectoryPoint(fFluxDriver->GetNuPosition(), fFluxDriver->GetNuMomentum());
     mctruth.Add(mcpnu);
     mctruth.SetNeutrino(0,0,0,0,0,0,0,0,0,0);
@@ -196,8 +199,13 @@ namespace fluxr {
     else if (flux.fntype==-14) ipdg=3;
     
     double enu=flux.fnenergyn;
-    double totwgh=flux.fnwtnear*flux.fnimpwt;//for gsimple files weight is actually 1 
-    totwgh=1;
+    double totwgh=flux.fnwtnear*flux.fnimpwt/fPOT;
+    if (totwgh<0 || totwgh>100) {
+      std::cout<<" Bad weight "<<totwgh<<std::endl;
+      totwgh=0;
+    }
+    if (fInputType=="gsimple") totwgh=1./fPOT;//for gsimple files weight is actually 1    
+
     fHFlux[ipdg]->Fill(enu,totwgh);
     
     if (flux.fptype==13 || flux.fptype==-13) //mu+-
@@ -237,7 +245,6 @@ namespace fluxr {
       std::unique_ptr<sumdata::POTSummary> pot(new sumdata::POTSummary);    
       pot->totpot = fPOT;
       pot->totgoodpot = fPOT;
-      fPOT=0;
       
       art::put_product_in_principal(std::move(pot),
 				    *outSR,
@@ -266,13 +273,10 @@ namespace fluxr {
       art::put_product_in_principal(std::move(nuchoicevec),
 				    *outE,
 				    "flux"); // Module label
-
-
       
-
       auto aptr = fSourceHelper.makePtr<simb::MCTruth>(fTLmctruth, *outE, 0);
       auto bptr = fSourceHelper.makePtr<bsim::Dk2Nu>(fTLdk2nu,*outE, 0);
-      auto cptr =fSourceHelper.makePtr<bsim::NuChoice>(fTLnuchoice, *outE, 0);
+      auto cptr = fSourceHelper.makePtr<bsim::NuChoice>(fTLnuchoice, *outE, 0);
       auto dptr = fSourceHelper.makePtr<simb::MCFlux>(fTLmcflux, *outE, 0);
       
       dk2nuassn->addSingle(aptr,bptr);
@@ -295,9 +299,5 @@ namespace fluxr {
 
     return true;
   }
-  
-  void FluxReader::endJob()
-  {
-    std::cout<<"End job function"<<std::endl;
-  }
+
 }
