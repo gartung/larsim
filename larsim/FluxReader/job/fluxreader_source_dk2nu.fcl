@@ -6,7 +6,7 @@ process_name: FluxReader
 
 services:
 {
-  TFileService: { fileName: "flux_hist_test.root" }
+  TFileService: { fileName: "flux_hist.root" }
   RandomNumberGenerator: {} #ART native random number generator
   NuRandomService:   @local::microboone_seedservice
   TimeTracker:       {}
