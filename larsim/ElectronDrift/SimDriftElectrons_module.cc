@@ -88,7 +88,6 @@
 //stuff from wes
 #include "larsim/IonizationScintillation/ISCalcSeparate.h"
 
-
 namespace detsim {
 
   // Base class for creation of raw signals on wires.
