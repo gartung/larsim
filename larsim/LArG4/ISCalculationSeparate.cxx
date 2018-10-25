@@ -23,7 +23,8 @@
 namespace larg4{
 
   //----------------------------------------------------------------------------
-  ISCalculationSeparate::ISCalculationSeparate(CLHEP::HepRandomEngine&)
+  ISCalculationSeparate::ISCalculationSeparate(CLHEP::HepRandomEngine& engine)
+  : fEngine(engine)
   {
   }
 
@@ -41,9 +42,10 @@ namespace larg4{
 
     double density       = detprop->Density(detprop->Temperature());
     fEfield       = detprop->Efield();
+    fEfieldNominal = fEfield;
     fScintByParticleType = larp->ScintByParticleType();
     fGeVToElectrons      = lgpHandle->GeVToElectrons();
-    
+
     // \todo get scintillation yield from LArG4Parameters or LArProperties
     fScintYieldFactor  = 1.;
 
@@ -66,6 +68,8 @@ namespace larg4{
 
     fStepSize = 0.1 * maxsize;
 
+    fCachedTrackID = -1;
+
     return;
   }
 
@@ -76,7 +80,9 @@ namespace larg4{
     fEnergyDeposit   = 0.;
     fNumScintPhotons = 0.;
     fNumIonElectrons = 0.;
-
+    fNumIons         = 0.;
+    fRecomb          = 0.; 
+    fdEdx            = 0.; 
     return;
   }
 
@@ -84,6 +90,12 @@ namespace larg4{
   // fNumIonElectrons returns a value that is not corrected for life time effects
   void ISCalculationSeparate::CalculateIonizationAndScintillation(const G4Step* step)
   {
+    
+    CLHEP::RandGauss GaussGen(fEngine);
+    CLHEP::RandFlat  UniformGen(fEngine);
+    bool simStochasticity = false;
+    bool simAngDependence = false;
+    bool simEfieldFluct   = false;
 
     fEnergyDeposit = step->GetTotalEnergyDeposit()/CLHEP::MeV;
 
@@ -97,19 +109,63 @@ namespace larg4{
     // k should be divided by the density as our dE/dx is in MeV/cm,
     // the division is handled in the constructor when we set fRecombk
     // B.Baller: Add Modified Box recombination - ArgoNeuT result submitted to JINST
+   
+    // Update the cached track ID. If the ID == 1, means new event has started
+    int trkID = step->GetTrack()->GetTrackID();
+    if( simEfieldFluct && trkID == 1 && fCachedTrackID != 1 )
+      fEfield = GaussGen.fire(fEfieldNominal,fEfieldNominal*0.15); 
+    
+    fCachedTrackID = trkID;
 
     G4ThreeVector totstep = step->GetPostStepPoint()->GetPosition();
     totstep -= step->GetPreStepPoint()->GetPosition();
-
     double dx     = totstep.mag()/CLHEP::cm;
+    //double dx     = step->GetStepLength()/CLHEP::cm;
     double recomb = 0.;
     double dEdx   = (dx == 0.0)? 0.0: fEnergyDeposit/dx;
     double EFieldStep = EFieldAtStep(fEfield,step);
+    
+    /* 
+    const G4Material* aMaterial = step->GetPreStepPoint()->GetMaterial();
+//    G4MaterialPropertiesTable* aMaterialPropertiesTable = aMaterial->GetMaterialPropertiesTable();
+    G4double Density = aMaterial->GetDensity()/(CLHEP::g/CLHEP::cm3);
+    std::cout
+    <<"Material (post-step) = "<<step->GetPostStepPoint()->GetMaterial()->GetName()
+    <<", density = "<<Density
+    <<", temp = "<<step->GetPostStepPoint()->GetMaterial()->GetTemperature()
+    <<", press = "<<step->GetPostStepPoint()->GetMaterial()->GetPressure()<<"\n";
+    */
 
-    // Guard against spurious values of dE/dx. Note: assumes density of LAr
-    if(dEdx < 1.) dEdx = 1.;
+    /*    
+    // .........................................
+          if( UniformGen.fire() < 0.25 ) dEdx = 2.;
+    else  if( UniformGen.fire() < 0.50 ) dEdx = 5.;
+    else  if( UniformGen.fire() < 0.75 ) dEdx = 15.;
+    else  if( UniformGen.fire() < 1.00 ) dEdx = 30.;
+    fEnergyDeposit = dx * dEdx;
+    //............................................
+    */
 
-    if(fUseModBoxRecomb) {
+    //std::cout<<"Using EField = "<<EFieldStep<<"\n";
+
+    if( dx ) {
+      // At low dE/dx, Modified Box becomes unphysical and 
+      // turns downward. So calculate R with both models, and
+      // if dE/dx is low, use whichever is higher.
+      double Xi = fModBoxB * dEdx / EFieldStep;
+      double recomb_ModBox = log(fModBoxA + Xi) / Xi;
+      double recomb_Birks = fRecombA/(1. + dEdx * fRecombk / EFieldStep);
+      if( fUseModBoxRecomb && ( dEdx > 2.0 || recomb_ModBox >= recomb_Birks ) )
+        recomb = recomb_ModBox; 
+      else 
+        recomb = recomb_Birks;
+    }
+
+
+    /* 
+    if( fUseModBoxRecomb ) {
+      // Guard against low dE/dx where modified box isn't applicable
+      if(dEdx < 1.) dEdx = 1.;
       if (dx){
 	double Xi = fModBoxB * dEdx / EFieldStep;
 	recomb = log(fModBoxA + Xi) / Xi;
@@ -120,16 +176,93 @@ namespace larg4{
     else{
       recomb = fRecombA/(1. + dEdx * fRecombk / EFieldStep);
     }
+    */
+    
+    
+     
+    // ------------------------------------------------------------------- 
+    // Calculate angle of this step rel. to the E-field
+    // which is assumed to be along x axis.
+    if( simAngDependence && totstep.mag() > 0 ) {
+      totstep.setMag(1.);
+      double dy = totstep.getY();
+      double dz = totstep.getZ();
+      double arg = sqrt(dy*dy+dz*dz);
+      double angle = 90.;
+      if( arg < 1. ) angle = (180./3.14159)*std::asin( sqrt(dy*dy+dz*dz) );
 
+      // Scale recombination up/down from the central value
+      // depending on angle, using ArgoNeuT results, arxiv:1306.1712.
+      // Study done on 6/4/2018 to find this parameterization using
+      // values for the parameterized fits at 15 MeV/cm.
+      //double a0 = 0.9534;
+      //double a1 = 1.022e-4;
+      //double a2 = 1.025e-5;
+      //double recombScale = a0 + a1*angle + a2*pow(angle,2);
+      // Revised study on 6/7/2018 using more realistic bin center on
+      // lowest-angle bin, and fit linearly
+      double a0 = 0.9116;
+      double a1 = 0.001435;
+      double recombScale = a0 + a1*angle;
+
+      recomb *= recombScale;
+      if( recomb > 1. ) recomb = 1.;
+      if( recomb < 0. ) recomb = 0.;
+    }
+   
+    fRecomb = recomb;
+    fdEdx   = dEdx;
 
     // 1.e-3 converts fEnergyDeposit to GeV
-    fNumIonElectrons = fGeVToElectrons * 1.e-3 * fEnergyDeposit * recomb;
+
+      // First divide up energy into total number of "quanta" (ionizations+excitations),
+      //    fGeVToElectrons = W_ion^-1
+      //    W_ph            = W_ion / (1+excRatio)
+      //    totalQuanta     = dE / W_ph
+    double excRatio = 0.21;     // LAr excitation ratio, N_exc / N_i
+    int totalQuanta = floor( fGeVToElectrons * 1.e-3 * fEnergyDeposit * (1.+excRatio) );
+
+    if( simStochasticity ) {
+      // --------------------------------------------
+      // Here we make some modifications that follow along with what's done 
+      // by the NEST alg to more naturally simulate the fluctuations in charge.
+      double FanoFactor = 0.107;  // Fano factor for LAr (Doke)
+      // Applying Fano factor smearing for LAr (sub-Poisson when factoring in energy 
+      // conservation constraint). Note that 
+      totalQuanta = int(floor(GaussGen.fire(totalQuanta, sqrt(FanoFactor*totalQuanta))+0.5));
+      // Separate into excited and ionized populations
+      int numExc = BinomFluct( totalQuanta, excRatio/(1.+excRatio) );
+      int numIon = totalQuanta - numExc; 
+      fNumIons = numIon;
+
+      // Simulate the recombination with stochasticity by drawing from binomial
+      fNumIonElectrons  = (double)BinomFluct( numIon, recomb );
+    
+    } else {
+
+      fNumIonElectrons = fGeVToElectrons * 1.e-3 * fEnergyDeposit * recomb;
+    
+    }
+      
+    fNumScintPhotons = totalQuanta - fNumIonElectrons;
+
+    //std::cout
+    //<<" -------------------------------\n"
+    //<<"  Efield             : "<<fEfield<<"\n"
+    //<<"  dE                 : "<<fEnergyDeposit<<"\n"
+    //<<"  dE/dx              : "<<dEdx<<"\n"
+    //<<"  total quanta       : "<<totalQuanta<<"\n"
+    //<<"  num ion            : "<<numIon<<"\n"
+    //<<"  recomb:            : "<<recomb<<"\n"
+    //<<"  num free electrons : "<<fNumIonElectrons<<"\n";
+    // ------------------------------------------------------------------- 
 
     LOG_DEBUG("ISCalculationSeparate") << " Electrons produced for " << fEnergyDeposit 
 				       << " MeV deposited with "     << recomb 
 				       << " recombination: "         << fNumIonElectrons;
 
     // Now do the scintillation
+    /*
     G4MaterialPropertiesTable* mpt = step->GetTrack()->GetMaterial()->GetMaterialPropertiesTable();
     if( !mpt) 
       throw cet::exception("ISCalculationSeparate") << "Cannot find materials property table"
@@ -188,12 +321,10 @@ namespace larg4{
       // If the user has not specified yields for (p,d,t,a,carbon)
       // then these unspecified particles will default to the 
       // electron's scintillation yield
-      /*
-      if(!Scint_Yield_Vector){{
-	  scintYield = mpt->GetConstProperty("ELECTRONSCINTILLATIONYIELD");
-	}
-      }
-      */
+      //if(!Scint_Yield_Vector){{
+	//  scintYield = mpt->GetConstProperty("ELECTRONSCINTILLATIONYIELD");
+	//}
+      //}
 	   
       // Throw an exception if no scintillation yield is found
       if (!scintYield) 
@@ -213,6 +344,8 @@ namespace larg4{
     else{
       fNumScintPhotons = fScintYieldFactor * scintYield * fEnergyDeposit;
     }
+    */
+
 
     LOG_DEBUG("ISCalculationSeparate") << "number photons: " << fNumScintPhotons 
 				       << " energy: "        << fEnergyDeposit/CLHEP::MeV
@@ -222,6 +355,30 @@ namespace larg4{
 
 
     return;
+  }
+
+  //----------------------------------------------------------------------------
+  int ISCalculationSeparate::BinomFluct ( int N0, double prob ) {
+    CLHEP::RandGauss GaussGen(fEngine);
+    CLHEP::RandFlat  UniformGen(fEngine);
+
+    double mean = N0*prob;
+    double sigma = sqrt(N0*prob*(1-prob));
+    int N1 = 0;
+    if ( prob == 0.00 ) return N1;
+    if ( prob == 1.00 ) return N0;
+    
+    if ( N0 < 10 ) {
+      for(G4int i = 0; i < N0; i++) {
+        if(UniformGen.fire() < prob) N1++;
+      }
+    }
+    else {
+      N1 = G4int(floor(GaussGen.fire(mean,sigma)+0.5));
+    }
+    if ( N1 > N0 ) N1 = N0;
+    if ( N1 < 0 ) N1 = 0;
+    return N1;
   }
 
 

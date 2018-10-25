@@ -659,6 +659,7 @@ namespace larg4 {
               auto const& tdcideMap = sc.TDCIDEMap();
               for(auto const& tdcide : tdcideMap){
                  for(auto const& ide : tdcide.second){
+                    if( ide.energy <= 0 ) continue;
                     double xyz[3] = {ide.x, ide.y, ide.z};
                     scCol->at(idtest).AddIonizationElectrons(ide.trackID,
                                         tdcide.first,

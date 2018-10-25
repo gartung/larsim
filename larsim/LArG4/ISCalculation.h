@@ -29,6 +29,11 @@ namespace larg4{
    double                       EnergyDeposit()              const { return fEnergyDeposit;   }
    double       	        NumberIonizationElectrons()  const { return fNumIonElectrons; }
    double       	        NumberScintillationPhotons() const { return fNumScintPhotons; }
+   double                       NumberIons()                 const { return fNumIons; }
+   double                       Recomb()                     const { return fRecomb; }
+   double                       dEdx()                       const { return fdEdx; }
+   double                       MuEnergyDeposit()            const { return fMuEnergyDeposit; }
+   double                       MuPathLength()               const { return fMuPathLength; }
 
    //Method to get electric field
    double EFieldAtStep(double fEfield, const G4Step* step) const; //value of field with any corrections for this step  
@@ -38,6 +43,11 @@ namespace larg4{
    double fEnergyDeposit;   ///< total energy deposited in the step
    double fNumIonElectrons; ///< number of ionization electrons for this step
    double fNumScintPhotons; ///< number of scintillation photons for this step   
+   double fNumIons;
+   double fRecomb;
+   double fdEdx;
+   double fMuEnergyDeposit;
+   double fMuPathLength;
    
  };
 }

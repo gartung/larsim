@@ -32,6 +32,9 @@ namespace larg4 {
    void   CalculateIonizationAndScintillation(const G4Step* step);
    double StepSizeLimit()              const { return fStepSize;            }
 
+  CLHEP::HepRandomEngine& fEngine;     ///< random engine
+  int BinomFluct ( int N0, double prob );
+
  private:
 
    double                fStepSize;            ///< maximum step to take				  
@@ -46,6 +49,9 @@ namespace larg4 {
    double 	   	 fScintYieldFactor;    ///< scintillation yield factor                             
    G4EmSaturation* 	 fEMSaturation;        ///< pointer to EM saturation                            
 
+   double                fEfieldNominal;
+   int                   fCachedTrackID;  
+     
  };
 }
 #endif // LARG4_ISCALCULATIONSEPARATE_H

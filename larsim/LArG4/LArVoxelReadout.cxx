@@ -369,7 +369,7 @@ namespace larg4 {
       // X drift distance - the drift direction can be either in
       // the positive or negative direction, so use std::abs
 
-      /// \todo think about effects of drift between planes 
+      /// \todo think about effects of drift between planes
       double XDrift = std::abs(stepMidPoint.x()/CLHEP::cm - tpcg.PlaneLocation(0)[0]);
       //std::cout<<tpcg.DriftDirection()<<std::endl;
       if (tpcg.DriftDirection() == geo::kNegX)
@@ -378,7 +378,8 @@ namespace larg4 {
 	XDrift = tpcg.PlaneLocation(0)[0] - stepMidPoint.x()/CLHEP::cm;
       
       if(XDrift < 0.) return;
-
+      
+      
       // Get SCE {x,y,z} offsets for particular location in TPC      
       geo::Vector_t posOffsets;
       auto const* SCE = lar::providerFrom<spacecharge::SpaceChargeService>();
@@ -400,14 +401,22 @@ namespace larg4 {
       
       TDrift = XDrift * RecipDriftVel[0];
       if (tpcg.Nplanes() == 2){// special case for ArgoNeuT (plane 0 is the second wire plane)
-        TDrift = ((XDrift - tpcg.PlanePitch(0,1)) * RecipDriftVel[0] 
-                  + tpcg.PlanePitch(0,1) * RecipDriftVel[1]);
+
+        // deal appropriately with cases where charge is deposited behind the shield plane
+        // (ie, XDrift < wire pitch)
+        if( XDrift >= tpcg.PlanePitch(0,1) ) 
+          TDrift = (XDrift - tpcg.PlanePitch(0,1)) * RecipDriftVel[0] + tpcg.PlanePitch(0,1) * RecipDriftVel[1];
+        else 
+          TDrift =  XDrift * RecipDriftVel[1];
       }
-          
+     
       const double lifetimecorrection = TMath::Exp(TDrift / LifetimeCorr_const);
       const int    nIonizedElectrons  = larg4::IonizationAndScintillation::Instance()->NumberIonizationElectrons();
       const double energy             = larg4::IonizationAndScintillation::Instance()->EnergyDeposit();
       
+      // ..............................................................
+      // 6/1/2018 -- Removing this piece, since we want all possible
+      // information available to us in later stages. - W. Foreman
       // if we have no electrons (too small energy or too large recombination)
       // we are done already here
       if (nIonizedElectrons <= 0) {
@@ -415,16 +424,23 @@ namespace larg4 {
           << "No electrons drifted to readout, " << energy << " MeV lost.";
         return;
       }
+
       // includes the effect of lifetime
       const double nElectrons   = nIonizedElectrons * lifetimecorrection;
+      // Simulate electron attenuation with stochasticity by drawing from binomial
+      //double mean   = nIonizedElectrons*lifetimecorr;
+      //double sigma  = sqrt(mean*(1-lifetimecorr)); 
+      //const double nElectrons = double(floor(GaussGen.fire(mean,sigma)+0.5));
+      //if( nElectrons < 0 ) nElectrons = 0; 
 
       // Longitudinal & transverse diffusion sigma (cm)
       double SqrtT    = std::sqrt(TDrift);
       double LDiffSig = SqrtT * LDiff_const;
       double TDiffSig = SqrtT * TDiff_const;
       double electronclsize = fElectronClusterSize;
-      
+     
       int nClus = (int) std::ceil(nElectrons / electronclsize);
+      if( nElectrons == 0 ) nClus = 1;
       if (nClus < fMinNumberOfElCluster)
       {
       	electronclsize = nElectrons / fMinNumberOfElCluster; 
@@ -446,8 +462,9 @@ namespace larg4 {
       nElDiff.back() = nElectrons - (nClus-1)*electronclsize;
       
       for(size_t xx = 0; xx < nElDiff.size(); ++xx){
-        if(nElectrons > 0) nEnDiff[xx] = energy/nElectrons*nElDiff[xx];
-        else               nEnDiff[xx] = 0.;
+        if(nElectrons > 0)            nEnDiff[xx] = energy/nElectrons*nElDiff[xx];
+        else if( nEnDiff.size()==1 )  nEnDiff[xx] = energy;
+        else                          nEnDiff[xx] = 0.;
       }
       
       double const avegageYtransversePos
@@ -538,6 +555,7 @@ namespace larg4 {
         
         raw::ChannelID_t channel = deposit_per_channel.first;
         
+        
         // find whether we already have this channel
         auto iChannelData = ChannelDataMap.find(channel);
         
@@ -552,11 +570,13 @@ namespace larg4 {
         
         // go through all deposits, one for each TDC: (TDC, deposit data)
         for(auto const& deposit_per_tdc: deposit_per_channel.second) {
+          if( deposit_per_tdc.second.energy <= 0 ) continue;
           channelData.AddIonizationElectrons(trackID,
                                              deposit_per_tdc.first,
                                              deposit_per_tdc.second.electrons,
                                              xyz,
                                              deposit_per_tdc.second.energy);
+          //std::cout<<"  adding "<<deposit_per_tdc.second.electrons<<" e- (dE = "<<deposit_per_tdc.second.energy<<") to tdc "<<deposit_per_tdc.first<<"\n";
           
         } // for deposit on TDCs
       } // for deposit on channels
