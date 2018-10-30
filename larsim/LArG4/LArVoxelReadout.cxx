@@ -347,7 +347,7 @@ namespace larg4 {
     static double LifetimeCorr_const = -1000. * fElectronLifetime;
     static double LDiff_const        = std::sqrt(2.*fLongitudinalDiffusion);
     static double TDiff_const        = std::sqrt(2.*fTransverseDiffusion);
-    static double RecipDriftVel[3]   = {1./fDriftVelocity[0], 
+    static double fRecipDriftVel[3]   = {1./fDriftVelocity[0], 
                                         1./fDriftVelocity[1], 
                                         1./fDriftVelocity[2]};
 
@@ -362,7 +362,7 @@ namespace larg4 {
     // Map of electrons to store - catalogued by map[channel][tdc]
     std::map<raw::ChannelID_t, std::map<unsigned int, Deposit_t>> DepositsToStore;
 
-    double xyz1[3] = {0.};
+    double fDriftClusterPos[3] = {0.};
 
     double const xyz[3] = {stepMidPoint.x() / CLHEP::cm,
                            stepMidPoint.y() / CLHEP::cm,
@@ -371,44 +371,91 @@ namespace larg4 {
     // Already know which TPC we're in because we have been told
 
     try{
-      const geo::TPCGeo &tpcg = fGeoHandle->TPC(tpc, cryostat);
+      const geo::TPCGeo& tpcGeo = fGeoHandle->TPC(tpc, cryostat);
 
       // X drift distance - the drift direction can be either in
       // the positive or negative direction, so use std::abs
 
-      /// \todo think about effects of drift between planes 
-      double XDrift = std::abs(stepMidPoint.x()/CLHEP::cm - tpcg.PlaneLocation(0)[0]);
-      //std::cout<<tpcg.DriftDirection()<<std::endl;
-      if (tpcg.DriftDirection() == geo::kNegX)
-	XDrift = stepMidPoint.x()/CLHEP::cm - tpcg.PlaneLocation(0)[0];
-      else if (tpcg.DriftDirection() == geo::kPosX)
-	XDrift = tpcg.PlaneLocation(0)[0] - stepMidPoint.x()/CLHEP::cm;
-      
-      if(XDrift < 0.) return;
+
+      // The drift direction can be either in the positive
+      // or negative direction in any coordinate x, y or z.
+      // Charge drift in ...
+      // +x: tpcGeo.DetectDriftDirection()==1
+      // -x: tpcGeo.DetectDriftDirection()==-1
+      // +y: tpcGeo.DetectDriftDirection()==2
+      // -y tpcGeo.DetectDriftDirection()==-2
+      // +z: tpcGeo.DetectDriftDirection()==3
+      // -z: tpcGeo.DetectDriftDirection()==-3
+
+
+      //Define charge drift direction: driftcoordinate (x, y or z) and driftsign (positive or negative). Also define coordinates perpendicular to drift direction.
+      int driftcoordinate = std::abs(tpcGeo.DetectDriftDirection())-1;  //x:0, y:1, z:2
+
+      int transversecoordinate1 = 0;
+      int transversecoordinate2 = 0;
+      if(driftcoordinate == 0)
+      {
+	transversecoordinate1 = 1;
+	transversecoordinate2 = 2;
+      }
+      else if(driftcoordinate == 1)
+      {
+	transversecoordinate1 = 0;
+	transversecoordinate2 = 2;
+      }
+      else if(driftcoordinate == 2)
+      {
+	transversecoordinate1 = 0;
+	transversecoordinate2 = 1;
+      }
+
+      if(transversecoordinate1 == transversecoordinate2) return; //this is the case when driftcoordinate != 0, 1 or 2
+
+      int driftsign = 0; //1: +x, +y or +z, -1: -x, -y or -z
+      if(tpcGeo.DetectDriftDirection() > 0) driftsign = 1;
+      else driftsign = -1;
+
+      //Check for charge deposits behind charge readout planes
+      if(driftsign == 1 && tpcGeo.PlaneLocation(0)[driftcoordinate] < xyz[driftcoordinate] )
+	return;
+      if(driftsign == -1 && tpcGeo.PlaneLocation(0)[driftcoordinate] > xyz[driftcoordinate] )
+	return;
+
+      /// \todo think about effects of drift between planes.
+      // Center of plane is also returned in cm units
+      double DriftDistance = std::abs(xyz[driftcoordinate] - tpcGeo.PlaneLocation(0)[driftcoordinate]);
 
       // Get SCE {x,y,z} offsets for particular location in TPC      
       geo::Vector_t posOffsets;
+      double posOffsetxyz[3] = {0.0,0.0,0.0}; //need this array for the driftcoordinate and transversecoordinates
       auto const* SCE = lar::providerFrom<spacecharge::SpaceChargeService>();
       if (SCE->EnableSimSpatialSCE() == true)
       {
         posOffsets = SCE->GetPosOffsets({ xyz[0], xyz[1], xyz[2] });
+	posOffsetxyz[0] = posOffsets.X();
+	posOffsetxyz[1] = posOffsets.Y();
+	posOffsetxyz[2] = posOffsets.Z();
       }
-      posOffsets.SetX(-posOffsets.X());
 
-      // Drift time (nano-sec)
-      double TDrift;
-      XDrift += posOffsets.X();
+      double avegagetransversePos1 = 0.;
+      double avegagetransversePos2 = 0.;
+
+      DriftDistance += -1.*posOffsetxyz[driftcoordinate];
+      avegagetransversePos1 = xyz[transversecoordinate1] + posOffsetxyz[transversecoordinate1];
+      avegagetransversePos2 = xyz[transversecoordinate2] + posOffsetxyz[transversecoordinate2];
       
       // Space charge distortion could push the energy deposit beyond the wire
       // plane (see issue #15131). Given that we don't have any subtlety in the
       // simulation of this region, bringing the deposit exactly on the plane
       // should be enough for the time being.
-      if (XDrift < 0.) XDrift = 0.;
+      if (DriftDistance < 0.) DriftDistance = 0.;
       
-      TDrift = XDrift * RecipDriftVel[0];
-      if (tpcg.Nplanes() == 2){// special case for ArgoNeuT (plane 0 is the second wire plane)
-        TDrift = ((XDrift - tpcg.PlanePitch(0,1)) * RecipDriftVel[0] 
-                  + tpcg.PlanePitch(0,1) * RecipDriftVel[1]);
+      // Drift time in ns
+      double TDrift = DriftDistance * fRecipDriftVel[0];
+
+      if (tpcGeo.Nplanes() == 2 && driftcoordinate == 0){// special case for ArgoNeuT (Nplanes = 2 and drift direction = x): plane 0 is the second wire plane
+	TDrift = ((DriftDistance - tpcGeo.PlanePitch(0,1)) * fRecipDriftVel[0]
+		  + tpcGeo.PlanePitch(0,1) * fRecipDriftVel[1]);
       }
           
       const double lifetimecorrection = TMath::Exp(TDrift / LifetimeCorr_const);
@@ -443,18 +490,18 @@ namespace larg4 {
       }
       
       // Compute arrays of values as quickly as possible.
-      std::vector< double > XDiff(nClus);
-      std::vector< double > YDiff(nClus);
-      std::vector< double > ZDiff(nClus);
-      std::vector< double > nElDiff(nClus, electronclsize);
-      std::vector< double > nEnDiff(nClus);
+      std::vector< double > fLongDiff(nClus);
+      std::vector< double > fTransDiff1(nClus);
+      std::vector< double > fTransDiff2(nClus);
+      std::vector< double > fnElDiff(nClus, electronclsize);
+      std::vector< double > fnEnDiff(nClus);
 
       // fix the number of electrons in the last cluster, that has smaller size
-      nElDiff.back() = nElectrons - (nClus-1)*electronclsize;
+      fnElDiff.back() = nElectrons - (nClus-1)*electronclsize;
       
-      for(size_t xx = 0; xx < nElDiff.size(); ++xx){
-        if(nElectrons > 0) nEnDiff[xx] = energy/nElectrons*nElDiff[xx];
-        else               nEnDiff[xx] = 0.;
+      for(size_t xx = 0; xx < fnElDiff.size(); ++xx){
+        if(nElectrons > 0) fnEnDiff[xx] = energy/nElectrons*fnElDiff[xx];
+        else               fnEnDiff[xx] = 0.;
       }
       
       double const avegageYtransversePos
@@ -462,43 +509,43 @@ namespace larg4 {
       double const avegageZtransversePos
         = (stepMidPoint.z()/CLHEP::cm) + posOffsets.Z();
       
-      // Smear drift times by x position and drift time
+      // Smear drift times by longitudinal diffusion
       if (LDiffSig > 0.0)
-        PropRand.fireArray( nClus, &XDiff[0], 0., LDiffSig);
+	PropRand.fireArray( nClus, &fLongDiff[0], 0., LDiffSig);
       else
-        XDiff.assign(nClus, 0.0);
+	fLongDiff.assign(nClus, 0.0);
       
       if (TDiffSig > 0.0) {
-        // Smear the Y,Z position by the transverse diffusion
-        PropRand.fireArray( nClus, &YDiff[0], avegageYtransversePos, TDiffSig);
-        PropRand.fireArray( nClus, &ZDiff[0], avegageZtransversePos, TDiffSig);
+	// Smear the coordinates in plane perpendicular to drift direction by the transverse diffusion
+	PropRand.fireArray( nClus, &fTransDiff1[0], avegagetransversePos1, TDiffSig);
+	PropRand.fireArray( nClus, &fTransDiff2[0], avegagetransversePos2, TDiffSig);
       }
       else {
-        YDiff.assign(nClus, avegageYtransversePos);
-        ZDiff.assign(nClus, avegageZtransversePos);
+	fTransDiff1.assign(nClus, avegagetransversePos1);
+	fTransDiff2.assign(nClus, avegagetransversePos2);
       }
 
       // make a collection of electrons for each plane
-      for(size_t p = 0; p < tpcg.Nplanes(); ++p){
+      for(size_t p = 0; p < tpcGeo.Nplanes(); ++p){
         
-        geo::PlaneGeo const& plane = tpcg.Plane(p);
+        geo::PlaneGeo const& plane = tpcGeo.Plane(p);
 
-        double Plane0Pitch = tpcg.Plane0Pitch(p);
-        
-        // "-" sign is because Plane0Pitch output is positive. Andrzej
-        xyz1[0] = tpcg.PlaneLocation(0)[0] - Plane0Pitch;
+	fDriftClusterPos[driftcoordinate] = tpcGeo.PlaneLocation(p)[driftcoordinate];
         
         // Drift nClus electron clusters to the induction plane
         for(int k = 0; k < nClus; ++k){
+
           // Correct drift time for longitudinal diffusion and plane
-          double TDiff = TDrift + XDiff[k] * RecipDriftVel[0];
-          // Take into account different Efields between planes
-          // Also take into account special case for ArgoNeuT where Nplanes = 2.
-          for (size_t ip = 0; ip<p; ++ip){
-            TDiff += tpcg.PlanePitch(ip,ip+1) * RecipDriftVel[tpcg.Nplanes()==3?ip+1:ip+2];
-          }
-          xyz1[1] = YDiff[k];
-          xyz1[2] = ZDiff[k];
+	  double TDiff = TDrift + fLongDiff[k] * fRecipDriftVel[0];
+
+	  // Take into account different Efields between planes
+	  // Also take into account special case for ArgoNeuT (Nplanes = 2 and drift direction = x): plane 0 is the second wire plane
+	  for (size_t ip = 0; ip<p; ++ip){
+	    TDiff += (tpcGeo.PlaneLocation(ip+1)[driftcoordinate] - tpcGeo.PlaneLocation(ip)[driftcoordinate]) * fRecipDriftVel[(tpcGeo.Nplanes() == 2 && driftcoordinate == 0)?ip+2:ip+1];
+	  }
+
+	  fDriftClusterPos[transversecoordinate1] = fTransDiff1[k];
+	  fDriftClusterPos[transversecoordinate2] = fTransDiff2[k];  
           
           /// \todo think about effects of drift between planes
           
@@ -513,13 +560,13 @@ namespace larg4 {
               // point is off plane, emit a warning and skip the deposition.
               //
               auto const landingPos
-                = RecoverOffPlaneDeposit({ xyz1[0], xyz1[1], xyz1[2] }, plane);
-              xyz1[0] = landingPos.X();
-              xyz1[1] = landingPos.Y();
-              xyz1[2] = landingPos.Z();
+                = RecoverOffPlaneDeposit({ fDriftClusterPos[0], fDriftClusterPos[1], fDriftClusterPos[2] }, plane);
+              fDriftClusterPos[0] = landingPos.X();
+              fDriftClusterPos[1] = landingPos.Y();
+              fDriftClusterPos[2] = landingPos.Z();
               
             } // if charge lands off plane
-            uint32_t channel = fGeoHandle->NearestChannel(xyz1, p, tpc, cryostat);
+            uint32_t channel = fGeoHandle->NearestChannel(fDriftClusterPos, p, tpc, cryostat);
             
             /// \todo check on what happens if we allow the tdc value to be
             /// \todo beyond the end of the expected number of ticks
@@ -527,7 +574,7 @@ namespace larg4 {
             unsigned int tdc = fClock.Ticks(ts->G4ToElecTime(TDiff + simTime));
 
             // Add electrons produced by each cluster to the map
-            DepositsToStore[channel][tdc].add(nEnDiff[k], nElDiff[k]);
+            DepositsToStore[channel][tdc].add(fnEnDiff[k], fnElDiff[k]);
           }
           catch(cet::exception &e){
             mf::LogWarning("LArVoxelReadout") << "unable to drift electrons from point ("
