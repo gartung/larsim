@@ -25,6 +25,7 @@ namespace phot{
   class PhotonVisibilityService {
   public:
     
+    ~PhotonVisibilityService();
     PhotonVisibilityService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg);
     
     void reconfigure(fhicl::ParameterSet const& p);
@@ -33,7 +34,7 @@ namespace phot{
     
     static double DistanceToOpDet(          double const* xyz, unsigned int OpDet );
     static double SolidAngleFactor(         double const* xyz, unsigned int OpDet );
-    float GetVisibility(                    double const* xyz, unsigned int OpChannel, bool wantReflected=false ) const;         
+    float GetVisibility(                    double const* xyz, unsigned int OpChannel, bool wantReflected=false ) const;
 
     float const* GetAllVisibilities( double const* xyz, bool wantReflected=false ) const;
     
@@ -79,7 +80,9 @@ namespace phot{
     size_t NOpChannels() const;
     
   private:
-    
+
+    const TVector3 LibLocation(const double * xyz) const;
+
     int    fCurrentVoxel;
     double fCurrentValue;
     // for c2: fCurrentReflValue is unused
@@ -103,23 +106,24 @@ namespace phot{
     bool                 fParPropTime;
     size_t               fParPropTime_npar;
     std::string		 fParPropTime_formula;
-
+    int                  fParPropTime_MaxRange;
     bool                 fInterpolate;
+    bool                 fReflectOverZeroX;
 
-    TF1 *fparslogNorm;
-    TF1 *fparslogNorm_far;
-    TF1 *fparsMPV;
-    TF1 *fparsMPV_far;
-    TF1 *fparsWidth;
-    TF1 *fparsCte;
-    TF1 *fparsCte_far;
-    TF1 *fparsSlope;
+    TF1 *fparslogNorm = nullptr;
+    TF1 *fparslogNorm_far = nullptr;
+    TF1 *fparsMPV = nullptr;
+    TF1 *fparsMPV_far = nullptr;
+    TF1 *fparsWidth = nullptr;
+    TF1 *fparsCte = nullptr;
+    TF1 *fparsCte_far = nullptr;
+    TF1 *fparsSlope = nullptr;
     double fD_break, fD_max, fTF1_sampling_factor;
-    TF1 *fparslogNorm_refl;
-    TF1 *fparsMPV_refl;
-    TF1 *fparsWidth_refl;
-    TF1 *fparsCte_refl;
-    TF1 *fparsSlope_refl;
+    TF1 *fparslogNorm_refl = nullptr;
+    TF1 *fparsMPV_refl = nullptr;
+    TF1 *fparsWidth_refl = nullptr;
+    TF1 *fparsCte_refl = nullptr;
+    TF1 *fparsSlope_refl = nullptr;
     double fT0_max, fT0_break_point;
    
     std::string          fLibraryFile;      

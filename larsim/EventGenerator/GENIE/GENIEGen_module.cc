@@ -43,7 +43,7 @@
 #include "nutools/RandomUtils/NuRandomService.h"
 
 // LArSoft includes
-#include "larsim/MCDumpers/MCDumpers.h" // sim::dump namespace
+#include "lardataalg/MCDumpers/MCDumpers.h" // sim::dump namespace
 #include "nusimdata/SimulationBase/MCTruth.h"
 #include "nusimdata/SimulationBase/MCFlux.h"
 #include "nusimdata/SimulationBase/GTruth.h"
@@ -104,6 +104,7 @@ namespace evgen {
     void produce(art::Event& evt);  
     void beginJob();
     void beginRun(art::Run& run);
+    void beginSubRun(art::SubRun& sr);
     void endSubRun(art::SubRun& sr);
 
   private:
@@ -123,6 +124,9 @@ namespace evgen {
     double fGlobalTimeOffset;             /// The start of a simulated "beam gate".
     double fRandomTimeOffset;             /// The width of a simulated "beam gate".
     ::sim::BeamType_t fBeamType;          /// The type of beam
+
+    double fPrevTotPOT;      ///< Total POT from subruns previous to current subrun
+    double fPrevTotGoodPOT;  ///< Total good POT from subruns previous to current subrun
 
     TH1F* fGenerated[6];  ///< Spectra as generated
 
@@ -237,6 +241,9 @@ namespace evgen{
   void GENIEGen::beginJob(){
     fGENIEHelp->Initialize();
 
+    fPrevTotPOT = 0.;
+    fPrevTotGoodPOT = 0.;
+
     // Get access to the TFile service.
     art::ServiceHandle<art::TFileService> tfs;
 
@@ -323,13 +330,23 @@ namespace evgen{
   }
 
   //____________________________________________________________________________
+  void GENIEGen::beginSubRun(art::SubRun& sr)
+  {
+
+    fPrevTotPOT = fGENIEHelp->TotalExposure();
+    fPrevTotGoodPOT = fGENIEHelp->TotalExposure();
+
+    return;
+  }
+
+  //____________________________________________________________________________
   void GENIEGen::endSubRun(art::SubRun& sr)
   {
 
     std::unique_ptr<sumdata::POTSummary> p(new sumdata::POTSummary());
     
-    p->totpot = fGENIEHelp->TotalExposure();
-    p->totgoodpot = fGENIEHelp->TotalExposure();
+    p->totpot = fGENIEHelp->TotalExposure() - fPrevTotPOT;
+    p->totgoodpot = fGENIEHelp->TotalExposure() - fPrevTotGoodPOT;
 
     sr.put(std::move(p));
 
