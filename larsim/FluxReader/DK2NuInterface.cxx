@@ -81,9 +81,9 @@ namespace fluxr {
               << std::setw(w) << fBeamRotXML.ZZ() << " ] " << std::endl;
     std::cout << std::endl;
 
-    TVector3 userpos(0,0,0);
+    //TVector3 userpos(0,0,0);
     TVector3 beampos(detxyz[0], detxyz[1], detxyz[2]); //beampos from GNuMIFlux.xml
-    fBeamPosXML = userpos - fBeamRotXML*beampos;
+    fBeamPosXML = beampos; //userpos - fBeamRotXML*beampos;
     fBeamZero=TLorentzVector(fBeamPosXML,0);
 
     w=16; p=10;
