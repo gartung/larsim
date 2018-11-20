@@ -37,30 +37,37 @@ namespace fluxr {
 
   void DK2NuInterface::Init(fhicl::ParameterSet const & ps)
   {
-    //overwrite dkmeta
-    fDkMeta->location.clear();
-    fDkMeta->location.resize(2);
-    fDkMeta->location[0].x=0;
-    fDkMeta->location[0].y=0;
-    fDkMeta->location[0].z=0;
-    std::vector<double> detxyz=ps.get<std::vector<double> >("userorigin"); 
-    fDkMeta->location[1].x=detxyz[0];
-    fDkMeta->location[1].y=detxyz[1];
-    fDkMeta->location[1].z=detxyz[2];
-
-    std::cout<<"Locations "<<std::endl;
-    for (unsigned int i=0;i<fDkMeta->location.size();i++) {
-      std::cout<<i<<"\t"<<fDkMeta->location[i].x<<"\t"
-	       <<fDkMeta->location[i].y<<"\t"
-	       <<fDkMeta->location[i].z<<std::endl;
+    // Code to handle flux window adapted from
+    // GENIE_R21210/src/FluxDrivers/GNuMIFlux.cxx
+    if (ps.is_key_to_table("rotmatrix")) {
+      // Matrix defined with series of rotations
+      fhicl::ParameterSet rotps = ps.get<fhicl::ParameterSet>("rotmatrix");
+      fTempRot.RotateX(rotps.get<double>("x"));
+      fTempRot.RotateY(rotps.get<double>("y"));
+      fTempRot.RotateZ(rotps.get<double>("z"));
     }
-    //code to handle flux window stolen from GENIE_R21210/src/FluxDrivers/GNuMIFlux.cxx
-    //rotation matrix
-    std::vector<double> rotmat=ps.get<std::vector<double> >("rotmatrix");
-    TVector3 newX=TVector3(rotmat[0], rotmat[1], rotmat[2]);
-    TVector3 newY=TVector3(rotmat[3], rotmat[4], rotmat[5]);
-    TVector3 newZ=TVector3(rotmat[6], rotmat[7], rotmat[8]);
-    fTempRot.RotateAxes(newX,newY,newZ);
+    else {
+      std::vector<double> rotmat = ps.get<std::vector<double> >("rotmatrix");
+      TVector3 newX, newY, newZ;
+
+      if (rotmat.size() == 9) {
+        // Matrix defined with new axis values
+        newX = TVector3(rotmat[0], rotmat[1], rotmat[2]);
+        newY = TVector3(rotmat[3], rotmat[4], rotmat[5]);
+        newZ = TVector3(rotmat[6], rotmat[7], rotmat[8]);
+      }
+      else if (rotmat.size() == 6) {
+        // Matrix defined with theta phi rotations
+        newX = AnglesToAxis(rotmat[0], rotmat[1]);
+        newY = AnglesToAxis(rotmat[2], rotmat[3]);
+        newZ = AnglesToAxis(rotmat[4], rotmat[5]);
+        fTempRot.RotateAxes(newX,newY,newZ);
+        fBeamRotXML = fTempRot;
+      }
+
+      fTempRot.RotateAxes(newX, newY, newZ);
+    }
+
     fBeamRotXML = fTempRot.Inverse();
     fBeamRot    = TLorentzRotation(fBeamRotXML);
     fBeamRotInv = fBeamRot.Inverse();
@@ -81,10 +88,20 @@ namespace fluxr {
               << std::setw(w) << fBeamRotXML.ZZ() << " ] " << std::endl;
     std::cout << std::endl;
 
-    //TVector3 userpos(0,0,0);
-    TVector3 beampos(detxyz[0], detxyz[1], detxyz[2]); //beampos from GNuMIFlux.xml
-    fBeamPosXML = beampos; //userpos - fBeamRotXML*beampos;
-    fBeamZero=TLorentzVector(fBeamPosXML,0);
+    std::vector<double> detxyz = ps.get<std::vector<double> >("userbeam");
+    if (detxyz.size() == 3) {
+      fBeamPosXML = TVector3(detxyz[0], detxyz[1], detxyz[2]); 
+    }
+    else if (detxyz.size() == 6) {
+      TVector3 userpos = TVector3(detxyz[0], detxyz[1], detxyz[2]); 
+      TVector3 beampos = TVector3(detxyz[3], detxyz[4], detxyz[5]); 
+      fBeamPosXML = userpos - fBeamRotXML*beampos;
+    }
+    else {
+      std::cout << "userbeam needs 3 or 6 numbers to be properly defined" << std::endl;
+    }
+
+    fBeamZero=TLorentzVector(fBeamPosXML, 0);
 
     w=16; p=10;
     std::cout << " fBeamPosXML: [ " << std::setprecision(p) 
@@ -123,8 +140,26 @@ namespace fluxr {
     double dot = fFluxWindowDir1.Dot(fFluxWindowDir2);
     if ( TMath::Abs(dot) > 1.0e-8 ) 
       std::cout << "Dot product between window direction vectors was "
-		<< dot << "; please check for orthoganality"<<std::endl;
+        << dot << "; please check for orthoganality"<<std::endl;
     
+    //overwrite dkmeta
+    fDkMeta->location.clear();
+    fDkMeta->location.resize(2);
+    fDkMeta->location[0].x=0;
+    fDkMeta->location[0].y=0;
+    fDkMeta->location[0].z=0;
+    TLorentzVector detVec;
+    User2BeamPos(TLorentzVector(0,0,0,0),detVec);
+    fDkMeta->location[1].x=detVec.Vect().X();
+    fDkMeta->location[1].y=detVec.Vect().Y();
+    fDkMeta->location[1].z=detVec.Vect().Z();
+    
+    std::cout<<"Locations "<<std::endl;
+    for (unsigned int i=0;i<fDkMeta->location.size();i++) {
+      std::cout<<i<<"\t"<<fDkMeta->location[i].x<<"\t"
+           <<fDkMeta->location[i].y<<"\t"
+           <<fDkMeta->location[i].z<<std::endl;
+    }
   }
   void DK2NuInterface::User2BeamPos(const TLorentzVector& usrxyz,
                                    TLorentzVector& beamxyz) const
@@ -132,16 +167,32 @@ namespace fluxr {
     beamxyz = fBeamRotInv*(usrxyz-fBeamZero);
   }
   void DK2NuInterface::Beam2UserPos(const TLorentzVector& beamxyz, 
-				    TLorentzVector& usrxyz) const
+                    TLorentzVector& usrxyz) const
   {
     usrxyz = fBeamRot*beamxyz + fBeamZero;
   }
   void DK2NuInterface::Beam2UserP4 (const TLorentzVector& beamp4, 
-				    TLorentzVector& usrp4 ) const
+                    TLorentzVector& usrp4 ) const
   {
     usrp4 = fBeamRot*beamp4;
   }
   
+    TVector3 DK2NuInterface::AnglesToAxis(double theta, double phi)
+  {
+    //theta,phi in rad
+    double xyz[3];
+    xyz[0] = TMath::Cos(phi)*TMath::Sin(theta);
+    xyz[1] = TMath::Sin(phi)*TMath::Sin(theta);
+    xyz[2] = TMath::Cos(theta);
+    // condition vector to eliminate most floating point errors
+    for (int i=0; i<3; ++i) {
+      const double eps = 1.0e-15;
+      if (TMath::Abs(xyz[i])   < eps ) xyz[i] =  0;
+      if (TMath::Abs(xyz[i]-1) < eps ) xyz[i] =  1;
+      if (TMath::Abs(xyz[i]+1) < eps ) xyz[i] = -1;
+    }
+    return TVector3(xyz[0],xyz[1],xyz[2]);                    
+  }
 
   bool DK2NuInterface::FillMCFlux(Long64_t ientry, simb::MCFlux& flux)
 
@@ -156,7 +207,7 @@ namespace fluxr {
     TLorentzVector x4usr;
     Beam2UserPos(x4beam,x4usr);
 
-    bsim::NuRay rndnuray=fDk2Nu->nuray[0];	
+    bsim::NuRay rndnuray=fDk2Nu->nuray[0];    
     fDk2Nu->nuray.clear();
 
     TVector3 xyzDk(fDk2Nu->decay.vx,fDk2Nu->decay.vy,fDk2Nu->decay.vz);  // origin of decay
@@ -168,7 +219,7 @@ namespace fluxr {
     //weight for the window area and divide by pi (since wgt returned by calcEnuWgt function is flux/(pi*m^2)
     wgt*=fWindowArea/3.14159;
 
-    bsim::NuRay anuray(p3beam.x(), p3beam.y(), p3beam.z(), enu, wgt);	
+    bsim::NuRay anuray(p3beam.x(), p3beam.y(), p3beam.z(), enu, wgt);    
     fDk2Nu->nuray.push_back(rndnuray);
     fDk2Nu->nuray.push_back(anuray);
 
@@ -229,3 +280,4 @@ namespace fluxr {
     return true;
   }
 }
+
