@@ -67,7 +67,6 @@ art_make(
 			${GTLGEO}
 			${GTLFLX}
 			${GPHMEL}
-			${GTLREW}
 			${GPHNDCY}
 			${GPHNNBAROSC}
 			${GFWMSG}

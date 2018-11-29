@@ -1,4 +1,5 @@
 include_directories ( $ENV{GENIE_INC}/GENIE )
+include_directories ( $ENV{GENIE_REWEIGHT}/src )
 
 art_make(LIBRARY_NAME  larsim_EventWeight_Calculators
          LIB_LIBRARIES
