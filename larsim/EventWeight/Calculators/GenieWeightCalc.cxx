@@ -62,7 +62,6 @@ namespace evwgh {
                     kDISBth,           // Bth higher twist param in BY model scaling variable xi_w
                     kDISCv1u,          // Cv1u u valence GRV98 PDF correction param in BY model
                     kDISCv2u,          // Cv2u u valence GRV98 PDF correction param in BY model
-                    kDISnucl,          // NOT IMPLEMENTED IN GENIE
 		    kAGKYxF,           // Pion Feynman x for Npi states in AGKY
                     kAGKYpT,           // Pion transverse momentum for Npi states in AGKY
                     kFormZone,         // Hadron Formation Zone
@@ -128,7 +127,6 @@ namespace evwgh {
       else if (s == "DISBth") erwgh.push_back(kDISBth);
       else if (s == "DISCv1u") erwgh.push_back(kDISCv1u);
       else if (s == "DISCv2u") erwgh.push_back(kDISCv2u);
-      else if (s == "DISnucl") erwgh.push_back(kDISnucl);
       else if (s == "AGKYxF") erwgh.push_back(kAGKYxF);
       else if (s == "AGKYpT") erwgh.push_back(kAGKYpT);
       else if (s == "FormZone") erwgh.push_back(kFormZone);
@@ -273,13 +271,8 @@ namespace evwgh {
           reweightVector[weight_point] -> ReweightDIS(0., 0., 0., reweightingSigmas[i_reweightingKnob][weight_point]);
           break;
         
-	case kDISnucl:
-	  reweightVector[weight_point]
-	    -> ReweightDISnucl(reweightingSigmas[i_reweightingKnob][weight_point]);
-	  break;
-        
 	case kAGKYxF:
-      reweightVector[weight_point] -> ReweightAGKY(reweightingSigmas[i_reweightingKnob][weight_point], 0.);
+          reweightVector[weight_point] -> ReweightAGKY(reweightingSigmas[i_reweightingKnob][weight_point], 0.);
 	  break;
         case kAGKYpT:
           reweightVector[weight_point] -> ReweightAGKY(0., reweightingSigmas[i_reweightingKnob][weight_point]);
