@@ -59,7 +59,6 @@ namespace evwgh {
                     kDISBth,           // Bth higher twist param in BY model scaling variable xi_w
                     kDISCv1u,          // Cv1u u valence GRV98 PDF correction param in BY model
                     kDISCv2u,          // Cv2u u valence GRV98 PDF correction param in BY model
-                    kDISnucl,          // NOT IMPLEMENTED IN GENIE
 		    kAGKYxF,           // Pion Feynman x for Npi states in AGKY
                     kAGKYpT,           // Pion transverse momentum for Npi states in AGKY
                     kFormZone,         // Hadron Formation Zone
@@ -67,13 +66,11 @@ namespace evwgh {
                     kFermiGasModelSf,  // Choice of model (sigma = 0 => FermiGas; sigma = 1 => SF (spectral function))
                     kIntraNukeNmfp,    // Nucleon mean free path (total rescattering probability)
                     kIntraNukeNcex,    // Nucleon charge exchange probability
-                    kIntraNukeNel,     // Nucleon elastic reaction probability
                     kIntraNukeNinel,   // Nucleon inelastic reaction probability
                     kIntraNukeNabs,    // Nucleon absorption probability
                     kIntraNukeNpi,     // Nucleon pi-production probability
                     kIntraNukePImfp,   // Pi mean free path (total rescattering probability)
                     kIntraNukePIcex,   // Pi charge exchange probability
-                    kIntraNukePIel,    // Pi elastic reaction probability
                     kIntraNukePIinel,  // Pi inelastic reaction probability
                     kIntraNukePIabs,   // Pi absorption probability
                     kIntraNukePIpi,    // Pi pi-production probability
@@ -128,7 +125,6 @@ namespace evwgh {
       else if (s == "DISBth") erwgh.push_back(kDISBth);
       else if (s == "DISCv1u") erwgh.push_back(kDISCv1u);
       else if (s == "DISCv2u") erwgh.push_back(kDISCv2u);
-      else if (s == "DISnucl") erwgh.push_back(kDISnucl);
       else if (s == "AGKYxF") erwgh.push_back(kAGKYxF);
       else if (s == "AGKYpT") erwgh.push_back(kAGKYpT);
       else if (s == "FormZone") erwgh.push_back(kFormZone);
@@ -136,13 +132,11 @@ namespace evwgh {
       else if (s == "FermiGasModelSf") erwgh.push_back(kFermiGasModelSf);
       else if (s == "IntraNukeNmfp") erwgh.push_back(kIntraNukeNmfp);
       else if (s == "IntraNukeNcex") erwgh.push_back(kIntraNukeNcex);
-      else if (s == "IntraNukeNel") erwgh.push_back(kIntraNukeNel);
       else if (s == "IntraNukeNinel") erwgh.push_back(kIntraNukeNinel);
       else if (s == "IntraNukeNabs") erwgh.push_back(kIntraNukeNabs);
       else if (s == "IntraNukeNpi") erwgh.push_back(kIntraNukeNpi);
       else if (s == "IntraNukePImfp") erwgh.push_back(kIntraNukePImfp);
       else if (s == "IntraNukePIcex") erwgh.push_back(kIntraNukePIcex);
-      else if (s == "IntraNukePIel") erwgh.push_back(kIntraNukePIel);
       else if (s == "IntraNukePIinel") erwgh.push_back(kIntraNukePIinel);
       else if (s == "IntraNukePIabs") erwgh.push_back(kIntraNukePIabs);
       else if (s == "IntraNukePIpi") erwgh.push_back(kIntraNukePIpi);
@@ -260,10 +254,6 @@ namespace evwgh {
           driver.ReweightDIS(0., 0., 0., reweightingSigmas[i_reweightingKnob][weight_point]);
           break;
         
-	case kDISnucl:
-          driver.ReweightDISnucl(reweightingSigmas[i_reweightingKnob][weight_point]);
-	  break;
-        
 	case kAGKYxF:
           driver.ReweightAGKY(reweightingSigmas[i_reweightingKnob][weight_point], 0.);
 	  break;
@@ -288,9 +278,6 @@ namespace evwgh {
         case kIntraNukeNcex:
           driver.ReweightIntraNuke(rwgt::fReweightFrCEx_N, reweightingSigmas[i_reweightingKnob][weight_point]);
           break;
-        case kIntraNukeNel:
-          driver.ReweightIntraNuke(rwgt::fReweightFrElas_N, reweightingSigmas[i_reweightingKnob][weight_point]);
-          break;
         case kIntraNukeNinel:
           driver.ReweightIntraNuke(rwgt::fReweightFrInel_N, reweightingSigmas[i_reweightingKnob][weight_point]);
           break;
@@ -305,9 +292,6 @@ namespace evwgh {
           break;
         case kIntraNukePIcex:
           driver.ReweightIntraNuke(rwgt::fReweightFrCEx_pi, reweightingSigmas[i_reweightingKnob][weight_point]);
-          break;
-        case kIntraNukePIel:
-          driver.ReweightIntraNuke(rwgt::fReweightFrElas_pi, reweightingSigmas[i_reweightingKnob][weight_point]);
           break;
         case kIntraNukePIinel:
           driver.ReweightIntraNuke(rwgt::fReweightFrInel_pi, reweightingSigmas[i_reweightingKnob][weight_point]);
