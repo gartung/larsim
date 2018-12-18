@@ -3,6 +3,10 @@
 
 #include "WeightCalc.h"
 
+namespace CLHEP {
+  class HepRandomEngine;
+}
+
 namespace evwgh {
   struct Weight_t {
     
@@ -29,6 +33,7 @@ namespace evwgh {
     }
     std::string fName;
     WeightCalc* fWeightCalc;
+    CLHEP::HepRandomEngine* fRandomEngine;
     std::string fWeightCalcType;
     double      fMinWeight;
     double      fMaxWeight;

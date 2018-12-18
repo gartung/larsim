@@ -10,33 +10,37 @@
 namespace evwgh {
 
   WeightManager::WeightManager(const std::string name)
-    : _name(name)
-  {
-    _configured = false;
+    : _configured(false), _fcnConfigured(false), _name(name) {}
+
+  const std::string& WeightManager::Name() const { return _name; }
+
+  void WeightManager::ConfigureFunctions() {
+    if (_fcnConfigured) {
+      return;
+    }
+
+    for (auto const& it : fWeightCalcMap) {
+      CLHEP::HepRandomEngine* engine = it.second->fRandomEngine;
+      it.second->fWeightCalc->Configure(fParameterSet, *engine);
+    }
+
+    _fcnConfigured = true;
   }
-
-  const std::string& WeightManager::Name() const
-  { return _name; }
-
  
-  // 
   // CORE FUNCTION
-  //
   MCEventWeight WeightManager::Run(art::Event & e, const int inu)
   {     
 
-    if (!_configured)
+    if (!_configured || !_fcnConfigured)
       throw cet::exception(__PRETTY_FUNCTION__) << "Have not configured yet!" << std::endl;
 
-    //
     // Loop over all functions ang calculate weights
-    //
     MCEventWeight mcwgh;
     for (auto it = fWeightCalcMap.begin() ;it != fWeightCalcMap.end(); it++) {
       
       auto const & weights = it->second->GetWeight(e);
       
-      if(weights.size() == 0){
+      if(weights.empty()){
         std::vector<double> empty;
         std::pair<std::string, std::vector <double> > p("empty",empty);
         mcwgh.fWeight.insert(p);
@@ -52,13 +56,11 @@ namespace evwgh {
     return mcwgh;
   }
 
-
-
   void WeightManager::PrintConfig() {
-    
     return; 
   }
 
 }
 
 #endif
+
