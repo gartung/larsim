@@ -1,0 +1,20 @@
+#include "ElectronDriftTools.fcl"
+
+BEGIN_PROLOG
+
+standard_ShiftEdepSCE:
+{
+    module_type:        "ShiftEdepSCE"
+    EDepTag:            ""
+    MakeAnaTree:        true
+}
+
+standard_SimDriftElectrons:
+{
+    module_type:                  "SimDriftElectrons"
+    SimulationLabel:              ""
+    StoreDriftedElectronClusters: false
+    ElectronDriftTool:            @local::ElectronDriftStandard
+}
+
+END_PROLOG

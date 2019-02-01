@@ -1,0 +1,11 @@
+
+BEGIN_PROLOG
+
+ElectronDriftStandard:
+{
+    tool_type:                    ElectronDriftStandard
+    StoreDriftedElectronClusters: false
+}
+
+
+END_PROLOG
