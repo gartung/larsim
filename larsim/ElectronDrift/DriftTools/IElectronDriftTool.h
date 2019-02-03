@@ -39,6 +39,10 @@ namespace detsim
     // Array of maps of channel data indexed by [cryostat,tpc]
     using ChannelMapByCryoTPC = std::vector< std::vector<ChannelMap_t>>;
     
+    // Define a mapping between a channel and the SimEnergyDeposit objects contributing to it
+    using ChannelIdxSimEnergyVec = std::pair<size_t, std::vector<size_t>>;
+    using ChannelToSimEnergyMap  = std::unordered_map<raw::ChannelID_t, ChannelIdxSimEnergyVec>;
+    
     class IElectronDriftTool
     {
     public:
@@ -53,7 +57,8 @@ namespace detsim
                                     CLHEP::RandGauss&,
                                     std::vector<sim::SimChannel>&,
                                     std::vector<sim::SimDriftedElectronCluster>&,
-                                    ChannelMapByCryoTPC&) = 0;         // output candidate hits
+                                    ChannelMapByCryoTPC&,
+                                    ChannelToSimEnergyMap&) = 0;         // output candidate hits
     };
 }
 

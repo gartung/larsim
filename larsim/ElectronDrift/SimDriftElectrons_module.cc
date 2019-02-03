@@ -126,7 +126,8 @@ private:
     // we have to keep track of its index in the output vector, and the
     // indexes of all the steps that contributed to it.
     // Array of maps of channel data indexed by [cryostat,tpc]
-    ChannelMapByCryoTPC fChannelMaps;
+    ChannelMapByCryoTPC   fChannelMaps;
+    ChannelToSimEnergyMap fChannelToSimEnergyMap;
     
     // The above ensemble may be thought of as a 3D array of
     // ChannelBookKeepings: e.g., SimChannel[cryostat,tpc,channel ID].
@@ -240,6 +241,7 @@ void SimDriftElectrons::produce(art::Event& event)
         cryoData.resize(fNTPCs[cryo++]);
         for (auto& channelsMap: cryoData) channelsMap.clear(); // each, a map
     }
+    fChannelToSimEnergyMap.clear();
     
     // We're going through the input vector by index, rather than by
     // iterator, because we need the index number to compute the
@@ -252,7 +254,7 @@ void SimDriftElectrons::produce(art::Event& event)
     {
         auto const& energyDeposit = energyDeposits[edIndex];
         
-        fDriftTool->driftElectrons(edIndex, energyDeposit, *fRandGauss, *channels, *SimDriftedElectronClusterCollection, fChannelMaps);
+        fDriftTool->driftElectrons(edIndex, energyDeposit, *fRandGauss, *channels, *SimDriftedElectronClusterCollection, fChannelMaps, fChannelToSimEnergyMap);
     } // for each sim::SimEnergyDeposit
     /*
      // Now that we've processed the information for all the

@@ -53,7 +53,8 @@ public:
                         CLHEP::RandGauss&,
                         std::vector<sim::SimChannel>&,
                         std::vector<sim::SimDriftedElectronCluster>&,
-                        ChannelMapByCryoTPC&) override;         // output candidate hits
+                        ChannelMapByCryoTPC&,
+                        ChannelToSimEnergyMap&) override;         // output candidate hits
 
 private:
     
@@ -161,7 +162,8 @@ void ElectronDriftStandard::driftElectrons(const size_t                         
                                            CLHEP::RandGauss&                            randGauss,
                                            std::vector<sim::SimChannel>&                simChannelVec,
                                            std::vector<sim::SimDriftedElectronCluster>& simDriftedElectronClustersVec,
-                                           ChannelMapByCryoTPC&                         channelMap)
+                                           ChannelMapByCryoTPC&                         channelMap,
+                                           ChannelToSimEnergyMap&                       channelToSimEnergyMap)
 {
     // "xyz" is the position of the energy deposit in world
     // coordinates. Note that the units of distance in
@@ -407,60 +409,41 @@ void ElectronDriftStandard::driftElectrons(const size_t                         
                 auto const simTime = energyDeposit.Time();
                 unsigned int tdc = fClock.Ticks(fTimeService->G4ToElecTime(TDiff + simTime));
                 
-                // Find whether we already have this channel in our map.
-                ChannelMap_t& channelDataMap = channelMap[cryostat][tpc];
-                auto search = channelDataMap.find(channel);
+                // Recover the SimChannel and handle the bookeeping
+                size_t channelIndex(0);
                 
-                // We will find (or create) the pointer to a
-                // sim::SimChannel.
-                //sim::SimChannel* channelPtr = NULL;
-                size_t channelIndex=0;
+                ChannelToSimEnergyMap::iterator chanIdxItr = channelToSimEnergyMap.find(channel);
                 
-                // Have we created the sim::SimChannel corresponding to
-                // channel ID?
-                if (search == channelDataMap.end())
+                // Have we already created a SimChannel for this channel?
+                if (chanIdxItr != channelToSimEnergyMap.end())
                 {
-                    // We haven't. Initialize the bookkeeping information
-                    // for this channel.
-                    ChannelBookKeeping_t bookKeeping;
+                    // Recover the info...
+                    ChannelIdxSimEnergyVec& channelIdxSimEnergyVec = chanIdxItr->second;
                     
-                    // Add a new channel to the end of the list we'll
-                    // write out after we've processed this event.
-                    bookKeeping.channelIndex = simChannelVec.size();
-                    simChannelVec.emplace_back( channel );
-                    channelIndex = bookKeeping.channelIndex;
+                    channelIndex = channelIdxSimEnergyVec.first;
                     
-                    // Save the pointer to the newly-created
-                    // sim::SimChannel.
-                    //channelPtr = &(channels->back());
-                    //bookKeeping.channelPtr = channelPtr;
+                    std::vector<size_t>& simEnergyVec = channelIdxSimEnergyVec.second;
                     
-                    // Initialize a vector with the index of the step that
-                    // created this channel.
-                    bookKeeping.stepList.push_back( edIndex );
+                    // Has this step contributed to this channel already?
+                    std::vector<size_t>::iterator chanItr = std::find(simEnergyVec.begin(),simEnergyVec.end(),edIndex);
                     
-                    // Save the bookkeeping information for this channel.
-                    channelDataMap[channel] = bookKeeping;
+                    // If not then keep track
+                    if (chanItr == simEnergyVec.end()) simEnergyVec.push_back(edIndex);
                 }
-                else {
-                    // We've created this SimChannel for a previous energy
-                    // deposit. Get its address.
+                // Otherwise need to create a new entry
+                else
+                {
+                    // Add the new SimChannel (and get the index to it)
+                    channelIndex = simChannelVec.size();
                     
-                    //std::cout << "\tHave seen this channel before." << std::endl;
+                    simChannelVec.emplace_back(channel);
                     
-                    auto& bookKeeping = search->second;
-                    channelIndex = bookKeeping.channelIndex;
-                    //channelPtr = bookKeeping.channelPtr;
+                    ChannelIdxSimEnergyVec& channelIdxToSimEnergyVec = channelToSimEnergyMap[channel];
                     
-                    // Has this step contributed to this channel before?
-                    auto& stepList = bookKeeping.stepList;
-                    auto stepSearch = std::find(stepList.begin(), stepList.end(), edIndex );
-                    if ( stepSearch == stepList.end() ) {
-                        // No, so add this step's index to the list.
-                        stepList.push_back( edIndex );
-                    }
+                    channelIdxToSimEnergyVec.first = channelIndex;
+                    channelIdxToSimEnergyVec.second.clear();
                 }
-                
+
                 sim::SimChannel* channelPtr = &(simChannelVec.at(channelIndex));
                 
                 //if(!channelPtr) std::cout << "\tUmm...ptr is NULL?" << std::endl;

@@ -57,6 +57,7 @@ find_ups_product( cetbuildtools )
 find_ups_geant4( geant4 )
 find_ups_product( postgresql )
 find_ups_product( ifdhc )
+find_ups_product( eigen )
 
 # Wes put this here to use TRACE for debugging...
 #find_ups_product( TRACE )
