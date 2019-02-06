@@ -85,7 +85,7 @@ private:
     PlaneDistWireResponseVecMap       fPlaneDistWireResponseVecMap;
     const DistDecoderVec              fDistDecoderVec   = {-0.135, -0.105, -0.075, -0.045, -0.015, 0.015, 0.045, 0.075, 0.105, 0.135};
     double                            fDriftPosBinSize  = 0.03;
-    double                            fDriftPlaneOffset = 10.;
+    double                            fDriftPlaneOffset = 1.;
     double                            fTicksPerNanosecond;
     
     // The tool to handle the diffusion
@@ -278,8 +278,8 @@ void ElectronDrift2D::driftElectrons(const size_t                               
         if (fDriftPlaneOffset - driftDistance > 0.)
         {
             // Convert this distance to a drift time
-            startDriftTime = driftDistance * fRecipDriftVel[0];
-            startLookupIdx = std::round((fDriftPlaneOffset - driftDistance) * fRecipDriftVel[0] * fTicksPerNanosecond);
+            startDriftTime = (fDriftPlaneOffset - driftDistance) * fRecipDriftVel[0];
+            startLookupIdx = std::round(startDriftTime * fTicksPerNanosecond);
         }
         else startDriftTime = fDriftPlaneOffset * fRecipDriftVel[0];
         
