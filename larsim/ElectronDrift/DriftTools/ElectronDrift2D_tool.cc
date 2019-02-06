@@ -21,8 +21,8 @@
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "lardata/DetectorInfoServices/DetectorClocksService.h"
 #include "lardata/Utilities/AssociationUtil.h"
-#include "larevt/SpaceChargeServices/SpaceChargeService.h"
 #include "larcoreobj/SimpleTypesAndConstants/RawTypes.h" // raw::ChannelID_t
+#include "larsim/ElectronDrift/DriftTools/IDiffusionTool.h"
 
 #include "CLHEP/Random/RandGauss.h"
 
@@ -70,14 +70,6 @@ private:
 
     const detinfo::DetectorClocks*    fTimeService;
 
-    double                            fElectronLifetime;
-    double                            fElectronClusterSize;
-    int                               fMinNumberOfElCluster;
-    double                            fLongitudinalDiffusion;
-    double                            fTransverseDiffusion;
-    double                            fLifetimeCorr_const;
-    double                            fLDiff_const;
-    double                            fTDiff_const;
     double                            fRecipDriftVel[3];
     
     // Define the structure to contain the look up tables
@@ -91,11 +83,13 @@ private:
     using DistDecoderVec              = std::vector<float>;
     
     PlaneDistWireResponseVecMap       fPlaneDistWireResponseVecMap;
-    const DistDecoderVec              fDistDecoderVec = {-0.135, -0.105, -0.075, -0.045, -0.015, 0.015, 0.045, 0.075, 0.105, 0.135};
-    float                             fDriftPosBinSize = 0.03;
+    const DistDecoderVec              fDistDecoderVec   = {-0.135, -0.105, -0.075, -0.045, -0.015, 0.015, 0.045, 0.075, 0.105, 0.135};
+    double                            fDriftPosBinSize  = 0.03;
+    double                            fDriftPlaneOffset = 10.;
+    double                            fTicksPerNanosecond;
     
-    //IS calculationg
-    larg4::ISCalcSeparate             fISAlg;
+    // The tool to handle the diffusion
+    std::unique_ptr<detsim::IDiffusionTool> fDiffusionTool; ///< Tool for handling the diffusion during the drift
 
     const geo::GeometryCore*          fGeometry = lar::providerFrom<geo::Geometry>();
     ::detinfo::ElecClock              fClock;     ///< TPC electronics clock
@@ -121,8 +115,6 @@ void ElectronDrift2D::configure(const fhicl::ParameterSet& pset)
     // Define the physical constants we'll use.
     auto const * detprop = lar::providerFrom<detinfo::DetectorPropertiesService>();
     
-    fElectronLifetime = detprop->ElectronLifetime(); // Electron lifetime as returned by the DetectorProperties service assumed to be in us;
-    
     for (int i = 0; i<3; ++i)
     {
         //  Drift velocity as returned by the DetectorProperties service assumed to be in cm/us. Multiply by 1.e-3 to convert into LArSoft standard velocity units, cm/ns;
@@ -131,32 +123,15 @@ void ElectronDrift2D::configure(const fhicl::ParameterSet& pset)
         fRecipDriftVel[i] = 1./driftVelocity;
     }
     
-    // To-do: Move the parameters we fetch from "LArG4" to detector
-    // properties.
-    art::ServiceHandle<sim::LArG4Parameters> paramHandle;
-    fElectronClusterSize   = paramHandle->ElectronClusterSize();
-    fMinNumberOfElCluster  = paramHandle->MinNumberOfElCluster();
-    fLongitudinalDiffusion = paramHandle->LongitudinalDiffusion(); // cm^2/ns units
-    fTransverseDiffusion   = paramHandle->TransverseDiffusion(); // cm^2/ns units
+    double samplingRate = detprop->SamplingRate() * 1.e-3;                // We want this in us/bin
     
-    MF_LOG_DEBUG("SimDriftElectrons")  << " e lifetime (ns): " << fElectronLifetime
-                                       << "\n Temperature (K): "     << detprop->Temperature()
-                                       << "\n Drift velocity (cm/ns): "  << 1./fRecipDriftVel[0]
-                                       <<" "<<1./fRecipDriftVel[1]<<" "<<1./fRecipDriftVel[2];
-
-    // Opposite of lifetime. Convert from us to standard LArSoft time units, ns;
-    fLifetimeCorr_const = -1000. * fElectronLifetime;
-    fLDiff_const        = std::sqrt(2.*fLongitudinalDiffusion);
-    fTDiff_const        = std::sqrt(2.*fTransverseDiffusion);
-
-    fISAlg.Initialize(lar::providerFrom<detinfo::LArPropertiesService>(),
-                      detprop,
-                      &(*paramHandle),
-                      lar::providerFrom<spacecharge::SpaceChargeService>());
+    fTicksPerNanosecond = 1. / (1.e3 * samplingRate);   // want this in ticks/ns
 
     fTimeService = lar::providerFrom<detinfo::DetectorClocksService>();
     fClock       = fTimeService->TPCClock();
     
+    fDiffusionTool = art::make_tool<detsim::IDiffusionTool>(pset.get<fhicl::ParameterSet>("DiffusionTool"));
+
     // The actual work for this model is done by look up tables which recover in the form of histograms
     std::unordered_map<std::string, int> planeDecoderMap = {{"I1",0},{"I2",1},{"C",2}};
 
@@ -173,6 +148,8 @@ void ElectronDrift2D::configure(const fhicl::ParameterSet& pset)
         throw cet::exception("ElectronDrift2D::configure") << "Unable to open input file: " << fullFileName << std::endl;
     
     TIter next(inputFile.GetListOfKeys());
+    
+    float histIntegral(0.);
     
     while(TKey* key = (TKey*)next())
     {
@@ -199,6 +176,13 @@ void ElectronDrift2D::configure(const fhicl::ParameterSet& pset)
             int         wireNum     = std::stoi(histName.substr(wireStartPos, posStartPos - wireStartPos - 1));
             float       wirePos     = std::stof(histName.substr(posStartPos, className.size() - posStartPos));
             
+            // Assumption: for a given set of responses for a plane and position, the hists are read in wire number order, the first will be zero and be
+            // the central wire. So we want to recover the integral for that hist
+            if (planeString == "C" && wireNum == 0) histIntegral = histPtr->Integral();
+            
+            // Now normalize the histogram by the cached integral for wire 0
+            histPtr->Scale(1./histIntegral);
+            
             std::vector<float>::const_iterator distIterator = std::find_if(fDistDecoderVec.begin(),fDistDecoderVec.end(),[wirePos](const auto& val){return std::abs(val-wirePos) < std::numeric_limits<float>::epsilon();});
             
             if (distIterator == fDistDecoderVec.end())
@@ -217,7 +201,6 @@ void ElectronDrift2D::configure(const fhicl::ParameterSet& pset)
             float histMaxEdge  = histPtr->GetXaxis()->GetXmax();
             float lastBinMax   = histPtr->GetBinCenter(numBins) + 0.5 * histBinWidth;
             
-            float samplingRate = detprop->SamplingRate() * 1.e-3;                // We want this in us/bin
             float rateRatio    = samplingRate / histBinWidth;                    // This gives the ratio of time bins for full readout to response bins
             int   binsPerTick  = int(std::round(rateRatio));
             int   nBinsTickVec = numBins / binsPerTick;
@@ -273,248 +256,102 @@ void ElectronDrift2D::driftElectrons(const size_t                               
                                      ChannelMapByCryoTPC&                         channelMap,
                                      ChannelToSimEnergyMap&                       channelToSimEnergyMap)
 {
-    // "xyz" is the position of the energy deposit in world
-    // coordinates. Note that the units of distance in
-    // sim::SimEnergyDeposit are supposed to be cm.
-    auto const mp = energyDeposit.MidPoint();
-    double const xyz[3] = { mp.X(), mp.Y(), mp.Z() };
-    
-    // From the position in world coordinates, determine the
-    // cryostat and tpc. If somehow the step is outside a tpc
-    // (e.g., cosmic rays in rock) just move on to the next one.
-    unsigned int cryostat = 0;
-    try {
-        fGeometry->PositionToCryostat(xyz, cryostat);
-    }
-    catch(cet::exception &e){
-        mf::LogWarning("SimDriftElectrons") << "step "// << energyDeposit << "\n"
-        << "cannot be found in a cryostat\n"
-        << e;
-        return;
-    }
-    
-    unsigned int tpc = 0;
-    try {
-        fGeometry->PositionToTPC(xyz, tpc, cryostat);
-    }
-    catch(cet::exception &e){
-        mf::LogWarning("SimDriftElectrons") << "step "// << energyDeposit << "\n"
-        << "cannot be found in a TPC\n"
-        << e;
-        return;
-    }
-    
-    const geo::TPCGeo& tpcGeo = fGeometry->TPC(tpc, cryostat);
-    
-    // The drift direction can be either in the positive
-    // or negative direction in any coordinate x, y or z.
-    // Charge drift in ...
-    // +x: tpcGeo.DetectDriftDirection()==1
-    // -x: tpcGeo.DetectDriftDirection()==-1
-    // +y: tpcGeo.DetectDriftDirection()==2
-    // -y tpcGeo.DetectDriftDirection()==-2
-    // +z: tpcGeo.DetectDriftDirection()==3
-    // -z: tpcGeo.DetectDriftDirection()==-3
-    
-    
-    //Define charge drift direction: driftcoordinate (x, y or z) and driftsign (positive or negative). Also define coordinates perpendicular to drift direction.
-    int driftcoordinate = std::abs(tpcGeo.DetectDriftDirection())-1;  //x:0, y:1, z:2
-    
-    int transversecoordinate1 = 0;
-    int transversecoordinate2 = 0;
-    if(driftcoordinate == 0)
+    // First call the tool to do the drifting
+    if (fDiffusionTool->getDiffusionVec(energyDeposit, randGauss))
     {
-        transversecoordinate1 = 1;
-        transversecoordinate2 = 2;
-    }
-    else if(driftcoordinate == 1)
-    {
-        transversecoordinate1 = 0;
-        transversecoordinate2 = 2;
-    }
-    else if(driftcoordinate == 2)
-    {
-        transversecoordinate1 = 0;
-        transversecoordinate2 = 1;
-    }
-    
-    if(transversecoordinate1 == transversecoordinate2) return; //this is the case when driftcoordinate != 0, 1 or 2
-    
-    int driftsign = 0; //1: +x, +y or +z, -1: -x, -y or -z
-    if(tpcGeo.DetectDriftDirection() > 0) driftsign = 1;
-    else driftsign = -1;
-    
-    //Check for charge deposits behind charge readout planes
-    if(driftsign == 1 && tpcGeo.PlaneLocation(0)[driftcoordinate] < xyz[driftcoordinate] )  return;
-    if(driftsign == -1 && tpcGeo.PlaneLocation(0)[driftcoordinate] > xyz[driftcoordinate] ) return;
-    
-    /// \todo think about effects of drift between planes.
-    // Center of plane is also returned in cm units
-    double DriftDistance = std::abs(xyz[driftcoordinate] - tpcGeo.PlaneLocation(0)[driftcoordinate]);
-    
-    // Space-charge effect (SCE): Get SCE {x,y,z} offsets for
-    // particular location in TPC
-    geo::Vector_t posOffsets{0.0,0.0,0.0};
-    double posOffsetxyz[3] = {0.0,0.0,0.0}; //need this array for the driftcoordinate and transversecoordinates
-    auto const* SCE = lar::providerFrom<spacecharge::SpaceChargeService>();
-    if (SCE->EnableSimSpatialSCE() == true)
-    {
-        posOffsets = SCE->GetPosOffsets(mp);
-        posOffsetxyz[0] = posOffsets.X();
-        posOffsetxyz[1] = posOffsets.Y();
-        posOffsetxyz[2] = posOffsets.Z();
-    }
-    
-    double avegagetransversePos1 = 0.;
-    double avegagetransversePos2 = 0.;
-    
-    DriftDistance += -1.*posOffsetxyz[driftcoordinate];
-    avegagetransversePos1 = xyz[transversecoordinate1] + posOffsetxyz[transversecoordinate1];
-    avegagetransversePos2 = xyz[transversecoordinate2] + posOffsetxyz[transversecoordinate2];
-    
-    
-    // Space charge distortion could push the energy deposit beyond the wire
-    // plane (see issue #15131). Given that we don't have any subtlety in the
-    // simulation of this region, bringing the deposit exactly on the plane
-    // should be enough for the time being.
-    if (DriftDistance < 0.) DriftDistance = 0.;
-    
-    // Drift time in ns
-    double TDrift = DriftDistance * fRecipDriftVel[0];
-    
-    if (tpcGeo.Nplanes() == 2 && driftcoordinate == 0){// special case for ArgoNeuT (Nplanes = 2 and drift direction = x): plane 0 is the second wire plane
-        TDrift = ((DriftDistance - tpcGeo.PlanePitch(0,1)) * fRecipDriftVel[0]
-                  + tpcGeo.PlanePitch(0,1) * fRecipDriftVel[1]);
-    }
-    
-    fISAlg.Reset();
-    fISAlg.CalculateIonizationAndScintillation(energyDeposit);
-    //std::cout << "Got " << fISAlg.NumberIonizationElectrons() << "." << std::endl;
-    
-    const double lifetimecorrection = TMath::Exp(TDrift / fLifetimeCorr_const);
-    const int    nIonizedElectrons  = fISAlg.NumberIonizationElectrons();
-    const double energy             = energyDeposit.Energy();
-    
-    // if we have no electrons (too small energy or too large recombination)
-    // we are done already here
-    if (nIonizedElectrons <= 0) {
-        MF_LOG_DEBUG("SimDriftElectrons")
-        << "step "// << energyDeposit << "\n"
-        << "No electrons drifted to readout, " << energy << " MeV lost.";
-        return;
-    }
-    
-    // includes the effect of lifetime: lifetimecorrection = exp[-tdrift/tau]
-    const double nElectrons = nIonizedElectrons * lifetimecorrection;
-    //std::cout << "After lifetime, " << nElectrons << " electrons." << std::endl;
-    
-    // Longitudinal & transverse diffusion sigma (cm)
-    double SqrtT    = std::sqrt(TDrift);
-    double LDiffSig = SqrtT * fLDiff_const;
-    double TDiffSig = SqrtT * fTDiff_const;
-    double electronclsize = fElectronClusterSize;
-    
-    // Number of electron clusters.
-    int nClus = (int) std::ceil(nElectrons / electronclsize);
-    if (nClus < fMinNumberOfElCluster)
-    {
-        electronclsize = nElectrons / fMinNumberOfElCluster;
-        if (electronclsize < 1.0)
+        // "xyz" is the position of the energy deposit in world
+        // coordinates. Note that the units of distance in
+        // sim::SimEnergyDeposit are supposed to be cm.
+        auto const   mp     = energyDeposit.MidPoint();
+        double const xyz[3] = { mp.X(), mp.Y(), mp.Z() };
+        
+        // Recover drift distance and drift time
+        double driftDistance = fDiffusionTool->getDriftDistance();
+        double driftTime     = fDiffusionTool->getDriftTime();
+        
+        // We should be able to determine the first index into the lookup tables before we start the loops over planes/etc.
+        // Note that the look up tables start some distance (fDriftPlaneOffset) before the first plane and so we can check
+        // if the current position is inside that range or outside...
+        unsigned int startLookupIdx(0);
+        double       startDriftTime(0.);
+        
+        if (fDriftPlaneOffset - driftDistance > 0.)
         {
-            electronclsize = 1.0;
+            // Convert this distance to a drift time
+            startDriftTime = driftDistance * fRecipDriftVel[0];
+            startLookupIdx = std::round((fDriftPlaneOffset - driftDistance) * fRecipDriftVel[0] * fTicksPerNanosecond);
         }
-        nClus = (int) std::ceil(nElectrons / electronclsize);
-    }
-    
-    // Empty and resize the electron-cluster vectors.
-    std::vector< double > longDiff(nClus);
-    std::vector< double > transDiff1(nClus);
-    std::vector< double > transDiff2(nClus);
-    std::vector< double > nElDiff(nClus, electronclsize);
-    std::vector< double > nEnDiff(nClus);
-    
-    double fDriftClusterPos[3];
-
-    // fix the number of electrons in the last cluster, that has a smaller size
-    nElDiff.back() = nElectrons - (nClus-1)*electronclsize;
-    
-    for(size_t xx = 0; xx < nElDiff.size(); ++xx)
-    {
-        if(nElectrons > 0) nEnDiff[xx] = energy/nElectrons*nElDiff[xx];
-        else               nEnDiff[xx] = 0.;
-    }
-
-    // Smear drift times by longitudinal diffusion
-    if (LDiffSig > 0.0)
-        randGauss.fireArray( nClus, &longDiff[0], 0., LDiffSig);
-    else
-        longDiff.assign(nClus, 0.0);
-    
-    if (TDiffSig > 0.0)
-    {
-        // Smear the coordinates in plane perpendicular to drift direction by the transverse diffusion
-        randGauss.fireArray( nClus, &transDiff1[0], avegagetransversePos1, TDiffSig);
-        randGauss.fireArray( nClus, &transDiff2[0], avegagetransversePos2, TDiffSig);
-    }
-    else
-    {
-        transDiff1.assign(nClus, avegagetransversePos1);
-        transDiff2.assign(nClus, avegagetransversePos2);
-    }
-    
-    // Now have everything we need to start filling SimChannel output
-    // We need to loop over planes since we'll then need to find the doca to the wire in the plane for each cluster
-    for(const auto& planeItr : fPlaneDistWireResponseVecMap)
-    {
-        int thisPlane = planeItr.first;
+        else startDriftTime = fDriftPlaneOffset * fRecipDriftVel[0];
         
-        fDriftClusterPos[driftcoordinate] = tpcGeo.PlaneLocation(thisPlane)[driftcoordinate];
+        // Note that "TDrift" is the time to drift electrons from the charge deposit position to the first sense plane
+        // The look up tables start at fDriftPlaneOffset distance before that plane so to get the right time we need
+        // to reset the total drift back to this position.
+        driftTime -= startDriftTime;
         
-        // Now loop over each of the clusters we have created
-        for(int clusIdx = 0; clusIdx < nClus; clusIdx++)
+        // Recover the coordinate indices
+        int driftCoordinate       = fDiffusionTool->getDriftCoordinate();
+        int transverseCoordinate1 = fDiffusionTool->getTransverseCoordinate1();
+        int transverseCoordinate2 = fDiffusionTool->getTransverseCoordinate2();
+        
+        // Get a pointer to the TPC geometry
+        const geo::TPCGeo* tpcGeo = fDiffusionTool->getTPCGeo();
+
+        // Now have everything we need to start filling SimChannel output
+        // We need to loop over planes since we'll then need to find the doca to the wire in the plane for each cluster
+        for(const auto& planeItr : fPlaneDistWireResponseVecMap)
         {
-            // Correct drift time for longitudinal diffusion
-            double TDiff = TDrift + longDiff[clusIdx] * fRecipDriftVel[0];
+            int    thisPlane(planeItr.first);
+            double driftClusterPos[3];
             
-            // And correct position for transverse...
-            fDriftClusterPos[transversecoordinate1] = transDiff1[clusIdx];
-            fDriftClusterPos[transversecoordinate2] = transDiff2[clusIdx];
+            driftClusterPos[driftCoordinate] = tpcGeo->PlaneLocation(thisPlane)[driftCoordinate];
             
-            /// \todo think about effects of drift between planes
-            
-            // grab the nearest channel to the fDriftClusterPos position
-            try{
-                /*
-                 if (fOffPlaneMargin != 0) {
-                 // get the effective position where to consider the charge landed;
-                 //
-                 // Some optimisations are possible; in particular, this method
-                 // could be extended to inform us if the point was too far.
-                 // Currently, if that is the case the code will proceed, find the
-                 // point is off plane, emit a warning and skip the deposition.
-                 //
-                 auto const landingPos
-                 = RecoverOffPlaneDeposit({ fDriftClusterPos[0], fDriftClusterPos[1], fDriftClusterPos[2] }, plane);
-                 fDriftClusterPos[0] = landingPos.X();
-                 fDriftClusterPos[1] = landingPos.Y();
-                 fDriftClusterPos[2] = landingPos.Z();
-                 
-                 } // if charge lands off plane
-                 */
-                //raw::ChannelID_t channel = fGeometry->NearestChannel(fDriftClusterPos, thisPlane, tpc, cryostat);
-                geo::WireID wireID = fGeometry->NearestWireID(fDriftClusterPos, thisPlane, tpc, cryostat);
-                raw::ChannelID_t channel = fGeometry->PlaneWireToChannel(wireID);
-
+            // Now loop over each of the clusters we have created
+            for (const auto &cluster : fDiffusionTool->getDiffusionValsVec())
+            {
+                // Correct drift time for longitudinal diffusion
+                double TDiff = driftTime + cluster.longitudinalDiffusion * fRecipDriftVel[0];
+                
+                // And correct position for transverse...
+                driftClusterPos[transverseCoordinate1] = cluster.transverseDiffusion_1;
+                driftClusterPos[transverseCoordinate2] = cluster.transverseDiffusion_2;
+                
+                // grab the nearest channel to the fDriftClusterPos position
+                geo::WireID      wireID;
+                raw::ChannelID_t channel;
+                
+                try
+                {
+                    const geo::TPCID& tpcID = tpcGeo->ID();
+                    
+                    wireID  = fGeometry->NearestWireID(driftClusterPos, thisPlane, tpcID.TPC, tpcID.Cryostat);
+                    channel = fGeometry->PlaneWireToChannel(wireID);
+                }
+                catch(cet::exception &e)
+                {
+                    mf::LogWarning("ElectronDrift2D") << "unable to drift electrons from point ("
+                    << xyz[0] << "," << xyz[1] << "," << xyz[2]
+                    << ") with exception " << e;
+                    std::cout << "Exception caught here" << std::endl;
+                    continue;
+                } // end try to determine channel
+                
                 // Find the transverse doca to this wire...
                 Eigen::Vector3d wireEndPoint1;
                 Eigen::Vector3d wireEndPoint2;
                 
-                fGeometry->WireEndPoints(wireID, &wireEndPoint1[0], &wireEndPoint2[0]);
+                try
+                {
+                    fGeometry->WireEndPoints(wireID, &wireEndPoint1[0], &wireEndPoint2[0]);
+                } catch(...)
+                {
+                    std::cout << "Could not recover endpoints" << std::endl;
+                    continue;
+                }
                 
                 // Want the distance to the wire in the plane transverse to the drift
-                Eigen::Vector2f wireEndPoint2D1(wireEndPoint1[transversecoordinate1],wireEndPoint1[transversecoordinate2]);
-                Eigen::Vector2f wireEndPoint2D2(wireEndPoint2[transversecoordinate1],wireEndPoint2[transversecoordinate2]);
-                Eigen::Vector2f driftPos2D(fDriftClusterPos[transversecoordinate1],fDriftClusterPos[transversecoordinate2]);
+                Eigen::Vector2f wireEndPoint2D1(wireEndPoint1[transverseCoordinate1],wireEndPoint1[transverseCoordinate2]);
+                Eigen::Vector2f wireEndPoint2D2(wireEndPoint2[transverseCoordinate1],wireEndPoint2[transverseCoordinate2]);
+                Eigen::Vector2f driftPos2D(driftClusterPos[transverseCoordinate1],driftClusterPos[transverseCoordinate2]);
                 
                 Eigen::Vector2f wireDirVec  = wireEndPoint2D2 - wireEndPoint2D1;
                 Eigen::Vector2f driftPosVec = driftPos2D - wireEndPoint2D1;
@@ -526,7 +363,10 @@ void ElectronDrift2D::driftElectrons(const size_t                               
                 float arcLenToDoca = wireDirVec.dot(driftPosVec);
                 
                 if (arcLenToDoca > wireLength || arcLenToDoca < 0.)
-                    std::cout << "***** ACK! ******" << std::endl;
+                {
+                    std::cout << "***** ACK! bad arc len... " << arcLenToDoca << ", wireLength: " << wireLength << " ******" << std::endl;
+                    arcLenToDoca = std::min(wireLength,std::max(float(0.),arcLenToDoca));
+                }
                 
                 Eigen::Vector2f docaPos = wireEndPoint2D1 + arcLenToDoca * wireDirVec;
                 Eigen::Vector2f docaVec = driftPos2D - docaPos;
@@ -537,9 +377,9 @@ void ElectronDrift2D::driftElectrons(const size_t                               
                 
                 if (wireDirVec[0] * docaVec[1] - wireDirVec[1] * docaVec[0] < 0.) distWireToPos = -distWireToPos;
                 
-                int distWireToPosIdx = int(std::round((distWireToPos - fDistDecoderVec[0]) / fDriftPosBinSize));
+                int distWireToPosIdx = int(std::round((distWireToPos - fDistDecoderVec[0]) / fDriftPosBinSize)) - 1;
                 
-                distWireToPosIdx = std::max(0,std::min(distWireToPosIdx,int(fDistDecoderVec.size())));
+                distWireToPosIdx = std::max(0,std::min(distWireToPosIdx,int(fDistDecoderVec.size()-1)));
                 
                 // Now we can get the look up tables we need to complete the task
                 const DistWireResponseVecMap& distWireResponseVecMap = planeItr.second;
@@ -547,7 +387,7 @@ void ElectronDrift2D::driftElectrons(const size_t                               
                 
                 // Skip looping over all wires for the moment... take the central wire to start
                 const ResponseVec& responseVec = wireResponseVecMap.at(0);
-
+                
                 /// \todo check on what happens if we allow the tdc value to be
                 /// \todo beyond the end of the expected number of ticks
                 // Add potential decay/capture/etc delay effect, simTime.
@@ -568,7 +408,7 @@ void ElectronDrift2D::driftElectrons(const size_t                               
                     channelIndex = channelIdxSimEnergyVec.first;
                     
                     std::vector<size_t>& simEnergyVec = channelIdxSimEnergyVec.second;
-
+                    
                     // Has this step contributed to this channel already?
                     std::vector<size_t>::iterator chanItr = std::find(simEnergyVec.begin(),simEnergyVec.end(),edIndex);
                     
@@ -592,33 +432,37 @@ void ElectronDrift2D::driftElectrons(const size_t                               
                 sim::SimChannel* channelPtr = &(simChannelVec.at(channelIndex));
                 
                 // Loop over the ticks in the response vector
-                unsigned int tdcIdx(0);
-                
-                for(const auto& charge : responseVec)
+                for(unsigned int tdcIdx = startLookupIdx; tdcIdx < responseVec.size(); tdcIdx++)
                 {
+                    unsigned int tick = tdc + tdcIdx;
+                    
+                    if (tick > 4095) break;
+                    
+                    double depositedCharge = cluster.clusterNumElectrons * responseVec[tdcIdx];
+                    
+                    if (std::abs(depositedCharge) < std::numeric_limits<double>::epsilon()) continue;
+                    
                     channelPtr->AddIonizationElectrons(energyDeposit.TrackID(),
-                                                       tdc + tdcIdx++,
-                                                       nElDiff[clusIdx] * charge,
+                                                       tick,
+                                                       depositedCharge,
                                                        xyz,
-                                                       nEnDiff[clusIdx]);
+                                                       cluster.clusterEnergy);
                 }
                 
                 if(fStoreDriftedElectronClusters)
-                    simDriftedElectronClustersVec.push_back(sim::SimDriftedElectronCluster(nElDiff[clusIdx],
-                                                                                            TDiff + simTime,        // timing
-                                                                                            {mp.X(),mp.Y(),mp.Z()}, // mean position of the deposited energy
-                                                                                            {fDriftClusterPos[0],fDriftClusterPos[1],fDriftClusterPos[2]}, // final position of thedrifted  cluster
-                                                                                            {LDiffSig,TDiffSig,TDiffSig}, // Longitudinal (X) and transverse (Y,Z) diffusion
-                                                                                            nEnDiff[clusIdx], //deposited energy that originated this cluster
-                                                                                            energyDeposit.TrackID()) );
-            }
-            catch(cet::exception &e) {
-                mf::LogWarning("SimDriftElectrons") << "unable to drift electrons from point ("
-                << xyz[0] << "," << xyz[1] << "," << xyz[2]
-                << ") with exception " << e;
-            } // end try to determine channel
-        } // end loop over clusters
-    } // end loop over planes
+                    simDriftedElectronClustersVec.push_back(sim::SimDriftedElectronCluster(cluster.clusterNumElectrons,
+                                                                                           TDiff + simTime,        // timing
+                                                                                           {mp.X(),mp.Y(),mp.Z()}, // mean position of the deposited energy
+                                                                                           {driftClusterPos[0],driftClusterPos[1],driftClusterPos[2]}, // final position of thedrifted  cluster
+                                                                                           {fDiffusionTool->getLongitudinalDiffusionSig(),
+                                                                                            fDiffusionTool->getTransverseDiffusionSig(),
+                                                                                            fDiffusionTool->getTransverseDiffusionSig()}, // Longitudinal (X) and transverse (Y,Z) diffusion
+                                                                                           cluster.clusterEnergy, //deposited energy that originated this cluster
+                                                                                           energyDeposit.TrackID()) );
+            } // end loop over clusters
+        } // end loop over planes
+    }
+
     return;
 }
 
