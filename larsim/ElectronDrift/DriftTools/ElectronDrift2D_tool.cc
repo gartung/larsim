@@ -24,6 +24,8 @@
 #include "larcoreobj/SimpleTypesAndConstants/RawTypes.h" // raw::ChannelID_t
 #include "larsim/ElectronDrift/DriftTools/IDiffusionTool.h"
 
+#include "lardataobj/Simulation/Waveform.h"
+
 #include "CLHEP/Random/RandGauss.h"
 
 //stuff from wes
@@ -54,23 +56,32 @@ public:
     
     void configure(const fhicl::ParameterSet& pset) override;
     
+    // Allow our tools to declare data products they plan to output to event store
+    void produces(art::EDProducer&) override;
+    
+    // Set up output data products
+    void setupOutputDataProducts() override;
+
     // Search for candidate hits on the input waveform
     void driftElectrons(const size_t,
                         const sim::SimEnergyDeposit&,
                         CLHEP::RandGauss&,
-                        std::vector<sim::SimChannel>&,
-                        std::vector<sim::SimDriftedElectronCluster>&,
-                        ChannelMapByCryoTPC&,
                         ChannelToSimEnergyMap&) override;         // output candidate hits
+    
+    // Output the data products
+    void put(art::Event&) override;
 
 private:
     
-    std::string                       fResponseFileName;
-    bool                              fStoreDriftedElectronClusters;
+    int getTransverseBin(const geo::WireID&, const Eigen::Vector3d&, int, int) const;
+    sim::SimChannel* getSimChannel(ChannelToSimEnergyMap&, std::vector<sim::SimChannel>&, const size_t, const raw::ChannelID_t) const;
+    
+    std::string                                fResponseFileName;
+    bool                                       fStoreDriftedElectronClusters;
 
-    const detinfo::DetectorClocks*    fTimeService;
+    const detinfo::DetectorClocks*             fTimeService;
 
-    double                            fRecipDriftVel[3];
+    double                                     fRecipDriftVel[3];
     
     // Define the structure to contain the look up tables
     // We'll need to divide by the 1D distance to the nearest wire,
@@ -81,18 +92,35 @@ private:
     using DistWireResponseVecMap      = std::unordered_map<int,WireResponseVecMap>;
     using PlaneDistWireResponseVecMap = std::unordered_map<int,DistWireResponseVecMap>;
     using DistDecoderVec              = std::vector<float>;
+    using WireOffsetMap               = std::unordered_map<int, int>;
+    using DistWireOffsetMap           = std::unordered_map<int, WireOffsetMap>;
+    using PlaneDistWireOffsetMap      = std::unordered_map<int, DistWireOffsetMap>;
     
-    PlaneDistWireResponseVecMap       fPlaneDistWireResponseVecMap;
-    const DistDecoderVec              fDistDecoderVec   = {-0.135, -0.105, -0.075, -0.045, -0.015, 0.015, 0.045, 0.075, 0.105, 0.135};
-    double                            fDriftPosBinSize  = 0.03;
-    double                            fDriftPlaneOffset = 1.;
-    double                            fTicksPerNanosecond;
+    PlaneDistWireResponseVecMap                 fPlaneDistWireResponseVecMap;
+    PlaneDistWireOffsetMap                      fPlaneDistWireOffsetMap;
+    const DistDecoderVec                        fDistDecoderVec   = {-0.135, -0.105, -0.075, -0.045, -0.015, 0.015, 0.045, 0.075, 0.105, 0.135};
+    double                                      fDriftPosBinSize  = 0.03;
+    double                                      fDriftPlaneOffset = 10.;
+    double                                      fTicksPerNanosecond;
     
-    // The tool to handle the diffusion
-    std::unique_ptr<detsim::IDiffusionTool> fDiffusionTool; ///< Tool for handling the diffusion during the drift
+    size_t                                      fMaxWaveformTicks = 4096;
+    
+    // Define structures for holding output waveforms
+    using WaveformVec             = std::vector<float>;
+    using ChannelToWaveformVecMap = std::unordered_map<raw::ChannelID_t, WaveformVec>;
+    
+    ChannelToWaveformVecMap                     fChannelToWaveformVecMap;
+    
+    // Output objects
+    std::unique_ptr<std::vector<sim::SimChannel>>                fSimChannelVec;
+    std::unique_ptr<std::vector<sim::Waveform>>                  fSimWaveformVec;
+    std::unique_ptr<std::vector<sim::SimDriftedElectronCluster>> fSimDriftedElectronClustersVec;
 
-    const geo::GeometryCore*          fGeometry = lar::providerFrom<geo::Geometry>();
-    ::detinfo::ElecClock              fClock;     ///< TPC electronics clock
+    // The tool to handle the diffusion
+    std::unique_ptr<detsim::IDiffusionTool>     fDiffusionTool; ///< Tool for handling the diffusion during the drift
+
+    const geo::GeometryCore*                    fGeometry = lar::providerFrom<geo::Geometry>();
+    ::detinfo::ElecClock                        fClock;     ///< TPC electronics clock
 };
     
 //----------------------------------------------------------------------
@@ -219,6 +247,12 @@ void ElectronDrift2D::configure(const fhicl::ParameterSet& pset)
                 size_t responseVecIdx = (binIdx - 1) / binsPerTick;
                 responseVec[responseVecIdx] += histPtr->GetBinContent(binIdx);
             }
+            
+            ResponseVec::iterator firstNonZeroItr = std::find_if(responseVec.begin(),responseVec.end(),[](const auto& val){return std::abs(val) > 1.e-6;}); //std::numeric_limits<float>::epsilon();});
+            
+            fPlaneDistWireOffsetMap[planeDecoderMap[planeString]][wirePosIdx][wireNum] = std::distance(responseVec.begin(),firstNonZeroItr);
+            
+            std::cout << "    ---> Starting index for plane: " << planeString << ", dist: " << wirePos << "/" << wirePosIdx << ", wireNum: " << wireNum << ", is: " << fPlaneDistWireOffsetMap[planeDecoderMap[planeString]][wirePosIdx][wireNum] << std::endl;
         }
     }
     
@@ -248,14 +282,36 @@ void ElectronDrift2D::configure(const fhicl::ParameterSet& pset)
     return;
 }
     
-void ElectronDrift2D::driftElectrons(const size_t                                 edIndex,
-                                     const sim::SimEnergyDeposit&                 energyDeposit,
-                                     CLHEP::RandGauss&                            randGauss,
-                                     std::vector<sim::SimChannel>&                simChannelVec,
-                                     std::vector<sim::SimDriftedElectronCluster>& simDriftedElectronClustersVec,
-                                     ChannelMapByCryoTPC&                         channelMap,
-                                     ChannelToSimEnergyMap&                       channelToSimEnergyMap)
+void ElectronDrift2D::produces(art::EDProducer& producer)
 {
+    producer.produces<std::vector<sim::SimChannel>>();
+    producer.produces<std::vector<sim::Waveform>>();
+    
+    if(fStoreDriftedElectronClusters) producer.produces< std::vector<sim::SimDriftedElectronCluster> >();
+    
+    return;
+}
+
+// Set up output data products
+void ElectronDrift2D::setupOutputDataProducts()
+{
+    fSimChannelVec  = std::make_unique<std::vector<sim::SimChannel>>(std::vector<sim::SimChannel>());
+    fSimWaveformVec = std::make_unique<std::vector<sim::Waveform>>(std::vector<sim::Waveform>());
+
+    if(fStoreDriftedElectronClusters)
+        fSimDriftedElectronClustersVec = std::make_unique<std::vector<sim::SimDriftedElectronCluster>>(std::vector<sim::SimDriftedElectronCluster>());
+    
+    return;
+}
+
+void ElectronDrift2D::driftElectrons(const size_t                 edIndex,
+                                     const sim::SimEnergyDeposit& energyDeposit,
+                                     CLHEP::RandGauss&            randGauss,
+                                     ChannelToSimEnergyMap&       channelToSimEnergyMap)
+{
+    // Clearing is good for the health
+    fChannelToWaveformVecMap.clear();
+    
     // First call the tool to do the drifting
     if (fDiffusionTool->getDiffusionVec(energyDeposit, randGauss))
     {
@@ -272,16 +328,10 @@ void ElectronDrift2D::driftElectrons(const size_t                               
         // We should be able to determine the first index into the lookup tables before we start the loops over planes/etc.
         // Note that the look up tables start some distance (fDriftPlaneOffset) before the first plane and so we can check
         // if the current position is inside that range or outside...
-        unsigned int startLookupIdx(0);
-        double       startDriftTime(0.);
+        size_t startLookupIdx(0);
+        double startDriftTime = fDriftPlaneOffset * fRecipDriftVel[0];
         
-        if (fDriftPlaneOffset - driftDistance > 0.)
-        {
-            // Convert this distance to a drift time
-            startDriftTime = (fDriftPlaneOffset - driftDistance) * fRecipDriftVel[0];
-            startLookupIdx = std::round(startDriftTime * fTicksPerNanosecond);
-        }
-        else startDriftTime = fDriftPlaneOffset * fRecipDriftVel[0];
+        if (fDriftPlaneOffset - driftDistance > 0.) startLookupIdx = std::round((fDriftPlaneOffset - startDriftTime) * fTicksPerNanosecond);
         
         // Note that "TDrift" is the time to drift electrons from the charge deposit position to the first sense plane
         // The look up tables start at fDriftPlaneOffset distance before that plane so to get the right time we need
@@ -301,13 +351,19 @@ void ElectronDrift2D::driftElectrons(const size_t                               
         for(const auto& planeItr : fPlaneDistWireResponseVecMap)
         {
             int    thisPlane(planeItr.first);
-            double driftClusterPos[3];
+            Eigen::Vector3d driftClusterPos;
             
             driftClusterPos[driftCoordinate] = tpcGeo->PlaneLocation(thisPlane)[driftCoordinate];
+            
+            // Recover offset map for this plane
+            const DistWireOffsetMap& distWireOffsetMap = fPlaneDistWireOffsetMap.at(thisPlane);
             
             // Now loop over each of the clusters we have created
             for (const auto &cluster : fDiffusionTool->getDiffusionValsVec())
             {
+                // Define function to handle adding the charge to the waveform
+                auto sumWaveformVec = [cluster](const float& response, const float& waveform){return waveform + cluster.clusterNumElectrons * response;};
+                
                 // Correct drift time for longitudinal diffusion
                 double TDiff = driftTime + cluster.longitudinalDiffusion * fRecipDriftVel[0];
                 
@@ -315,6 +371,12 @@ void ElectronDrift2D::driftElectrons(const size_t                               
                 driftClusterPos[transverseCoordinate1] = cluster.transverseDiffusion_1;
                 driftClusterPos[transverseCoordinate2] = cluster.transverseDiffusion_2;
                 
+                /// \todo check on what happens if we allow the tdc value to be
+                /// \todo beyond the end of the expected number of ticks
+                // Add potential decay/capture/etc delay effect, simTime.
+                auto const   simTime = energyDeposit.Time();
+                unsigned int tdc     = fClock.Ticks(fTimeService->G4ToElecTime(TDiff + simTime));
+
                 // grab the nearest channel to the fDriftClusterPos position
                 geo::WireID      wireID;
                 raw::ChannelID_t channel;
@@ -323,7 +385,7 @@ void ElectronDrift2D::driftElectrons(const size_t                               
                 {
                     const geo::TPCID& tpcID = tpcGeo->ID();
                     
-                    wireID  = fGeometry->NearestWireID(driftClusterPos, thisPlane, tpcID.TPC, tpcID.Cryostat);
+                    wireID  = fGeometry->NearestWireID(driftClusterPos.data(), thisPlane, tpcID.TPC, tpcID.Cryostat);
                     channel = fGeometry->PlaneWireToChannel(wireID);
                 }
                 catch(cet::exception &e)
@@ -336,135 +398,247 @@ void ElectronDrift2D::driftElectrons(const size_t                               
                 } // end try to determine channel
                 
                 // Find the transverse doca to this wire...
-                Eigen::Vector3d wireEndPoint1;
-                Eigen::Vector3d wireEndPoint2;
-                
-                try
-                {
-                    fGeometry->WireEndPoints(wireID, &wireEndPoint1[0], &wireEndPoint2[0]);
-                } catch(...)
-                {
-                    std::cout << "Could not recover endpoints" << std::endl;
-                    continue;
-                }
-                
-                // Want the distance to the wire in the plane transverse to the drift
-                Eigen::Vector2f wireEndPoint2D1(wireEndPoint1[transverseCoordinate1],wireEndPoint1[transverseCoordinate2]);
-                Eigen::Vector2f wireEndPoint2D2(wireEndPoint2[transverseCoordinate1],wireEndPoint2[transverseCoordinate2]);
-                Eigen::Vector2f driftPos2D(driftClusterPos[transverseCoordinate1],driftClusterPos[transverseCoordinate2]);
-                
-                Eigen::Vector2f wireDirVec  = wireEndPoint2D2 - wireEndPoint2D1;
-                Eigen::Vector2f driftPosVec = driftPos2D - wireEndPoint2D1;
-                
-                float wireLength   = wireDirVec.norm();
-                
-                wireDirVec = wireDirVec.normalized();
-                
-                float arcLenToDoca = wireDirVec.dot(driftPosVec);
-                
-                if (arcLenToDoca > wireLength || arcLenToDoca < 0.)
-                {
-                    std::cout << "***** ACK! bad arc len... " << arcLenToDoca << ", wireLength: " << wireLength << " ******" << std::endl;
-                    arcLenToDoca = std::min(wireLength,std::max(float(0.),arcLenToDoca));
-                }
-                
-                Eigen::Vector2f docaPos = wireEndPoint2D1 + arcLenToDoca * wireDirVec;
-                Eigen::Vector2f docaVec = driftPos2D - docaPos;
-                
-                float distWireToPos = docaVec.norm();
-                
-                docaVec.normalize();
-                
-                if (wireDirVec[0] * docaVec[1] - wireDirVec[1] * docaVec[0] < 0.) distWireToPos = -distWireToPos;
-                
-                int distWireToPosIdx = int(std::round((distWireToPos - fDistDecoderVec[0]) / fDriftPosBinSize)) - 1;
-                
-                distWireToPosIdx = std::max(0,std::min(distWireToPosIdx,int(fDistDecoderVec.size()-1)));
-                
+                int distWireToPosIdx = getTransverseBin(wireID, driftClusterPos, transverseCoordinate1, transverseCoordinate2);
+
                 // Now we can get the look up tables we need to complete the task
                 const DistWireResponseVecMap& distWireResponseVecMap = planeItr.second;
-                const WireResponseVecMap&     wireResponseVecMap     = distWireResponseVecMap.at(distWireToPosIdx);
                 
-                // Skip looping over all wires for the moment... take the central wire to start
-                const ResponseVec& responseVec = wireResponseVecMap.at(0);
+                // Recover the wire information for this plane
+                int maxWire     = tpcGeo->Plane(wireID.Plane).Nwires() - 1;
+                int centralWire = wireID.Wire;
                 
-                /// \todo check on what happens if we allow the tdc value to be
-                /// \todo beyond the end of the expected number of ticks
-                // Add potential decay/capture/etc delay effect, simTime.
-                auto const   simTime = energyDeposit.Time();
-                unsigned int tdc     = fClock.Ticks(fTimeService->G4ToElecTime(TDiff + simTime));
-                
-                // Recover the SimChannel and handle the bookeeping
-                size_t channelIndex(0);
-                
-                ChannelToSimEnergyMap::iterator chanIdxItr = channelToSimEnergyMap.find(channel);
-                
-                // Have we already created a SimChannel for this channel?
-                if (chanIdxItr != channelToSimEnergyMap.end())
+                // The WireResponcseVecMap gives the mapping of wires to the positive side of the central wire...
+                // We also need to deal with the wires to the negative side so we do an outer loop to get both
+                for(int side = -1; side < 2; side += 2)
                 {
-                    // Recover the info...
-                    ChannelIdxSimEnergyVec& channelIdxSimEnergyVec = chanIdxItr->second;
+                    int transverseIdx = side > 0 ? distWireToPosIdx : fDistDecoderVec.size() - distWireToPosIdx - 1;
                     
-                    channelIndex = channelIdxSimEnergyVec.first;
+                    // Use this to look up the response
+                    const WireResponseVecMap& wireResponseVecMap = distWireResponseVecMap.at(transverseIdx);
                     
-                    std::vector<size_t>& simEnergyVec = channelIdxSimEnergyVec.second;
-                    
-                    // Has this step contributed to this channel already?
-                    std::vector<size_t>::iterator chanItr = std::find(simEnergyVec.begin(),simEnergyVec.end(),edIndex);
-                    
-                    // If not then keep track
-                    if (chanItr == simEnergyVec.end()) simEnergyVec.push_back(edIndex);
-                }
-                // Otherwise need to create a new entry
-                else
-                {
-                    // Add the new SimChannel (and get the index to it)
-                    channelIndex = simChannelVec.size();
-                    
-                    simChannelVec.emplace_back(channel);
-                    
-                    ChannelIdxSimEnergyVec& channelIdxToSimEnergyVec = channelToSimEnergyMap[channel];
-                    
-                    channelIdxToSimEnergyVec.first = channelIndex;
-                    channelIdxToSimEnergyVec.second.clear();
-                }
-                
-                sim::SimChannel* channelPtr = &(simChannelVec.at(channelIndex));
-                
-                // Loop over the ticks in the response vector
-                for(unsigned int tdcIdx = startLookupIdx; tdcIdx < responseVec.size(); tdcIdx++)
-                {
-                    unsigned int tick = tdc + tdcIdx;
-                    
-                    if (tick > 4095) break;
-                    
-                    double depositedCharge = cluster.clusterNumElectrons * responseVec[tdcIdx];
-                    
-                    if (std::abs(depositedCharge) < std::numeric_limits<double>::epsilon()) continue;
-                    
-                    channelPtr->AddIonizationElectrons(energyDeposit.TrackID(),
-                                                       tick,
-                                                       depositedCharge,
-                                                       xyz,
-                                                       cluster.clusterEnergy);
+                    // Recover the map of offsets by wire number
+                    const WireOffsetMap& wireOffsetMap = distWireOffsetMap.at(transverseIdx);
+
+                    // Initiate the internal loop over wires
+                    for(const auto& wireResponseVec : wireResponseVecMap)
+                    {
+                        // Don't double count the cental wire
+                        if (side < 0 && wireResponseVec.first == 0) continue;
+                        
+                        // Check for valid wire
+                        int curWire = centralWire + side * wireResponseVec.first;
+                        
+                        if (curWire < 0 || curWire > maxWire) continue;
+                        
+                        // Skip looping over all wires for the moment... take the central wire to start
+                        const ResponseVec& responseVec = wireResponseVec.second;
+                        
+                        // Recover the SimChannel and handle the bookeeping
+                        size_t locChannel = channel + side * wireResponseVec.first;
+                        
+                        ChannelToWaveformVecMap::iterator waveformVecItr = fChannelToWaveformVecMap.find(locChannel);
+                        
+                        if(waveformVecItr == fChannelToWaveformVecMap.end())
+                            waveformVecItr = fChannelToWaveformVecMap.insert(std::pair<raw::ChannelID_t, WaveformVec>(locChannel,WaveformVec(fMaxWaveformTicks,0.))).first;
+                        
+                        WaveformVec& waveformVec = waveformVecItr->second;
+                        
+                        // The offset map contains the starting indices in the look up table for the first non-zero (measureable) response so we
+                        // want the starting index to be at least that... or later if the track start is later
+                        size_t responseFirstIdx = wireOffsetMap.at(wireResponseVec.first) > startLookupIdx ? wireOffsetMap.at(wireResponseVec.first) : startLookupIdx;
+                        size_t startTickIdx     = tdc + responseFirstIdx;
+                        size_t lastLookupIdx    = responseVec.size();
+                        
+                        if (tdc + lastLookupIdx >= fMaxWaveformTicks) lastLookupIdx = fMaxWaveformTicks - tdc;
+                        
+                        std::transform(responseVec.begin() + responseFirstIdx,
+                                       responseVec.begin() + lastLookupIdx,
+                                       waveformVec.begin() + startTickIdx,
+                                       waveformVec.begin() + startTickIdx,
+                                       sumWaveformVec);
+                    }
                 }
                 
+                // Recoer the SimChannel to fill
+                sim::SimChannel* channelPtr = getSimChannel(channelToSimEnergyMap, *fSimChannelVec, edIndex, channel);
+                
+                // And fill it...
+                channelPtr->AddIonizationElectrons(energyDeposit.TrackID(),
+                                                   tdc,
+                                                   cluster.clusterNumElectrons,
+                                                   xyz,
+                                                   cluster.clusterEnergy);
+
                 if(fStoreDriftedElectronClusters)
-                    simDriftedElectronClustersVec.push_back(sim::SimDriftedElectronCluster(cluster.clusterNumElectrons,
-                                                                                           TDiff + simTime,        // timing
-                                                                                           {mp.X(),mp.Y(),mp.Z()}, // mean position of the deposited energy
-                                                                                           {driftClusterPos[0],driftClusterPos[1],driftClusterPos[2]}, // final position of thedrifted  cluster
-                                                                                           {fDiffusionTool->getLongitudinalDiffusionSig(),
-                                                                                            fDiffusionTool->getTransverseDiffusionSig(),
-                                                                                            fDiffusionTool->getTransverseDiffusionSig()}, // Longitudinal (X) and transverse (Y,Z) diffusion
-                                                                                           cluster.clusterEnergy, //deposited energy that originated this cluster
-                                                                                           energyDeposit.TrackID()) );
+                    fSimDriftedElectronClustersVec->push_back(sim::SimDriftedElectronCluster(cluster.clusterNumElectrons,
+                                                                                             TDiff + simTime,        // timing
+                                                                                             {mp.X(),mp.Y(),mp.Z()}, // mean position of the deposited energy
+                                                                                             {driftClusterPos[0],driftClusterPos[1],driftClusterPos[2]}, // final position of thedrifted  cluster
+                                                                                             {fDiffusionTool->getLongitudinalDiffusionSig(),
+                                                                                              fDiffusionTool->getTransverseDiffusionSig(),
+                                                                                              fDiffusionTool->getTransverseDiffusionSig()}, // Longitudinal (X) and transverse (Y,Z) diffusion
+                                                                                             cluster.clusterEnergy, //deposited energy that originated this cluster
+                                                                                             energyDeposit.TrackID()) );
             } // end loop over clusters
         } // end loop over planes
     }
 
     return;
 }
+    
+int ElectronDrift2D::getTransverseBin(const geo::WireID& wireID, const Eigen::Vector3d& driftClusterPos, int transverseCoordinate1, int transverseCoordinate2) const
+{
+    // Find the transverse doca to this wire...
+    Eigen::Vector3d wireEndPoint1;
+    Eigen::Vector3d wireEndPoint2;
+    
+    try
+    {
+        fGeometry->WireEndPoints(wireID, &wireEndPoint1[0], &wireEndPoint2[0]);
+    } catch(...)
+    {
+        std::cout << "Could not recover endpoints" << std::endl;
+        return -100;
+    }
+    
+    // Want the distance to the wire in the plane transverse to the drift
+    Eigen::Vector2f wireEndPoint2D1(wireEndPoint1[transverseCoordinate1],wireEndPoint1[transverseCoordinate2]);
+    Eigen::Vector2f wireEndPoint2D2(wireEndPoint2[transverseCoordinate1],wireEndPoint2[transverseCoordinate2]);
+    Eigen::Vector2f driftPos2D(driftClusterPos[transverseCoordinate1],driftClusterPos[transverseCoordinate2]);
+    
+    Eigen::Vector2f wireDirVec  = wireEndPoint2D2 - wireEndPoint2D1;
+    Eigen::Vector2f driftPosVec = driftPos2D - wireEndPoint2D1;
+    
+    float wireLength = wireDirVec.norm();
+    
+    wireDirVec = wireDirVec.normalized();
+    
+    float arcLenToDoca = wireDirVec.dot(driftPosVec);
+    
+    if (arcLenToDoca > wireLength || arcLenToDoca < 0.)
+    {
+        //std::cout << "***** ACK! bad arc len... " << arcLenToDoca << ", wireLength: " << wireLength << " ******" << std::endl;
+        arcLenToDoca = std::min(wireLength,std::max(float(0.),arcLenToDoca));
+    }
+    
+    Eigen::Vector2f docaPos = wireEndPoint2D1 + arcLenToDoca * wireDirVec;
+    Eigen::Vector2f docaVec = driftPos2D - docaPos;
+    
+    float distWireToPos = docaVec.norm();
+    
+    docaVec.normalize();
+    
+    if (wireDirVec[0] * docaVec[1] - wireDirVec[1] * docaVec[0] < 0.) distWireToPos = -distWireToPos;
+    
+    int distWireToPosIdx = int(std::round((distWireToPos - fDistDecoderVec[0]) / fDriftPosBinSize)) - 1;
+    
+    return std::max(0,std::min(distWireToPosIdx,int(fDistDecoderVec.size()-1)));
+}
 
+sim::SimChannel* ElectronDrift2D::getSimChannel(ChannelToSimEnergyMap& channelToSimEnergyMap, std::vector<sim::SimChannel>& simChannelVec, const size_t edIndex, const raw::ChannelID_t channel) const
+{
+    size_t channelIndex(0);
+    
+    ChannelToSimEnergyMap::iterator chanIdxItr = channelToSimEnergyMap.find(channel);
+    
+    // Have we already created a SimChannel for this channel?
+    if (chanIdxItr != channelToSimEnergyMap.end())
+    {
+        // Recover the info...
+        ChannelIdxSimEnergyVec& channelIdxSimEnergyVec = chanIdxItr->second;
+        
+        channelIndex = channelIdxSimEnergyVec.first;
+        
+        std::vector<size_t>& simEnergyVec = channelIdxSimEnergyVec.second;
+        
+        // Has this step contributed to this channel already?
+        std::vector<size_t>::iterator chanItr = std::find(simEnergyVec.begin(),simEnergyVec.end(),edIndex);
+        
+        // If not then keep track
+        if (chanItr == simEnergyVec.end()) simEnergyVec.push_back(edIndex);
+    }
+    // Otherwise need to create a new entry
+    else
+    {
+        // Add the new SimChannel (and get the index to it)
+        channelIndex = simChannelVec.size();
+        
+        simChannelVec.emplace_back(channel);
+        
+        ChannelIdxSimEnergyVec& channelIdxToSimEnergyVec = channelToSimEnergyMap[channel];
+        
+        channelIdxToSimEnergyVec.first = channelIndex;
+        channelIdxToSimEnergyVec.second.clear();
+    }
+
+    return &(simChannelVec.at(channelIndex));
+}
+    
+void ElectronDrift2D::put(art::Event& event)
+{
+    // Want to retrieve our waveforms but want them in order of channel number...
+    std::map<raw::ChannelID_t, WaveformVec> orderedChanWaveMap(fChannelToWaveformVecMap.begin(),fChannelToWaveformVecMap.end());
+
+    for(auto& chanWaveItr : orderedChanWaveMap)
+    {
+        raw::ChannelID_t channel = chanWaveItr.first;
+        
+        std::vector<geo::WireID> wids = fGeometry->ChannelToWire(channel);
+        
+        WaveformVec& waveformVec = chanWaveItr.second;
+        
+        // Want to drop zeroes off the vector... so search for the first non-zero bin
+        WaveformVec::iterator nonZeroElemItr = std::find_if(waveformVec.begin(),waveformVec.end(),[](const auto& val){return std::abs(val) > std::numeric_limits<float>::epsilon();});
+        
+        // If the entire vector is zero (unlikely) then skip
+        if (nonZeroElemItr != waveformVec.end())
+        {
+            // Create an empty sparse vector
+            lar::sparse_vector<float> sparseWaveformVec = lar::sparse_vector<float>();
+            
+            // Get the first offset
+            size_t firstNonZeroElem = std::distance(waveformVec.begin(),nonZeroElemItr);
+            
+            // Make a current "last" element iterator
+            WaveformVec::iterator zeroElemItr = std::find_if(nonZeroElemItr, waveformVec.end(),[](const auto& val){return std::abs(val) < std::numeric_limits<float>::epsilon();});
+            
+            // Look for small gaps
+            WaveformVec::iterator nextNonZeroElemItr = std::find_if(zeroElemItr, waveformVec.end(),[](const auto& val){return std::abs(val) > std::numeric_limits<float>::epsilon();});
+            
+            // Want to loop over all possible valid ranges
+            while(nonZeroElemItr != waveformVec.end())
+            {
+                // First we advance
+                while(nextNonZeroElemItr != waveformVec.end() && std::distance(zeroElemItr,nextNonZeroElemItr) < 6)
+                {
+                    zeroElemItr        = nextNonZeroElemItr;
+                    nextNonZeroElemItr = std::find_if(zeroElemItr, waveformVec.end(),[](const auto& val){return std::abs(val) > std::numeric_limits<float>::epsilon();});
+                }
+                
+                // Add the range
+                sparseWaveformVec.add_range(firstNonZeroElem,nonZeroElemItr,zeroElemItr);
+                
+                // Set up the next round
+                nonZeroElemItr   = nextNonZeroElemItr;
+                firstNonZeroElem = std::distance(waveformVec.begin(),nonZeroElemItr);
+                
+                zeroElemItr        = std::find_if(nonZeroElemItr, waveformVec.end(),[](const auto& val){return std::abs(val) < std::numeric_limits<float>::epsilon();});
+                nextNonZeroElemItr = std::find_if(zeroElemItr, waveformVec.end(),[](const auto& val){return std::abs(val) > std::numeric_limits<float>::epsilon();});
+            }
+        
+            fSimWaveformVec->emplace_back(sparseWaveformVec, channel, fGeometry->View(wids[0]));
+        }
+    }
+    
+    event.put(std::move(fSimChannelVec));
+    event.put(std::move(fSimWaveformVec));
+    
+    if(fStoreDriftedElectronClusters)
+        event.put(std::move(fSimDriftedElectronClustersVec));
+    
+    return;
+}
+
+    
 DEFINE_ART_CLASS_TOOL(ElectronDrift2D)
 }

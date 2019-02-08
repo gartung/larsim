@@ -47,14 +47,20 @@ public:
     
     void configure(const fhicl::ParameterSet& pset) override;
     
+    // Allow our tools to declare data products they plan to output to event store
+    void produces(art::EDProducer&) override;
+    
+    // Set up output data products
+    void setupOutputDataProducts() override;
+
     // Search for candidate hits on the input waveform
     void driftElectrons(const size_t,
                         const sim::SimEnergyDeposit&,
                         CLHEP::RandGauss&,
-                        std::vector<sim::SimChannel>&,
-                        std::vector<sim::SimDriftedElectronCluster>&,
-                        ChannelMapByCryoTPC&,
                         ChannelToSimEnergyMap&) override;         // output candidate hits
+    
+    // Output the data products
+    void put(art::Event&) override;
 
 private:
     
@@ -64,6 +70,10 @@ private:
 
     double                            fRecipDriftVel[3];
     
+    // Output objects
+    std::unique_ptr<std::vector<sim::SimChannel>>                fSimChannelVec;
+    std::unique_ptr<std::vector<sim::SimDriftedElectronCluster>> fSimDriftedElectronClustersVec;
+
     // The tool to handle the diffusion
     std::unique_ptr<detsim::IDiffusionTool> fDiffusionTool; ///< Tool for handling the diffusion during the drift
 
@@ -106,13 +116,29 @@ void ElectronDriftStandard::configure(const fhicl::ParameterSet& pset)
     return;
 }
     
-void ElectronDriftStandard::driftElectrons(const size_t                                 edIndex,
-                                           const sim::SimEnergyDeposit&                 energyDeposit,
-                                           CLHEP::RandGauss&                            randGauss,
-                                           std::vector<sim::SimChannel>&                simChannelVec,
-                                           std::vector<sim::SimDriftedElectronCluster>& simDriftedElectronClustersVec,
-                                           ChannelMapByCryoTPC&                         channelMap,
-                                           ChannelToSimEnergyMap&                       channelToSimEnergyMap)
+void ElectronDriftStandard::produces(art::EDProducer& producer)
+{
+    producer.produces< std::vector<sim::SimChannel> >();
+    if(fStoreDriftedElectronClusters) producer.produces< std::vector<sim::SimDriftedElectronCluster> >();
+    
+    return;
+}
+
+// Set up output data products
+void ElectronDriftStandard::setupOutputDataProducts()
+{
+    fSimChannelVec = std::make_unique<std::vector<sim::SimChannel>>(std::vector<sim::SimChannel>());
+    
+    if(fStoreDriftedElectronClusters)
+        fSimDriftedElectronClustersVec = std::make_unique<std::vector<sim::SimDriftedElectronCluster>>(std::vector<sim::SimDriftedElectronCluster>());
+    
+    return;
+}
+
+void ElectronDriftStandard::driftElectrons(const size_t                 edIndex,
+                                           const sim::SimEnergyDeposit& energyDeposit,
+                                           CLHEP::RandGauss&            randGauss,
+                                           ChannelToSimEnergyMap&       channelToSimEnergyMap)
 {
     // First call the tool to do the drifting
     if (fDiffusionTool->getDiffusionVec(energyDeposit, randGauss))
@@ -218,9 +244,9 @@ void ElectronDriftStandard::driftElectrons(const size_t                         
                     else
                     {
                         // Add the new SimChannel (and get the index to it)
-                        channelIndex = simChannelVec.size();
+                        channelIndex = fSimChannelVec->size();
                         
-                        simChannelVec.emplace_back(channel);
+                        fSimChannelVec->emplace_back(channel);
                         
                         ChannelIdxSimEnergyVec& channelIdxToSimEnergyVec = channelToSimEnergyMap[channel];
                         
@@ -228,7 +254,7 @@ void ElectronDriftStandard::driftElectrons(const size_t                         
                         channelIdxToSimEnergyVec.second.clear();
                     }
                     
-                    sim::SimChannel* channelPtr = &(simChannelVec.at(channelIndex));
+                    sim::SimChannel* channelPtr = &(fSimChannelVec->at(channelIndex));
                     
                     //if(!channelPtr) std::cout << "\tUmm...ptr is NULL?" << std::endl;
                     //else std::cout << "\tChannel is " << channelPtr->Channel() << std::endl;
@@ -241,15 +267,15 @@ void ElectronDriftStandard::driftElectrons(const size_t                         
                                                        cluster.clusterEnergy);
                     
                     if(fStoreDriftedElectronClusters)
-                        simDriftedElectronClustersVec.push_back(sim::SimDriftedElectronCluster(cluster.clusterNumElectrons,
-                                                                                               TDiff + simTime,        // timing
-                                                                                               {mp.X(),mp.Y(),mp.Z()}, // mean position of the deposited energy
-                                                                                               {fDriftClusterPos[0],fDriftClusterPos[1],fDriftClusterPos[2]}, // final position of the drifted cluster
-                                                                                               {fDiffusionTool->getLongitudinalDiffusionSig(),
-                                                                                                fDiffusionTool->getTransverseDiffusionSig(),
-                                                                                                fDiffusionTool->getTransverseDiffusionSig()}, // Longitudinal (X) and transverse (Y,Z) diffusion
-                                                                                               cluster.clusterEnergy, //deposited energy that originated this cluster
-                                                                                               energyDeposit.TrackID()) );
+                        fSimDriftedElectronClustersVec->push_back(sim::SimDriftedElectronCluster(cluster.clusterNumElectrons,
+                                                                                                 TDiff + simTime,        // timing
+                                                                                                 {mp.X(),mp.Y(),mp.Z()}, // mean position of the deposited energy
+                                                                                                 {fDriftClusterPos[0],fDriftClusterPos[1],fDriftClusterPos[2]}, // final position of the drifted   cluster
+                                                                                                 {fDiffusionTool->getLongitudinalDiffusionSig(),
+                                                                                                  fDiffusionTool->getTransverseDiffusionSig(),
+                                                                                                  fDiffusionTool->getTransverseDiffusionSig()}, // Longitudinal (X) and transverse (Y,Z) diffusion
+                                                                                                 cluster.clusterEnergy, //deposited energy that originated this cluster
+                                                                                                 energyDeposit.TrackID()) );
                 }
                 catch(cet::exception &e) {
                     mf::LogWarning("SimDriftElectrons") << "unable to drift electrons from point ("
@@ -259,6 +285,16 @@ void ElectronDriftStandard::driftElectrons(const size_t                         
             } // end loop over clusters
         } // end loop over planes
     }
+    
+    return;
+}
+    
+void ElectronDriftStandard::put(art::Event& event)
+{
+    event.put(std::move(fSimChannelVec));
+    
+    if(fStoreDriftedElectronClusters)
+        event.put(std::move(fSimDriftedElectronClustersVec));
     
     return;
 }

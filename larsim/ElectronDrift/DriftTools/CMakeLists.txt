@@ -1,8 +1,11 @@
 cet_enable_asserts()
 
-art_make(TOOL_LIBRARIES     larsim_Simulation lardataobj_Simulation larsim_LArG4
+art_make(TOOL_LIBRARIES     larsim_Simulation
+                            lardataobj_Simulation
+                            larsim_LArG4
                             larsim_IonizationScintillation
                             lardataobj_RawData
+                            lardataobj_RecoBase
                             larevt_SpaceCharge
                             larcorealg_Geometry
                             larcore_Geometry_Geometry_service

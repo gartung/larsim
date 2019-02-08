@@ -126,7 +126,6 @@ private:
     // we have to keep track of its index in the output vector, and the
     // indexes of all the steps that contributed to it.
     // Array of maps of channel data indexed by [cryostat,tpc]
-    ChannelMapByCryoTPC   fChannelMaps;
     ChannelToSimEnergyMap fChannelToSimEnergyMap;
     
     // The above ensemble may be thought of as a 3D array of
@@ -152,17 +151,15 @@ SimDriftElectrons::SimDriftElectrons(fhicl::ParameterSet const& pset)
 : art::EDProducer{pset}
 {
     this->reconfigure(pset);
+        
+    //produces< art::Assns<sim::SimChannel, sim::SimEnergyDeposit> >();
     
-    produces< std::vector<sim::SimChannel> >();
-    if(fStoreDriftedElectronClusters)produces< std::vector<sim::SimDriftedElectronCluster> >();
-        //produces< art::Assns<sim::SimChannel, sim::SimEnergyDeposit> >();
-        
-        // create a default random engine; obtain the random seed from
-        // NuRandomService, unless overridden in configuration with key
-        // "Seed"
-        art::ServiceHandle<rndm::NuRandomService>()
-        ->createEngine(*this, pset, "Seed");
-        
+    // create a default random engine; obtain the random seed from
+    // NuRandomService, unless overridden in configuration with key
+    // "Seed"
+    art::ServiceHandle<rndm::NuRandomService>()
+    ->createEngine(*this, pset, "Seed");
+    
     /**
      * @brief Sets the margin for recovery of charge drifted off-plane.
      * @param margin the extent of the margin on each frame coordinate [cm]
@@ -174,7 +171,7 @@ SimDriftElectrons::SimDriftElectrons(fhicl::ParameterSet const& pset)
         //fOffPlaneMargin = pset.get< double >("ChargeRecoveryMargin",0.0);
         // Protection against a silly value.
         //fOffPlaneMargin = std::max(fOffPlaneMargin,0.0);
-        }
+}
 
 //-------------------------------------------------
 void SimDriftElectrons::reconfigure(fhicl::ParameterSet const& p)
@@ -185,6 +182,8 @@ void SimDriftElectrons::reconfigure(fhicl::ParameterSet const& p)
     fStoreDriftedElectronClusters = p.get< bool >("StoreDriftedElectronClusters", false);
     
     fDriftTool = art::make_tool<detsim::IElectronDriftTool>(p.get<fhicl::ParameterSet>("ElectronDriftTool"));
+    
+    fDriftTool->produces(*this);
 
     return;
 }
@@ -227,20 +226,10 @@ void SimDriftElectrons::produce(art::Event& event)
     if (!event.getByLabel(fSimModuleLabel, energyDepositHandle))
         return;
     
-    // Define the container for the SimChannel objects that will be
-    // transferred to the art::Event after the put statement below.
-    std::unique_ptr< std::vector<sim::SimChannel> > 		channels(new std::vector<sim::SimChannel>);
-    // Container for the SimDriftedElectronCluster objects
-    std::unique_ptr< std::vector<sim::SimDriftedElectronCluster> > SimDriftedElectronClusterCollection( new std::vector<sim::SimDriftedElectronCluster>);
+    // Set up the output data objects in the tool
+    fDriftTool->setupOutputDataProducts();
     
-    // Clear the channel maps from the last event. Remember,
-    // fChannelMaps is an array[cryo][tpc] of maps.
-    size_t cryo = 0;
-    fChannelMaps.resize(fNCryostats);
-    for (auto& cryoData: fChannelMaps) { // each, a vector of maps
-        cryoData.resize(fNTPCs[cryo++]);
-        for (auto& channelsMap: cryoData) channelsMap.clear(); // each, a map
-    }
+    // Clear the channel maps from the last event.
     fChannelToSimEnergyMap.clear();
     
     // We're going through the input vector by index, rather than by
@@ -254,7 +243,7 @@ void SimDriftElectrons::produce(art::Event& event)
     {
         auto const& energyDeposit = energyDeposits[edIndex];
         
-        fDriftTool->driftElectrons(edIndex, energyDeposit, *fRandGauss, *channels, *SimDriftedElectronClusterCollection, fChannelMaps, fChannelToSimEnergyMap);
+        fDriftTool->driftElectrons(edIndex, energyDeposit, *fRandGauss, fChannelToSimEnergyMap);
     } // for each sim::SimEnergyDeposit
     /*
      // Now that we've processed the information for all the
@@ -293,8 +282,7 @@ void SimDriftElectrons::produce(art::Event& event)
      }
      */
     // Write the sim::SimChannel collection.
-    event.put(std::move(channels));
-    if (fStoreDriftedElectronClusters) event.put(std::move(SimDriftedElectronClusterCollection));
+    fDriftTool->put(event);
     
     // ... and its associations.
     //event.put(std::move(step2channel));
