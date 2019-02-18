@@ -103,10 +103,11 @@ private:
     double                                      fDriftPlaneOffset = 10.;
     double                                      fTicksPerNanosecond;
     
-    size_t                                      fMaxWaveformTicks = 4096;
+    size_t                                      fMaxWaveformTicks = 2*4096;
     
     // Define structures for holding output waveforms
     using WaveformVec             = std::vector<float>;
+//    using WaveformVec             = lar::sparse_vector<float>;
     using ChannelToWaveformVecMap = std::unordered_map<raw::ChannelID_t, WaveformVec>;
     
     ChannelToWaveformVecMap                     fChannelToWaveformVecMap;
@@ -181,7 +182,6 @@ void ElectronDrift2D::configure(const fhicl::ParameterSet& pset)
     
     while(TKey* key = (TKey*)next())
     {
-        //std::cout << "key: " << key->GetName() << ", class:" << key->GetClassName() << std::endl;
         std::string className(key->GetClassName());
         
         if (className.find("TH1") < className.npos)
@@ -309,9 +309,6 @@ void ElectronDrift2D::driftElectrons(const size_t                 edIndex,
                                      CLHEP::RandGauss&            randGauss,
                                      ChannelToSimEnergyMap&       channelToSimEnergyMap)
 {
-    // Clearing is good for the health
-    fChannelToWaveformVecMap.clear();
-    
     // First call the tool to do the drifting
     if (fDiffusionTool->getDiffusionVec(energyDeposit, randGauss))
     {
@@ -331,7 +328,8 @@ void ElectronDrift2D::driftElectrons(const size_t                 edIndex,
         size_t startLookupIdx(0);
         double startDriftTime = fDriftPlaneOffset * fRecipDriftVel[0];
         
-        if (fDriftPlaneOffset - driftDistance > 0.) startLookupIdx = std::round((fDriftPlaneOffset - startDriftTime) * fTicksPerNanosecond);
+        if (fDriftPlaneOffset - driftDistance > 0.)
+            startLookupIdx = std::round((fDriftPlaneOffset - driftDistance) * fRecipDriftVel[0] * fTicksPerNanosecond);
         
         // Note that "TDrift" is the time to drift electrons from the charge deposit position to the first sense plane
         // The look up tables start at fDriftPlaneOffset distance before that plane so to get the right time we need
@@ -362,7 +360,8 @@ void ElectronDrift2D::driftElectrons(const size_t                 edIndex,
             for (const auto &cluster : fDiffusionTool->getDiffusionValsVec())
             {
                 // Define function to handle adding the charge to the waveform
-                auto sumWaveformVec = [cluster](const float& response, const float& waveform){return waveform + cluster.clusterNumElectrons * response;};
+                float numElectrons   = cluster.clusterNumElectrons;
+//                auto  sumWaveformVec = [&numElectrons](const float& response, const float& waveform){return waveform + numElectrons * response;};
                 
                 // Correct drift time for longitudinal diffusion
                 double TDiff = driftTime + cluster.longitudinalDiffusion * fRecipDriftVel[0];
@@ -376,6 +375,9 @@ void ElectronDrift2D::driftElectrons(const size_t                 edIndex,
                 // Add potential decay/capture/etc delay effect, simTime.
                 auto const   simTime = energyDeposit.Time();
                 unsigned int tdc     = fClock.Ticks(fTimeService->G4ToElecTime(TDiff + simTime));
+                
+                // Skip this cluster if timing is already past the length of the buffer...
+                if (tdc > fMaxWaveformTicks) continue;
 
                 // grab the nearest channel to the fDriftClusterPos position
                 geo::WireID      wireID;
@@ -393,7 +395,6 @@ void ElectronDrift2D::driftElectrons(const size_t                 edIndex,
                     mf::LogWarning("ElectronDrift2D") << "unable to drift electrons from point ("
                     << xyz[0] << "," << xyz[1] << "," << xyz[2]
                     << ") with exception " << e;
-                    std::cout << "Exception caught here" << std::endl;
                     continue;
                 } // end try to determine channel
                 
@@ -440,22 +441,53 @@ void ElectronDrift2D::driftElectrons(const size_t                 edIndex,
                         
                         if(waveformVecItr == fChannelToWaveformVecMap.end())
                             waveformVecItr = fChannelToWaveformVecMap.insert(std::pair<raw::ChannelID_t, WaveformVec>(locChannel,WaveformVec(fMaxWaveformTicks,0.))).first;
-                        
+//                            waveformVecItr = fChannelToWaveformVecMap.insert(std::pair<raw::ChannelID_t, WaveformVec>(locChannel,lar::sparse_vector<float>())).first;
+
                         WaveformVec& waveformVec = waveformVecItr->second;
                         
                         // The offset map contains the starting indices in the look up table for the first non-zero (measureable) response so we
                         // want the starting index to be at least that... or later if the track start is later
                         size_t responseFirstIdx = wireOffsetMap.at(wireResponseVec.first) > startLookupIdx ? wireOffsetMap.at(wireResponseVec.first) : startLookupIdx;
-                        size_t startTickIdx     = tdc + responseFirstIdx;
                         size_t lastLookupIdx    = responseVec.size();
                         
                         if (tdc + lastLookupIdx >= fMaxWaveformTicks) lastLookupIdx = fMaxWaveformTicks - tdc;
+    
+                        // It is a bit of a mystery to me why std::transform is slow than a for loop here...
+//                        std::transform(waveformVec.begin() + tdc + responseFirstIdx,
+//                                       waveformVec.begin() + tdc + lastLookupIdx,
+//                                       responseVec.begin() + responseFirstIdx,
+//                                       waveformVec.begin() + tdc + responseFirstIdx,
+//                                       sumWaveformVec);
+
+                        // Update the contents of the waveform vector
+                        for(size_t tick = responseFirstIdx; tick < lastLookupIdx; tick++)
+                            waveformVec[tdc + tick] += numElectrons * responseVec[tick];
                         
-                        std::transform(responseVec.begin() + responseFirstIdx,
-                                       responseVec.begin() + lastLookupIdx,
-                                       waveformVec.begin() + startTickIdx,
-                                       waveformVec.begin() + startTickIdx,
-                                       sumWaveformVec);
+//                        std::vector<float> tempVec(lastLookupIdx - responseFirstIdx);
+//
+//                        for(size_t tick = 0; tick < lastLookupIdx - responseFirstIdx; tick++) tempVec[tick] = cluster.clusterNumElectrons * responseVec[responseFirstIdx + tick];
+//
+//                        std::vector<std::pair<size_t,size_t>> pairVector;
+//
+//                        bool rangeOverlap = !waveformVec.empty();    // If the waveformVec is empty then treat as overlapped
+//
+//                        // Check for range overlaps
+//                        if (!rangeOverlap)
+//                        {
+//                            for(size_t rangeIdx = 0; rangeIdx < waveformVec.n_ranges(); rangeIdx++)
+//                            {
+//                                const lar::sparse_vector<float>::datarange_t& range = waveformVec.range(rangeIdx);
+//
+//                                if (tdc + lastLookupIdx >= range.offset && tdc + responseFirstIdx <= range.last)
+//                                {
+//                                    rangeOverlap = true;
+//                                    break;
+//                                }
+//                            }
+//                        }
+//
+//                        if (!rangeOverlap) waveformVec.add_range(tdc + responseFirstIdx, tempVec);
+//                        else               waveformVec.combine_range(tdc + responseFirstIdx, tempVec, std::plus<float>());
                     }
                 }
                 
@@ -492,14 +524,7 @@ int ElectronDrift2D::getTransverseBin(const geo::WireID& wireID, const Eigen::Ve
     Eigen::Vector3d wireEndPoint1;
     Eigen::Vector3d wireEndPoint2;
     
-    try
-    {
-        fGeometry->WireEndPoints(wireID, &wireEndPoint1[0], &wireEndPoint2[0]);
-    } catch(...)
-    {
-        std::cout << "Could not recover endpoints" << std::endl;
-        return -100;
-    }
+    fGeometry->WireEndPoints(wireID, &wireEndPoint1[0], &wireEndPoint2[0]);
     
     // Want the distance to the wire in the plane transverse to the drift
     Eigen::Vector2f wireEndPoint2D1(wireEndPoint1[transverseCoordinate1],wireEndPoint1[transverseCoordinate2]);
@@ -515,11 +540,7 @@ int ElectronDrift2D::getTransverseBin(const geo::WireID& wireID, const Eigen::Ve
     
     float arcLenToDoca = wireDirVec.dot(driftPosVec);
     
-    if (arcLenToDoca > wireLength || arcLenToDoca < 0.)
-    {
-        //std::cout << "***** ACK! bad arc len... " << arcLenToDoca << ", wireLength: " << wireLength << " ******" << std::endl;
-        arcLenToDoca = std::min(wireLength,std::max(float(0.),arcLenToDoca));
-    }
+    if (arcLenToDoca > wireLength || arcLenToDoca < 0.) arcLenToDoca = std::min(wireLength,std::max(float(0.),arcLenToDoca));
     
     Eigen::Vector2f docaPos = wireEndPoint2D1 + arcLenToDoca * wireDirVec;
     Eigen::Vector2f docaVec = driftPos2D - docaPos;
@@ -586,46 +607,47 @@ void ElectronDrift2D::put(art::Event& event)
         std::vector<geo::WireID> wids = fGeometry->ChannelToWire(channel);
         
         WaveformVec& waveformVec = chanWaveItr.second;
-        
+
         // Want to drop zeroes off the vector... so search for the first non-zero bin
         WaveformVec::iterator nonZeroElemItr = std::find_if(waveformVec.begin(),waveformVec.end(),[](const auto& val){return std::abs(val) > std::numeric_limits<float>::epsilon();});
-        
+
         // If the entire vector is zero (unlikely) then skip
         if (nonZeroElemItr != waveformVec.end())
         {
             // Create an empty sparse vector
             lar::sparse_vector<float> sparseWaveformVec = lar::sparse_vector<float>();
-            
+
             // Get the first offset
             size_t firstNonZeroElem = std::distance(waveformVec.begin(),nonZeroElemItr);
-            
+
             // Make a current "last" element iterator
             WaveformVec::iterator zeroElemItr = std::find_if(nonZeroElemItr, waveformVec.end(),[](const auto& val){return std::abs(val) < std::numeric_limits<float>::epsilon();});
-            
+
             // Look for small gaps
             WaveformVec::iterator nextNonZeroElemItr = std::find_if(zeroElemItr, waveformVec.end(),[](const auto& val){return std::abs(val) > std::numeric_limits<float>::epsilon();});
-            
+
             // Want to loop over all possible valid ranges
             while(nonZeroElemItr != waveformVec.end())
             {
                 // First we advance
                 while(nextNonZeroElemItr != waveformVec.end() && std::distance(zeroElemItr,nextNonZeroElemItr) < 6)
                 {
-                    zeroElemItr        = nextNonZeroElemItr;
+                    zeroElemItr        = std::find_if(nextNonZeroElemItr, waveformVec.end(),[](const auto& val){return std::abs(val) < std::numeric_limits<float>::epsilon();});
                     nextNonZeroElemItr = std::find_if(zeroElemItr, waveformVec.end(),[](const auto& val){return std::abs(val) > std::numeric_limits<float>::epsilon();});
                 }
-                
+
                 // Add the range
                 sparseWaveformVec.add_range(firstNonZeroElem,nonZeroElemItr,zeroElemItr);
-                
+
                 // Set up the next round
                 nonZeroElemItr   = nextNonZeroElemItr;
                 firstNonZeroElem = std::distance(waveformVec.begin(),nonZeroElemItr);
-                
+
                 zeroElemItr        = std::find_if(nonZeroElemItr, waveformVec.end(),[](const auto& val){return std::abs(val) < std::numeric_limits<float>::epsilon();});
                 nextNonZeroElemItr = std::find_if(zeroElemItr, waveformVec.end(),[](const auto& val){return std::abs(val) > std::numeric_limits<float>::epsilon();});
             }
-        
+
+            //fSimWaveformVec->emplace_back(waveformVec, channel, fGeometry->View(wids[0]));
             fSimWaveformVec->emplace_back(sparseWaveformVec, channel, fGeometry->View(wids[0]));
         }
     }
@@ -635,6 +657,9 @@ void ElectronDrift2D::put(art::Event& event)
     
     if(fStoreDriftedElectronClusters)
         event.put(std::move(fSimDriftedElectronClustersVec));
+    
+    // Clear for the next event
+    fChannelToWaveformVecMap.clear();
     
     return;
 }
