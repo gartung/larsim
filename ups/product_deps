@@ -7,8 +7,8 @@ fcldir  product_dir job
 fwdir   product_dir G4
 #
 product         version
-larevt		v08_01_00_05
-marley		v1_0_0e
+larevt		v08_02_05
+marley		v1_1_0
 larsoft_data    v1_02_01
 
 cetbuildtools	v7_06_04	-	only_for_build
