@@ -195,7 +195,16 @@ namespace sim {
 	// NOTE: the below code works only when the drift coordinate is indeed in x (i.e. 0th coordinate)
 	// see code linked above for a much more careful treatment of the coordinate system
 	// David Caratelli, comment end.
-	raw::ChannelID_t ch = geom->NearestChannel(xyz, p, tpc, cryostat);
+
+    /* 2019-03-26 (kvtsang): keep running if no neareast wire found */
+    raw::ChannelID_t ch = 0;
+    try {
+       ch = geom->NearestChannel(xyz, p, tpc, cryostat);
+    }
+    catch(cet::exception &e) {
+       mf::LogDebug("MCRecoEDep") << e.what();
+       continue; 
+    }
 
 	int track_id = sed.TrackID();
 
