@@ -24,6 +24,12 @@
 #include "nusimdata/SimulationBase/simb.h" // simb::GeneratedParticleIndex_t
 #include "nutools/G4Base/UserAction.h"
 
+#include "art/Framework/Services/Optional/TFileService.h"
+#include "art/Framework/Services/Registry/ServiceHandle.h"
+
+#include "TH2D.h"
+#include "TTree.h"
+
 #include "Geant4/globals.hh"
 #include <map>
 #include <limits> // std::numeric_limits<>
@@ -144,7 +150,14 @@ namespace larg4 {
     void AddPointToCurrentParticle(TLorentzVector const& pos,
                                    TLorentzVector const& mom,
                                    std::string    const& process);
-
+    
+    TH2D* f_dE_xy;
+    TH2D* f_dE_zy;
+    TH2D* f_dx_xy;
+    TH2D* f_dx_zy;
+    TH2D* f_dEdx_xy;
+    TH2D* f_dEdx_zy;
+    TTree* f_TreeMaterial;
   };
 
 } // namespace LArG4

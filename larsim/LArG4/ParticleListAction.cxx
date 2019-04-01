@@ -66,6 +66,20 @@ namespace larg4 {
     // of the Geant4 simulation.
     fparticleList = new sim::ParticleList;
     fParentIDMap.clear();
+    art::ServiceHandle<art::TFileService> tfs;
+    f_dEdx_xy = tfs->make<TH2D>("dEdx_xy", "dEdx xy;X[cm];Y[cm]", 1000, - 500,   500, 2000, -1000, 1000);
+    f_dEdx_zy = tfs->make<TH2D>("dEdx_zy", "dEdx zy;Z[cm];Y[cm]", 1600, -1000, 14000, 2000, -1000, 1000);
+    f_dE_xy   = tfs->make<TH2D>("dE_xy"  , "dE xy;X[cm];Y[cm]"  , 1000, - 500,   500, 2000, -1000, 1000);
+    f_dE_zy   = tfs->make<TH2D>("dE_zy"  , "dE zy;Z[cm];Y[cm]"  , 1600, -1000, 14000, 2000, -1000, 1000);
+    f_dx_xy   = tfs->make<TH2D>("dx_xy"  , "dx xy;X[cm];Y[cm]"  , 1000, - 500,   500, 2000, -1000, 1000);
+    f_dx_zy   = tfs->make<TH2D>("dx_zy"  , "dx zy;Z[cm];Y[cm]"  , 1600, -1000, 14000, 2000, -1000, 1000);
+    f_dEdx_xy->SetOption("COLZ");
+    f_dEdx_zy->SetOption("COLZ");
+    f_dE_xy  ->SetOption("COLZ");
+    f_dE_zy  ->SetOption("COLZ");
+    f_dx_xy  ->SetOption("COLZ");
+    f_dx_zy  ->SetOption("COLZ");
+    f_TreeMaterial = tfs->make<TTree>("Materials","Materials");
   }
 
   //----------------------------------------------------------------------------
@@ -361,11 +375,11 @@ namespace larg4 {
     G4bool ignoreProcess = process.contains("LArVoxel") || process.contains("OpDetReadout"); 
 
     MF_LOG_DEBUG("ParticleListAction::SteppingAction")
-    << ": DEBUG - process='"
-    << process << "'"
-    << " ignoreProcess=" << ignoreProcess
-    << " fstoreTrajectories="
-    << fstoreTrajectories;
+      << ": DEBUG - process='"
+      << process << "'"
+      << " ignoreProcess=" << ignoreProcess
+      << " fstoreTrajectories="
+      << fstoreTrajectories;
     
     // We store the initial creation point of the particle
     // and its final position (ie where it has no more energy, or at least < 1 eV) no matter
@@ -379,14 +393,14 @@ namespace larg4 {
       G4double time = postStepPoint->GetGlobalTime();
       
       // Remember that LArSoft uses cm, ns, GeV.
-      TLorentzVector fourPos( position.x() / CLHEP::cm,
+      TLorentzVector fourPos(position.x() / CLHEP::cm,
                              position.y() / CLHEP::cm,
                              position.z() / CLHEP::cm,
                              time / CLHEP::ns );
       
       const G4ThreeVector momentum = postStepPoint->GetMomentum();
       const G4double energy = postStepPoint->GetTotalEnergy();
-      TLorentzVector fourMom( momentum.x() / CLHEP::GeV,
+      TLorentzVector fourMom(momentum.x() / CLHEP::GeV,
                              momentum.y() / CLHEP::GeV,
                              momentum.z() / CLHEP::GeV,
                              energy / CLHEP::GeV );
@@ -394,6 +408,28 @@ namespace larg4 {
       // Add another point in the trajectory.
       AddPointToCurrentParticle( fourPos, fourMom, std::string(process) );
       
+      const G4StepPoint*  preStepPoint = step->GetPreStepPoint();
+      const G4double      preenergy    = preStepPoint->GetTotalEnergy();
+      const G4ThreeVector preposition  = preStepPoint->GetPosition();
+      G4double            pretime      = preStepPoint->GetGlobalTime();
+
+      TLorentzVector prefourPos(preposition.x() / CLHEP::cm,
+                                preposition.y() / CLHEP::cm,
+                                preposition.z() / CLHEP::cm,
+                                pretime / CLHEP::ns );
+      
+      TVector3 prevect3Pos  = prefourPos.Vect();
+      TVector3 postvect3Pos = fourPos   .Vect();
+      
+      double dx = (prevect3Pos - postvect3Pos).Mag();
+      // std::cout << position.x() << ", " << position.y() << ", " << position.z()
+      //           << ", " << (preenergy-energy) / dx << std::endl;
+      f_dE_xy->Fill(position.x(), position.y(), preenergy-energy);
+      f_dE_zy->Fill(position.z(), position.y(), preenergy-energy);
+      f_dx_xy->Fill(position.x(), position.y(), dx);
+      f_dx_zy->Fill(position.z(), position.y(), dx);
+      f_dEdx_xy->Fill(position.x(), position.y(), (preenergy-energy)/dx);
+      f_dEdx_zy->Fill(position.z(), position.y(), (preenergy-energy)/dx);
     }
   }
 
