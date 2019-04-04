@@ -38,6 +38,7 @@ cet_set_compiler_flags(DIAGS CAUTIOUS
   ALLOW_DEPRECATIONS
   EXTRA_FLAGS -pedantic -Wno-unused-local-typedefs -Wno-unused-variable
 )
+add_definitions(-DGENIE_PRE_R3)
 
 cet_report_compiler_flags()
 
@@ -53,6 +54,7 @@ find_ups_product( marley )
 find_ups_product( nutools )
 find_ups_product( nusimdata )
 find_ups_product( art )
+find_ups_product(art_root_io)
 find_ups_product( cetbuildtools )
 find_ups_geant4( geant4 )
 find_ups_product( postgresql )

@@ -4,8 +4,8 @@ art_make(LIB_LIBRARIES larevt_Filters
                        larcore_Geometry_Geometry_service
                        larsim_Simulation
                        ${ART_FRAMEWORK_SERVICES_REGISTRY}
-                       ${ART_FRAMEWORK_SERVICES_OPTIONAL}
-                       ${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
+                       ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
+                       ${ART_ROOT_IO_TFILESERVICE_SERVICE}
                        canvas
                        ${MF_MESSAGELOGGER}
                        ${FHICLCPP}
@@ -24,8 +24,8 @@ art_make(LIB_LIBRARIES larevt_Filters
                        lardataobj_RawData
                        larcorealg_Geometry
                        larcore_Geometry_Geometry_service
-                       ${ART_FRAMEWORK_SERVICES_OPTIONAL}
-                       ${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
+                       ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
+                       ${ART_ROOT_IO_TFILESERVICE_SERVICE}
                        ${MF_MESSAGELOGGER}
           MODULE_LIBRARIES larsim_PhotonPropagation
                         larsim_PhotonPropagation_PhotonVisibilityService_service
@@ -37,8 +37,8 @@ art_make(LIB_LIBRARIES larevt_Filters
                         larcorealg_Geometry
                         larcore_Geometry_Geometry_service
                         ${ART_FRAMEWORK_SERVICES_REGISTRY}
-                        ${ART_FRAMEWORK_SERVICES_OPTIONAL}
-                        ${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
+                        ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
+                        ${ART_ROOT_IO_TFILESERVICE_SERVICE}
                         nutools_RandomUtils_NuRandomService_service
                         art_Persistency_Provenance
                         ${MF_MESSAGELOGGER}
