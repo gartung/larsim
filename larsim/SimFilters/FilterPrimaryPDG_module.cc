@@ -75,7 +75,7 @@ namespace simfilter {
   //-----------------------------------------------------------------------
   // Constructor
   FilterPrimaryPDG::FilterPrimaryPDG(fhicl::ParameterSet const& pset)
-    : fPrimaryVec{pset.get<std::vector<int> >("PrimaryParticles")}
+    : EDFilter{pset}, fPrimaryVec{pset.get<std::vector<int> >("PrimaryParticles")}
   {}
 
   //-----------------------------------------------------------------------

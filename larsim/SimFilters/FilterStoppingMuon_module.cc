@@ -62,7 +62,7 @@ namespace simfilter {
 
   //-----------------------------------------------------------------------
   // Constructor
-  FilterStoppingMuon::FilterStoppingMuon(fhicl::ParameterSet const& pset) :
+  FilterStoppingMuon::FilterStoppingMuon(fhicl::ParameterSet const& pset) : EDFilter{pset},
     fLArG4ModuleLabel    (pset.get< std::string > ("LArG4ModuleLabel"   , "largeant")       )
   {
   }
