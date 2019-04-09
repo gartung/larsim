@@ -45,14 +45,14 @@ public:
 
   virtual void beginRun(art::Run const &r);
 
-  
+
 
 private:
 
-  void CheckReco        (int                                                 const& colID,  
+  void CheckReco        (int                                                 const& colID,
 			 std::vector< art::Ptr<recob::Hit> > 	 	     const& allhits,
 			 std::vector< art::Ptr<recob::Hit> > 	 	     const& colHits,
-			 std::map<std::pair<int, int>, std::pair<double, double> >& g4RecoBaseIDToPurityEfficiency);    
+			 std::map<std::pair<int, int>, std::pair<double, double> >& g4RecoBaseIDToPurityEfficiency);
   void CheckRecoClusters(art::Event                                 const& evt,
 			 std::string                                const& label,
 			 art::Handle< std::vector<recob::Cluster> > const& clscol,
@@ -122,9 +122,9 @@ private:
   // The following maps have a pair of the G4 track id and RecoBase object
   // id as the key and then the purity and efficiency (in that order) of the RecoBase object
   // as the value
-  std::map< std::pair<int, int>, std::pair<double, double> > fG4ClusterIDToPurityEfficiency; 
+  std::map< std::pair<int, int>, std::pair<double, double> > fG4ClusterIDToPurityEfficiency;
   std::map< std::pair<int, int>, std::pair<double, double> > fG4ShowerIDToPurityEfficiency;
-  std::map< std::pair<int, int>, std::pair<double, double> > fG4TrackIDToPurityEfficiency; 
+  std::map< std::pair<int, int>, std::pair<double, double> > fG4TrackIDToPurityEfficiency;
 
   TTree*              fTree;        ///< TTree to save efficiencies
   int                 frun;         ///< run number
@@ -165,7 +165,7 @@ cheat::RecoCheckAna::RecoCheckAna(fhicl::ParameterSet const &p)
 {}
 
 //-------------------------------------------------------------------
-void cheat::RecoCheckAna::analyze(art::Event const &e) 
+void cheat::RecoCheckAna::analyze(art::Event const &e)
 {
   // check that this is MC, stop if it isn't
   if(e.isRealData()){
@@ -214,11 +214,11 @@ void cheat::RecoCheckAna::analyze(art::Event const &e)
   this->FillResults(allhits);
 
   return;
- 
+
 }
 
 //-------------------------------------------------------------------
-void cheat::RecoCheckAna::beginRun(art::Run const &/*r*/) 
+void cheat::RecoCheckAna::beginRun(art::Run const &/*r*/)
 {
   art::ServiceHandle<art::TFileService> tfs;
 
@@ -287,7 +287,7 @@ void cheat::RecoCheckAna::CheckReco(int                                 const& c
   std::set<int> trackIDs = fBT->GetSetOfTrackIds(colHits);
 
   geo::View_t view = colHits[0]->View();
-    
+
   std::set<int>::iterator itr = trackIDs.begin();
   while( itr != trackIDs.end() ){
 
@@ -299,13 +299,13 @@ void cheat::RecoCheckAna::CheckReco(int                                 const& c
     // use the cheat::BackTrackerService to find purity and efficiency for these hits
     double purity     = fBT->HitCollectionPurity(id, colHits);
     double efficiency = fBT->HitCollectionEfficiency(id, colHits, allhits, view);
-    
+
     // make the purity and efficiency pair
     std::pair<double, double> pe(purity, efficiency);
-    
+
     // make the pair of the RecoBase object id to the pair of purity/efficiency
     std::pair<int, int> g4reco(*itr, colID);
-    
+
     // insert idpe into the map
     g4RecoBaseIDToPurityEfficiency[g4reco] = pe;
 
@@ -331,7 +331,7 @@ void cheat::RecoCheckAna::CheckRecoClusters(art::Event                          
     std::vector< art::Ptr< recob::Hit > > hits = fmh.at(c);
 
     this->CheckReco(clscol->at(c).ID(), allhits, hits, fG4ClusterIDToPurityEfficiency);
-      
+
   }// end loop over clusters
 
   return;
@@ -359,7 +359,7 @@ void cheat::RecoCheckAna::CheckRecoTracks(art::Event                            
 }
 
 //-------------------------------------------------------------------
-void cheat::RecoCheckAna::CheckRecoShowers(art::Event                                const& evt,  
+void cheat::RecoCheckAna::CheckRecoShowers(art::Event                                const& evt,
 					   std::string                               const& label,
 					   art::Handle< std::vector<recob::Shower> > const& scol,
 					   std::vector< art::Ptr<recob::Hit> >       const& allhits)
@@ -383,29 +383,43 @@ void cheat::RecoCheckAna::CheckRecoShowers(art::Event                           
 //a true vertex will either consist of primary particles originating from
 //the interaction vertex, or a primary particle decaying to make daughters
 void cheat::RecoCheckAna::CheckRecoVertices(art::Event                                 const& evt,
-					    std::string                                const& label,
-					    art::Handle< std::vector<recob::Vertex> >  const& vtxcol,
-					    std::vector< art::Ptr<recob::Hit> >        const& allhits)
+    std::string                                const& label,
+    art::Handle< std::vector<recob::Vertex> >  const& vtxcol,
+    std::vector< art::Ptr<recob::Hit> >        const& allhits)
 {
-  const sim::ParticleList& plist = fPI->ParticleList();
+  //const sim::ParticleList& plist = fPI->ParticleList();
 
   std::vector< std::set<int> > ids(1);
-  // loop over all primary particles and put their ids into the first set of the 
+  // loop over all primary particles and put their ids into the first set of the
   // vector.  add another set for each primary particle that also has daughters
   // and put those daughters into the new set
   // PartPair is a (track ID, particle pointer) pair
-  for (const auto& PartPair: plist) {
+  /*for (const auto& PartPair: plist) {
     auto trackID = PartPair.first;
     if (!plist.IsPrimary(trackID)) continue;
     const simb::MCParticle& part = *(PartPair.second);
     ids[0].insert(trackID);
     if(part.NumberDaughters() > 0){
-      std::set<int> dv;
+    std::set<int> dv;
+    for(int d = 0; d < part.NumberDaughters(); ++d)
+    dv.insert(part.Daughter(d));
+    ids.push_back(std::move(dv));
+    }//end if this primary particle has daughters
+    }// end loop over primaries
+    */
+  for(const auto& id : fPI->GetSetOfTrackIds())
+  {
+    if (!fPI->TrackIdIsEve(id)) continue;
+    const simb::MCParticle part = *(fPI->TrackIdToParticle_P(id));
+    ids[0].insert(id);
+    if(part.NumberDaughters()>0){
+      std::set<int>dv;
       for(int d = 0; d < part.NumberDaughters(); ++d)
         dv.insert(part.Daughter(d));
       ids.push_back(std::move(dv));
-    }//end if this primary particle has daughters
-  }// end loop over primaries
+    }
+
+  }
 
   art::FindManyP<recob::Hit> fmh(vtxcol, evt, label);
 
@@ -441,13 +455,13 @@ void cheat::RecoCheckAna::CheckRecoVertices(art::Event                          
 // MCTruth collection
 /// \todo need to divy it up in the case where there is more than 1 true interaction in a spill
 void cheat::RecoCheckAna::CheckRecoEvents(art::Event                                 const& evt,
-					  std::string                                const& label,
-					  art::Handle< std::vector<recob::Event> >   const& evtcol,
-					  std::vector< art::Ptr<recob::Hit> >        const& allhits)
+    std::string                                const& label,
+    art::Handle< std::vector<recob::Event> >   const& evtcol,
+    std::vector< art::Ptr<recob::Hit> >        const& allhits)
 {
   const sim::ParticleList& plist = fPI->ParticleList();
 
-  // loop over all primaries in the plist and grab them and their daughters to put into 
+  // loop over all primaries in the plist and grab them and their daughters to put into
   // the set of track ids to pass on to the back tracker
   std::set<int> ids;
   for (const auto& PartPair: plist) {
@@ -483,11 +497,11 @@ void cheat::RecoCheckAna::CheckRecoEvents(art::Event                            
 
 //-------------------------------------------------------------------
 void cheat::RecoCheckAna::FlattenMap(std::map<std::pair<int, int>, std::pair<double, double> > const& g4RecoBaseIDToPurityEfficiency,
-				     std::map<int, std::vector<std::pair<int, std::pair<double, double> > > >& g4IDToRecoBasePurityEfficiency,
-				     TH1D*                                                            purity,
-				     TH1D*                                                            efficiency,
-				     TH1D*                                                            purityEfficiency,
-				     TH2D*                                                            purityEfficiency2D)
+    std::map<int, std::vector<std::pair<int, std::pair<double, double> > > >& g4IDToRecoBasePurityEfficiency,
+    TH1D*                                                            purity,
+    TH1D*                                                            efficiency,
+    TH1D*                                                            purityEfficiency,
+    TH2D*                                                            purityEfficiency2D)
 {
 
   std::map<std::pair<int, int>, std::pair<double, double> >::const_iterator rbItr = g4RecoBaseIDToPurityEfficiency.begin();
@@ -497,7 +511,7 @@ void cheat::RecoCheckAna::FlattenMap(std::map<std::pair<int, int>, std::pair<dou
   std::map<int, std::pair<double, double> >::iterator rbpeItr;
 
   while( rbItr != g4RecoBaseIDToPurityEfficiency.end() ){
-    
+
 
     // trackID, cluster ID
     std::pair<int, int>       g4cl = rbItr->first;
@@ -526,7 +540,7 @@ void cheat::RecoCheckAna::FlattenMap(std::map<std::pair<int, int>, std::pair<dou
 
   rbpeItr = recoBIDToPurityEfficiency.begin();
 
-  // now fill the histograms, 
+  // now fill the histograms,
   while(rbpeItr != recoBIDToPurityEfficiency.end() ){
     purity    ->Fill(rbpeItr->second.first);
     efficiency->Fill(rbpeItr->second.second);
@@ -550,7 +564,7 @@ void cheat::RecoCheckAna::FillResults(std::vector< art::Ptr<recob::Hit> > const&
     }
   } // end loop over hits to fill map
 
-  // flatten the G4RecoBaseIDToPurityEfficiency maps to have just the g4ID as the key and the 
+  // flatten the G4RecoBaseIDToPurityEfficiency maps to have just the g4ID as the key and the
   // rest of the information in vector form
   std::map<int, std::vector< std::pair<int, std::pair<double, double> > > > g4IDToClusterPurityEfficiency;
   std::map<int, std::vector< std::pair<int, std::pair<double, double> > > > g4IDToShowerPurityEfficiency;
@@ -569,7 +583,7 @@ void cheat::RecoCheckAna::FillResults(std::vector< art::Ptr<recob::Hit> > const&
   // loop over them
   while( trackItr != trackIDs.end() ){
 
-    const simb::MCParticle* part = fPI->TrackIdToParticle_P(*trackItr);
+    art::Ptr<simb::MCParticle> part = fPI->TrackIdToParticle_P(*trackItr);
 
     ftrackid = std::abs(*trackItr);
     fpdg     = part->PdgCode();
@@ -586,7 +600,7 @@ void cheat::RecoCheckAna::FillResults(std::vector< art::Ptr<recob::Hit> > const&
     std::vector< std::pair<int, std::pair<double, double> > > clVec;
     std::vector< std::pair<int, std::pair<double, double> > > shVec;
     std::vector< std::pair<int, std::pair<double, double> > > trVec;
-   
+
 
     if( g4IDToClusterPurityEfficiency.find(*trackItr) != g4IDToClusterPurityEfficiency.end() )
       clVec = g4IDToClusterPurityEfficiency.find(*trackItr)->second;
@@ -605,19 +619,19 @@ void cheat::RecoCheckAna::FillResults(std::vector< art::Ptr<recob::Hit> > const&
       fcluid .push_back(clVec[c].first);
       fclupur.push_back(clVec[c].second.first);
       fclueff.push_back(clVec[c].second.second);
-    }      
+    }
 
     for(size_t s = 0; s < shVec.size(); ++s){
       fshwid .push_back(shVec[s].first);
       fshwpur.push_back(shVec[s].second.first);
       fshweff.push_back(shVec[s].second.second);
-    }      
+    }
 
     for(size_t t = 0; t < trVec.size(); ++t){
       ftrkid .push_back(trVec[t].first);
       ftrkpur.push_back(trVec[t].second.first);
       ftrkeff.push_back(trVec[t].second.second);
-    }      
+    }
 
     fTree->Fill();
 
@@ -626,11 +640,11 @@ void cheat::RecoCheckAna::FillResults(std::vector< art::Ptr<recob::Hit> > const&
 
   // clean up for the next event
 
-  // clear the maps of G4 track id to efficiency and purity for 
+  // clear the maps of G4 track id to efficiency and purity for
   // various RecoBase objects
   fG4ClusterIDToPurityEfficiency.clear();
   fG4ShowerIDToPurityEfficiency .clear();
-  fG4TrackIDToPurityEfficiency  .clear(); 
+  fG4TrackIDToPurityEfficiency  .clear();
 
   // clear the vectors hooked up to the tree
   fclueff.clear();

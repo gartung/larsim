@@ -248,7 +248,8 @@ namespace cheat{
 
     double totalE = 0.;
     for(size_t t = 0; t < trackSDPs.size(); ++t){
-      eveIDtoEfrac[(fPartInv->ParticleList()).EveId( trackSDPs[t].trackID )] += trackSDPs[t].energy;
+      eveIDtoEfrac[fPartInv->TrackIdToEveTrackId( trackSDPs[t].trackID )] += trackSDPs[t].energy;
+      //eveIDtoEfrac[(fPartInv->ParticleList()).EveId( trackSDPs[t].trackID )] += trackSDPs[t].energy;
       totalE += trackSDPs[t].energy;
     }
 

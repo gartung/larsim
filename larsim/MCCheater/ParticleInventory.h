@@ -201,7 +201,8 @@ namespace cheat{
       template<typename Evt> //Template must be decalred and defined outside of the .cpp file.
         void PrepEvent        ( const Evt& evt );
 
-      bool ParticleListReady()     const { return !( fParticleList.empty() ); }
+      bool ParticleListReady()     const { return !( fInventory.empty() ); }
+      bool OldParticleListReady()  const { return !( fParticleList.empty() ); }
       bool MCTruthListReady()      const { return !( (fMCTObj.fMCTruthList).empty()  ); }
       bool TrackIdToMCTruthReady() const { return !(fMCTObj.fTrackIdToMCTruthIndex.empty());}
 
@@ -217,7 +218,7 @@ namespace cheat{
         bool CanRun(const Evt& evt) const;
 
       const sim::ParticleList& ParticleList() const { return fParticleList; }
-      void SetEveIdCalculator(sim::EveIdCalculator *ec) { fParticleList.AdoptEveIdCalculator(ec); }
+      void SetEveIdCalculator(sim::EveIdCalculator *ec);// { fParticleList.AdoptEveIdCalculator(ec); }
 
       const std::vector< art::Ptr<simb::MCTruth> >& MCTruthList() const { return fMCTObj.fMCTruthList;}
 
@@ -225,13 +226,17 @@ namespace cheat{
 
       void ClearEvent();
 
-      const simb::MCParticle* TrackIdToParticle_P(int const& id) const;
+      art::Ptr<simb::MCParticle> TrackIdToParticle_P(int const& id) const;
       simb::MCParticle        TrackIdToParticle(int const& id) const
       { return *(this->TrackIdToParticle_P(id)); }//Users are encouraged to use TrackIdToParticleP
+      bool TrackIdIsEve(int tid) const;
 
-      const simb::MCParticle* TrackIdToMotherParticle_P(int const& id) const;
+      art::Ptr<simb::MCParticle> TrackIdToMotherParticle_P(int const& id) const;
       simb::MCParticle        TrackIdToMotherParticle(int const& id) const//Users are encouraged to use TrackIdToMotherParticleP
       { return *(this->TrackIdToMotherParticle_P(id)); }
+      art::Ptr<simb::MCParticle> TrackIdToEveParticle_P(int const& id) const;
+      simb::MCParticle        TrackIdToEveParticle(int const& id) const//Users are encouraged to use TrackIdToEveParticleP
+      { return *(this->TrackIdToEveParticle_P(id)); }
 
       const art::Ptr<simb::MCTruth>& TrackIdToMCTruth_P(int const& id) const;
       simb::MCTruth                  TrackIdToMCTruth (int const& id) const//Users are encouraged to use TrackIdToMCTruthP
@@ -239,22 +244,75 @@ namespace cheat{
 
       //New Functions go here.
       //TrackIdToEveId.
-      int TrackIdToEveTrackId(const int& tid) const { return fParticleList.EveId(tid);}
+      int TrackIdToEveTrackId(const int& tid) const { return fInventory.EveId(tid);}
 
-      const art::Ptr<simb::MCTruth>& ParticleToMCTruth_P(const simb::MCParticle* p) const; //Users are encouraged to use ParticleToMCTruthP
-      simb::MCTruth                  ParticleToMCTruth (const simb::MCParticle* p) const
+      const art::Ptr<simb::MCTruth>& ParticleToMCTruth_P(art::Ptr<simb::MCParticle> p) const; //Users are encouraged to use ParticleToMCTruthP
+      simb::MCTruth                  ParticleToMCTruth (art::Ptr<simb::MCParticle> p) const
       { return *(this->ParticleToMCTruth_P(p)); }
 
       const std::vector< art::Ptr<simb::MCTruth> >& MCTruthVector_Ps() const; //I don't want this to be able to return a vector of copies. Too much chance of significant memory usage.
 
-      const std::vector<const simb::MCParticle*> MCTruthToParticles_Ps(art::Ptr<simb::MCTruth> const& mct) const; //I don't want this to be able to return a vector of copies. Too much chance of significant memory usage.
+      const std::vector<art::Ptr<simb::MCParticle>> MCTruthToParticles_Ps(art::Ptr<simb::MCTruth> const& mct) const; //I don't want this to be able to return a vector of copies. Too much chance of significant memory usage.
 
       std::set<int> GetSetOfTrackIds() const;
       std::set<int> GetSetOfEveIds() const;
 
 
     private:
+      class InvParticle{
+        public:
+          typedef int TrackId_t;
+          art::Ptr<simb::MCParticle> Particle_P() const;
+          simb::MCParticle Particle() const;
+          TrackId_t Mother() const;
+          TrackId_t TrackId() const;
+          TrackId_t EveId() const;
+          InvParticle(int td, art::Ptr<simb::MCParticle> &pt);
+          InvParticle(int td);
+          InvParticle();
+          InvParticle(const InvParticle&) = delete;
+          InvParticle(InvParticle&&)=default;
+          //InvParticle& operator = (const InvParticle&&) = default;
+          InvParticle& operator = (InvParticle&&) = default;
+          InvParticle& operator = (const InvParticle&) = delete;
+          void SetEveId(int id) const;
+        private:
+          TrackId_t tId;
+          mutable TrackId_t eveId = std::numeric_limits<int>::min();
+          art::Ptr<simb::MCParticle> part;
+      };
+      class Inventory{
+        public:
+          void Add(std::vector<art::Ptr<simb::MCParticle>>::iterator);
+          int EveId(int tid) const;
+          bool IsEve(int tid) const;
+          bool HasParticle(int tid);
+          size_t NumberOfParticles();
+          std::vector<art::Ptr<simb::MCParticle>> GetPrimaries();
+          void clear();
+          bool empty();
+          std::vector<InvParticle>::const_iterator find(int tid) const;
+          void sort() const;
+
+          Inventory();
+          Inventory(const Inventory&) = delete;
+          Inventory& operator = (const Inventory&) = delete;
+          std::vector<InvParticle>::iterator begin() { return particleList.begin(); };
+          std::vector<InvParticle>::iterator end() { return particleList.end(); };
+          std::vector<InvParticle>::reverse_iterator rbegin() { return particleList.rbegin(); };
+          std::vector<InvParticle>::reverse_iterator rend() { return particleList.rend(); };
+          std::vector<InvParticle>::const_iterator cbegin() { return particleList.cbegin(); };
+          std::vector<InvParticle>::const_iterator cend() { return particleList.cend(); };
+          std::vector<InvParticle>::const_reverse_iterator crbegin() { return particleList.crbegin(); };
+          std::vector<InvParticle>::const_reverse_iterator crend() { return particleList.crend(); };
+
+        private:
+          mutable std::vector<InvParticle> particleList;
+          mutable bool isSorted;
+
+      };
       mutable sim::ParticleList                       fParticleList;
+      mutable Inventory fInventory;
       struct MCTObjects{
         std::vector< art::Ptr<simb::MCTruth> >  fMCTruthList;   //there is some optimization that can be done here.
         std::map< int,  int > fTrackIdToMCTruthIndex;

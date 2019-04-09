@@ -8,7 +8,7 @@ namespace cheat{
           << "Particle Inventory cannot function. "
           << "Is this file real data?";
       }
-      fParticleList.clear();
+      fInventory.clear();
       fMCTObj.fMCTruthList.clear();
       fMCTObj.fTrackIdToMCTruthIndex.clear();
       this->PrepParticleList(evt);
@@ -35,9 +35,15 @@ namespace cheat{
 //        return;
 //      }
 
-      const auto& partVecIn = *pHandle;
+//const auto& partVecIn = *pHandle;
+      std::vector<art::Ptr<simb::MCParticle>> partVecIn;
+      art::fill_ptr_vector(partVecIn, pHandle);
       for(const auto& partIn : partVecIn){
-        fParticleList.Add(new simb::MCParticle(partIn)); //Is this still doing a copy? If so, another method should be used.
+        fParticleList.Add(new simb::MCParticle(*partIn)); //Is this still doing a copy? If so, another method should be used.
+      } //This should be removed ASAP.
+
+      for(auto itr = partVecIn.begin(); itr!=partVecIn.end(); itr++){
+        fInventory.Add(itr);
       }
       if(fEveIdCalculator=="EmEveIdCalculator"){
         fParticleList.AdoptEveIdCalculator(new sim::EmEveIdCalculator);

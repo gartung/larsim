@@ -5,22 +5,22 @@
 // EMail:  jason.stock@mines.sdsmt.edu
 // 2017-09-12
 //
-// Maintinence Notes: When the ParticleInventory is initialized, none of the prep work (previously 
-// the BackTracker rebuild stage) will be done. Each function needs to check and make sure the 
-// needed data products have been loaded. To see what objects a function uses, you will have to 
+// Maintinence Notes: When the ParticleInventory is initialized, none of the prep work (previously
+// the BackTracker rebuild stage) will be done. Each function needs to check and make sure the
+// needed data products have been loaded. To see what objects a function uses, you will have to
 // check the appropriate part of ParticleInventory. After this, you will need to manually write the check
 // into whatever function you are writing. You will also want to include a call to prepare the needed items
-// if your check fails. 
+// if your check fails.
 //
 // Example:
 // std::set<int> ParticleInventoryService::GetSetOfTrackIds(){
-//   if(!this->priv_ParticleListReady()){this->priv_PrepParticleList();} //The GetTrackIds in ParticleInventory needs the ParticleList. 
+//   if(!this->priv_ParticleListReady()){this->priv_PrepParticleList();} //The GetTrackIds in ParticleInventory needs the ParticleList.
 //                                                                         So, we check if it's ready, and if it isn't we ready it.
 //   return ParticleInventory::GetSetOfTrackIds();
 // }
 //
 // If you have any questions about how to incorperate something in here, let me know. I know this is a rather odd
-// use model. The rationale is to allow the BackTracker service to be lazy, while at the same time allowing gallery 
+// use model. The rationale is to allow the BackTracker service to be lazy, while at the same time allowing gallery
 // to use backtracker functions (the gallery implimentation is not lazy).
 ////////////////////////////////////////////////////////////////////////////
 
@@ -109,20 +109,24 @@ namespace cheat{
     //try{    ParticleInventory::PrepMCTruthList(*fEvt); }
     catch(...){ mf::LogWarning("ParticleInventory") << "Rebuild failed to get the MCParticles. This is expected when running on a gernation or simulation step.";}
     //ToDo. Find out exactly which exception is thrown and catch only that.
-                         
+
   }//End PrepMCTruthList
 
 
   //Loop Event and grab MCTruths. Quick and clean as possible.
 
   //deliverables
-  
-  const sim::ParticleList& ParticleInventoryService::ParticleList() { 
-//    if(!this->priv_ParticleListReady()){this->priv_PrepParticleList();}
+
+  const sim::ParticleList& ParticleInventoryService::ParticleList() {
+    //if(!this->priv_ParticleListReady()){this->priv_PrepParticleList();}
 //    Not used for non lazy functions
-    return ParticleInventory::ParticleList(); 
+    return ParticleInventory::ParticleList();
+//    mf::LogError("ParticleInventoryService::ParticleList")<<"This function has been "
+//      <<"deprecated as we are moving the backtracker suite away from NuTools "
+//     <<"dependency.\n";
   } //This should be replaced with a public struct so we can get away from the nutools dependency.
-  
+
+
   const std::vector< art::Ptr<simb::MCTruth> >& ParticleInventoryService::MCTruthVector_Ps() {
     //if(!this->priv_MCTruthListReady()){priv_PrepMCTruthList();}
     // Not used for non-lazy mode
@@ -131,40 +135,45 @@ namespace cheat{
 
   //TrackIdToParticleP
 
-  const simb::MCParticle* ParticleInventoryService::TrackIdToParticle_P(int const& id) {
+  art::Ptr<simb::MCParticle> ParticleInventoryService::TrackIdToParticle_P(int const& id) {
 //    if(!this->priv_ParticleListReady()){this->priv_PrepParticleList();}
 //    Not used for non-lazy mode
     return ParticleInventory::TrackIdToParticle_P(id);
   }//End TrackIdToParticle
 
 
-  const simb::MCParticle* ParticleInventoryService::TrackIdToMotherParticle_P(int const& id) 
-  {   
+  art::Ptr<simb::MCParticle> ParticleInventoryService::TrackIdToMotherParticle_P(int const& id)
+  {
 //    if(!this->priv_ParticleListReady()){this->priv_PrepParticleList();}
 //    Not used for non-lazy mode
     return ParticleInventory::TrackIdToMotherParticle_P(id);
   }
 
-  const art::Ptr<simb::MCTruth>& ParticleInventoryService::TrackIdToMCTruth_P(int const& id) 
+  const art::Ptr<simb::MCTruth>& ParticleInventoryService::TrackIdToMCTruth_P(int const& id)
   {
 //    if(!this->priv_TrackIdToMCTruthReady()){this->priv_PrepTrackIdToMCTruthIndex();}
 //    Not used for non-lazy mode
     return ParticleInventory::TrackIdToMCTruth_P(id);
   }
 
-  int ParticleInventoryService::TrackIdToEveTrackId(const int& tid) const 
-  { 
+  int ParticleInventoryService::TrackIdToEveTrackId(const int& tid) const
+  {
     return ParticleInventory::TrackIdToEveTrackId(tid);
   }
 
-  const art::Ptr<simb::MCTruth>& ParticleInventoryService::ParticleToMCTruth_P(const simb::MCParticle* p)
+  bool ParticleInventoryService::TrackIdIsEve(const int& tid) const
+  {
+    return ParticleInventory::TrackIdIsEve(tid);
+  }
+
+  const art::Ptr<simb::MCTruth>& ParticleInventoryService::ParticleToMCTruth_P(art::Ptr<simb::MCParticle> p)
   {
 //    if(!this->priv_TrackIdToMCTruthReady()){this->priv_PrepTrackIdToMCTruthIndex();}
 //    Not used for non-lazy mode
     return this->TrackIdToMCTruth_P(p->TrackId());
   }
 
-  const std::vector<const simb::MCParticle*> ParticleInventoryService::MCTruthToParticles_Ps(art::Ptr<simb::MCTruth> const& mct) 
+  const std::vector<art::Ptr<simb::MCParticle>> ParticleInventoryService::MCTruthToParticles_Ps(art::Ptr<simb::MCTruth> const& mct)
   {
 //    if(!this->priv_ParticleListReady()){this->priv_PrepParticleList();}
 //    if(!this->priv_MCTruthListReady()){this->priv_PrepMCTruthList();}
