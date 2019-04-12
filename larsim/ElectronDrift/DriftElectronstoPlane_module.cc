@@ -57,7 +57,7 @@
 #include "lardataobj/Simulation/SimEnergyDeposit.h"
 #include "lardataobj/Simulation/SimChannel.h"
 #include "lardataobj/Simulation/SimDriftedElectronCluster.h"
-#include "larsim/Simulation/LArG4Parameters.h"
+//#include "larsim/Simulation/LArG4Parameters.h"
 #include "lardata/DetectorInfoServices/LArPropertiesService.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "lardata/DetectorInfoServices/DetectorClocksService.h"
@@ -171,6 +171,10 @@ namespace detsim {
     // "Seed"
     , fRandGauss{art::ServiceHandle<rndm::NuRandomService>{}->createEngine(*this, pset, "Seed")}
     , fStoreDriftedElectronClusters{pset.get<bool>("StoreDriftedElectronClusters", false)}
+    , fLongitudinalDiffusion       {pset.get< double >("LongitudinalDiffusion"   ),6.2e-9}
+    , fTransverseDiffusion         {pset.get< double >("TransverseDiffusion"     ),16.3e-9}
+    , fElectronClusterSize         {pset.get< double >("ElectronClusterSize"     ),600.0}
+    , fMinNumberOfElCluster        {pset.get< int    >("MinNumberOfElCluster"    ),0}
   {
     produces< std::vector<sim::SimChannel> >();
     if(fStoreDriftedElectronClusters) {
@@ -194,7 +198,7 @@ namespace detsim {
 
       fRecipDriftVel[i] = 1./driftVelocity;
     }
-
+    /*
     // To-do: Move the parameters we fetch from "LArG4" to detector
     // properties.
     art::ServiceHandle<sim::LArG4Parameters const> paramHandle;
@@ -207,7 +211,7 @@ namespace detsim {
 				    << "\n Temperature (K): "     << detprop->Temperature()
 				    << "\n Drift velocity (cm/ns): "  << 1./fRecipDriftVel[0]
 				    <<" "<<1./fRecipDriftVel[1]<<" "<<1./fRecipDriftVel[2];
-
+*/
     // Opposite of lifetime. Convert from us to standard LArSoft time units, ns;
     fLifetimeCorr_const = -1000. * fElectronLifetime;
     fLDiff_const        = std::sqrt(2.*fLongitudinalDiffusion);
