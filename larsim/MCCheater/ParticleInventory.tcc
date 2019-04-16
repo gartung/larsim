@@ -38,12 +38,16 @@ namespace cheat{
 //const auto& partVecIn = *pHandle;
       std::vector<art::Ptr<simb::MCParticle>> partVecIn;
       art::fill_ptr_vector(partVecIn, pHandle);
-      for(const auto& partIn : partVecIn){
-        fParticleList.Add(new simb::MCParticle(*partIn)); //Is this still doing a copy? If so, another method should be used.
-      } //This should be removed ASAP.
+      //for(const auto& partIn : partVecIn){
+        //fParticleList.Add(new simb::MCParticle(*partIn)); //Is this still doing a copy? If so, another method should be used.
+      //} //This should be removed ASAP.
 
       for(auto itr = partVecIn.begin(); itr!=partVecIn.end(); itr++){
-        fInventory.Add(itr);
+        art::Ptr<simb::MCParticle> ptr = *itr;
+        //fParticleList.Add(itr->get());
+        //fInventory.Add(itr);
+        fInventory.Add(ptr);
+        fParticleList.Add(new simb::MCParticle(*ptr.get())); //I still don't like this.
       }
       if(fEveIdCalculator=="EmEveIdCalculator"){
         fParticleList.AdoptEveIdCalculator(new sim::EmEveIdCalculator);

@@ -46,7 +46,7 @@ namespace cheat{
 
   //----------------------------------------------------------------------
    ParticleInventory::InvParticle::TrackId_t ParticleInventory::InvParticle::EveId() const{
-    return EveId(); //This does not return a correct value if the EveId has not been set.
+    return this->eveId; //This does not return a correct value if the EveId has not been set.
     //a value of std::numeric_limits::min<int>; should be interpreted as a nonid.
   }
 
@@ -139,15 +139,19 @@ namespace cheat{
   {}
 
   //----------------------------------------------------------------------
-  void ParticleInventory::Inventory::Add(std::vector<art::Ptr<simb::MCParticle>>::iterator pt)
+  void ParticleInventory::Inventory::Add(art::Ptr<simb::MCParticle> pt)
   {
     isSorted=false;
-    auto test = this->find((*pt)->TrackId());
+    //auto test = this->nfind(pt->TrackId());
+    InvParticle tmp(pt->TrackId());
+    const auto comp = [pt](const InvParticle &a) { return a.TrackId() == pt->TrackId();};
+    auto test = std::find_if(particleList.begin(), particleList.end(), comp);
+    //auto test = std::find(particleList.begin(), particleList.end(), tmp);
     if ( test != this->end() ){
         throw cet::exception("ParticleInventory::Inventory")
           << "Particle already exists in Inventory.\n";
     }else{
-      cheat::ParticleInventory::InvParticle tmp((*pt)->TrackId(), *pt);
+      cheat::ParticleInventory::InvParticle tmp(pt->TrackId(), pt);
       //particleList.emplace_back((*pt)->TrackId(), *pt);
       particleList.push_back(std::move(tmp));
     }
@@ -158,20 +162,30 @@ namespace cheat{
   {//could make this function interchangeable
     auto tmp_part = this->find(tid);
     int tmp = tmp_part->EveId();
+    int eve = 0;
     if ( tmp == std::numeric_limits<int>::min()){
       mf::LogDebug("Eve not known. Searching");
       tmp = tmp_part->Mother();
-      auto old_tmp_part = tmp_part;
-      //int old_tmp = tmp;
       while(tmp > 0){
-        //old_tmp_part=tmp_part;
-        //old_tmp=tmp;
         tmp_part = this->find(tmp);
         tmp=tmp_part->Mother();
       }
-      if(tmp==0){ //double check this. How can this go wrong. Is 0 guaranteed? That would be better. abs(tmp)>0? That is better. That is the same as ==0 though. Going back to ==0
-        old_tmp_part->SetEveId(tmp_part->TrackId());
-        tmp_part->SetEveId(0);
+      if(tmp==0){
+        eve=tmp_part->TrackId();
+        //Set all eveIds
+        tmp_part = this->find(tid);
+        tmp_part->SetEveId(eve);
+        tmp = tmp_part->EveId();
+        while(tmp>0)
+        {
+          tmp_part = this->find(tmp);
+          tmp_part->SetEveId(eve);
+          tmp=tmp_part->Mother();
+        }
+        return eve;
+      }else{
+        mf::LogError("Failed to find and Eve. Were some particles not kept?");
+        return 0;
       }
     }else{
       return tmp;
@@ -234,11 +248,12 @@ namespace cheat{
   //----------------------------------------------------------------------
   std::vector<ParticleInventory::InvParticle>::const_iterator ParticleInventory::Inventory::find( int tid) const
   {
+    int id = abs(tid);
     this->sort();
-    InvParticle tmp(tid);
+    InvParticle tmp(id);
     const auto comp = [](const InvParticle &lhs, const InvParticle &rhs) { return lhs.TrackId() < rhs.TrackId();};
     auto rv = std::lower_bound(particleList.cbegin(), particleList.cend(), tmp, comp);
-    if ( rv != particleList.cend() && rv->TrackId() == tid )
+    if ( rv != particleList.cend() && rv->TrackId() == id )
     {
       return rv;
     }else{
@@ -246,6 +261,23 @@ namespace cheat{
         <<"Track "<<tid<<" not found in Inventory. Failed Find.\n";
     }
   }
+
+
+  //----------------------------------------------------------------------
+  //std::vector<ParticleInventory::InvParticle>::const_iterator ParticleInventory::Inventory::nfind( int tid) const
+  //{
+  //  this->sort();
+  //  InvParticle tmp(tid);
+  //  const auto comp = [](const InvParticle &lhs, const InvParticle &rhs) { return lhs.TrackId() < rhs.TrackId();};
+  //  auto rv = std::find(particleList.begin(), particleList.end(), tmp, comp);
+  //  if ( rv == particleList.end() )
+  //  {
+  //    return rv;
+  //  }else{
+  //    throw cet::exception("ParticleInventory::Inventory")
+  //      <<"Track "<<tid<<" exists in Inventory. Failed NFind.\n";
+  //  }
+  //}
 
   //----------------------------------------------------------------------
   //I know this looks weird as const, but it is correct as I DO want find and IsEve, etc to be const
@@ -282,6 +314,7 @@ namespace cheat{
   //-----------------------------------------------------------------------
   void ParticleInventory::ClearEvent(){
     fInventory.clear();
+    fParticleList.clear();
     fMCTObj.fMCTruthList.clear();
     fMCTObj.fTrackIdToMCTruthIndex.clear();
   }
