@@ -51,7 +51,7 @@
 #include "Geant4/globals.hh"
 
 #include "lardataobj/Simulation/SimChannel.h"
-#include "larcore/Geometry/Geometry.h"
+#include "larcorealg/Geometry/GeometryCore.h"
 #include "larcorealg/Geometry/TPCGeo.h"
 #include "larsim/Simulation/LArG4Parameters.h"
 #include "larsim/LArG4/IonizationAndScintillation.h"
@@ -325,8 +325,8 @@ namespace larg4 {
     double                                    fOffPlaneMargin = 0.0;
 
     std::vector<std::vector<ChannelMap_t>>    fChannelMaps; ///< Maps of cryostat, tpc to channel data
-    art::ServiceHandle<geo::Geometry const>         fGeoHandle;  ///< Handle to the Geometry service
-    art::ServiceHandle<sim::LArG4Parameters const>  fLgpHandle;  ///< Handle to the LArG4 parameters service
+    geo::GeometryCore const&                  fGeom;  ///< Handle to the Geometry service
+    sim::LArG4Parameters const&               fLgp;  ///< Handle to the LArG4 parameters service
     unsigned int                              fTPC;        ///< which TPC this LArVoxelReadout corresponds to
     unsigned int                              fCstat;      ///< and in which cryostat (if bSingleTPC is true)
     bool                                      bSingleTPC;  ///< true if this readout is associated with a single TPC

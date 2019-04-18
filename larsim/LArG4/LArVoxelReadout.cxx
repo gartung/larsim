@@ -30,6 +30,8 @@
 #include "larsim/LArG4/LArVoxelReadout.h"
 #include "larsim/LArG4/ParticleListAction.h"
 #include "larevt/SpaceChargeServices/SpaceChargeService.h"
+#include "larcore/Geometry/Geometry.h"
+#include "larcorealg/CoreUtils/zip.h"
 #include "larcoreobj/SimpleTypesAndConstants/RawTypes.h" // raw::ChannelID_t
 
 // CLHEP
@@ -45,6 +47,8 @@ namespace larg4 {
   // detector to be the value expected by LArVoxelListAction.
   LArVoxelReadout::LArVoxelReadout(std::string const& name)
     : G4VSensitiveDetector(name)
+    , fGeom(*lar::providerFrom<geo::Geometry>())
+    , fLgp(*art::ServiceHandle<sim::LArG4Parameters>())
   {
     // Initialize values for the electron-cluster calculation.
     ClearSimChannels();
@@ -112,19 +116,19 @@ namespace larg4 {
       fDriftVelocity[i]    = detprop->DriftVelocity(detprop->Efield(i),
 						    detprop->Temperature())/1000.;
 
-    fElectronClusterSize   = fLgpHandle->ElectronClusterSize();
-    fMinNumberOfElCluster  = fLgpHandle->MinNumberOfElCluster();
-    fLongitudinalDiffusion = fLgpHandle->LongitudinalDiffusion();
-    fTransverseDiffusion   = fLgpHandle->TransverseDiffusion();
-    fDontDriftThem         = fLgpHandle->DisableWireplanes();
-    fSkipWireSignalInTPCs  = fLgpHandle->SkipWireSignalInTPCs();
+    fElectronClusterSize   = fLgp.ElectronClusterSize();
+    fMinNumberOfElCluster  = fLgp.MinNumberOfElCluster();
+    fLongitudinalDiffusion = fLgp.LongitudinalDiffusion();
+    fTransverseDiffusion   = fLgp.TransverseDiffusion();
+    fDontDriftThem         = fLgp.DisableWireplanes();
+    fSkipWireSignalInTPCs  = fLgp.SkipWireSignalInTPCs();
 
     MF_LOG_DEBUG("LArVoxelReadout")  << " e lifetime: "        << fElectronLifetime
                                   << "\n Temperature: "     << detprop->Temperature()
                                   << "\n Drift velocity: "  << fDriftVelocity[0]
                                   <<" "<<fDriftVelocity[1]<<" "<<fDriftVelocity[2];
 
-    fDontDriftThem = (fDontDriftThem || fLgpHandle->NoElectronPropagation() );
+    fDontDriftThem = (fDontDriftThem || fLgp.NoElectronPropagation() );
 
     fNSteps=0;
   }
@@ -144,12 +148,11 @@ namespace larg4 {
 
   //--------------------------------------------------------------------------------------
   void LArVoxelReadout::ClearSimChannels() {
-    fChannelMaps.resize(fGeoHandle->Ncryostats());
-    size_t cryo = 0;
-    for (auto& cryoData: fChannelMaps) { // each, a vector of maps
-      cryoData.resize(fGeoHandle->NTPC(cryo++));
-      for (auto& channelsMap: cryoData) channelsMap.clear(); // each, a map
-    } // for cryostats
+    fChannelMaps.resize(fGeom.Ncryostats());
+    for (auto&& [ cryo, cryoMaps ]: util::zip(fGeom.IterateCryostats(), fChannelMaps)) {
+      cryoMaps.resize(cryo.NTPC());
+      std::for_each(cryoMaps.begin(), cryoMaps.end(), std::mem_fn(&ChannelMap_t::clear));
+    }
   } // LArVoxelReadout::ClearSimChannels()
 
 
@@ -333,12 +336,14 @@ namespace larg4 {
                                                  unsigned short int cryostat, unsigned short int tpc)
   {
     auto const * ts = lar::providerFrom<detinfo::DetectorClocksService>();
-
+    auto const& SCE = *(lar::providerFrom<spacecharge::SpaceChargeService>());
     // this must be always true, unless caller has been sloppy
     assert(fPropGen); // No propagation random generator provided?!
 
     CLHEP::RandGauss PropRand(*fPropGen);
 
+    geo::TPCID const tpcid { cryostat, tpc };
+    
     // This routine gets called frequently, once per every particle
     // traveling through every voxel. Use whatever tricks we can to
     // increase its execution speed.
@@ -361,36 +366,27 @@ namespace larg4 {
     // Map of electrons to store - catalogued by map[channel][tdc]
     std::map<raw::ChannelID_t, std::map<unsigned int, Deposit_t>> DepositsToStore;
 
-    double xyz1[3] = {0.};
-
-    double const xyz[3] = {stepMidPoint.x() / CLHEP::cm,
-                           stepMidPoint.y() / CLHEP::cm,
-                           stepMidPoint.z() / CLHEP::cm};
-
+    geo::Point_t const ionizationCenter = {
+      stepMidPoint.x() / CLHEP::cm,
+      stepMidPoint.y() / CLHEP::cm,
+      stepMidPoint.z() / CLHEP::cm
+    };
+    
     // Already know which TPC we're in because we have been told
 
     try{
-      const geo::TPCGeo &tpcg = fGeoHandle->TPC(tpc, cryostat);
+      const geo::TPCGeo &tpcg = fGeom.TPC(tpcid);
+      
+      geo::PlaneGeo const& firstPlane = tpcg.FirstPlane();
 
-      // X drift distance - the drift direction can be either in
-      // the positive or negative direction, so use std::abs
-
-      /// \todo think about effects of drift between planes
-      double XDrift = std::abs(stepMidPoint.x()/CLHEP::cm - tpcg.PlaneLocation(0)[0]);
-      //std::cout<<tpcg.DriftDirection()<<std::endl;
-      if (tpcg.DriftDirection() == geo::kNegX)
-	XDrift = stepMidPoint.x()/CLHEP::cm - tpcg.PlaneLocation(0)[0];
-      else if (tpcg.DriftDirection() == geo::kPosX)
-	XDrift = tpcg.PlaneLocation(0)[0] - stepMidPoint.x()/CLHEP::cm;
-
+      double XDrift = firstPlane.DistanceFromPlane(ionizationCenter);
       if(XDrift < 0.) return;
 
       // Get SCE {x,y,z} offsets for particular location in TPC
       geo::Vector_t posOffsets;
-      auto const* SCE = lar::providerFrom<spacecharge::SpaceChargeService>();
-      if (SCE->EnableSimSpatialSCE() == true)
+      if (SCE.EnableSimSpatialSCE() == true)
       {
-        posOffsets = SCE->GetPosOffsets({ xyz[0], xyz[1], xyz[2] });
+        posOffsets = SCE.GetPosOffsets(ionizationCenter);
       }
       posOffsets.SetX(-posOffsets.X());
 
@@ -456,10 +452,10 @@ namespace larg4 {
         else               nEnDiff[xx] = 0.;
       }
 
-      double const avegageYtransversePos
-        = (stepMidPoint.y()/CLHEP::cm) + posOffsets.Y();
-      double const avegageZtransversePos
-        = (stepMidPoint.z()/CLHEP::cm) + posOffsets.Z();
+      double const averageYtransversePos
+        = ionizationCenter.Y() + posOffsets.Y();
+      double const averageZtransversePos
+        = ionizationCenter.Z() + posOffsets.Z();
 
       // Smear drift times by x position and drift time
       if (LDiffSig > 0.0)
@@ -469,23 +465,25 @@ namespace larg4 {
 
       if (TDiffSig > 0.0) {
         // Smear the Y,Z position by the transverse diffusion
-        PropRand.fireArray( nClus, &YDiff[0], avegageYtransversePos, TDiffSig);
-        PropRand.fireArray( nClus, &ZDiff[0], avegageZtransversePos, TDiffSig);
+        PropRand.fireArray( nClus, &YDiff[0], averageYtransversePos, TDiffSig);
+        PropRand.fireArray( nClus, &ZDiff[0], averageZtransversePos, TDiffSig);
       }
       else {
-        YDiff.assign(nClus, avegageYtransversePos);
-        ZDiff.assign(nClus, avegageZtransversePos);
+        YDiff.assign(nClus, averageYtransversePos);
+        ZDiff.assign(nClus, averageZtransversePos);
       }
 
       // make a collection of electrons for each plane
       for(size_t p = 0; p < tpcg.Nplanes(); ++p){
-
-        geo::PlaneGeo const& plane = tpcg.Plane(p);
+        
+        geo::PlaneID const planeid(tpcid, p);
+        
+        geo::PlaneGeo const& plane = tpcg.Plane(planeid);
 
         double Plane0Pitch = tpcg.Plane0Pitch(p);
 
         // "-" sign is because Plane0Pitch output is positive. Andrzej
-        xyz1[0] = tpcg.PlaneLocation(0)[0] - Plane0Pitch;
+        double const xOnPlane = firstPlane.GetCenter().X() - Plane0Pitch;
 
         // Drift nClus electron clusters to the induction plane
         for(int k = 0; k < nClus; ++k){
@@ -496,12 +494,11 @@ namespace larg4 {
           for (size_t ip = 0; ip<p; ++ip){
             TDiff += tpcg.PlanePitch(ip,ip+1) * RecipDriftVel[tpcg.Nplanes()==3?ip+1:ip+2];
           }
-          xyz1[1] = YDiff[k];
-          xyz1[2] = ZDiff[k];
+          geo::Point_t clusterCenter { xOnPlane, YDiff[k], ZDiff[k] };
 
           /// \todo think about effects of drift between planes
 
-          // grab the nearest channel to the xyz1 position
+          // grab the nearest channel to the clusterCenter position
           try{
             if (fOffPlaneMargin != 0) {
               // get the effective position where to consider the charge landed;
@@ -511,27 +508,22 @@ namespace larg4 {
               // Currently, if that is the case the code will proceed, find the
               // point is off plane, emit a warning and skip the deposition.
               //
-              auto const landingPos
-                = RecoverOffPlaneDeposit({ xyz1[0], xyz1[1], xyz1[2] }, plane);
-              xyz1[0] = landingPos.X();
-              xyz1[1] = landingPos.Y();
-              xyz1[2] = landingPos.Z();
+              clusterCenter = RecoverOffPlaneDeposit(clusterCenter, plane);
 
             } // if charge lands off plane
-            uint32_t channel = fGeoHandle->NearestChannel(xyz1, p, tpc, cryostat);
+            raw::ChannelID_t const channel = fGeom.NearestChannel(clusterCenter, planeid);
 
             /// \todo check on what happens if we allow the tdc value to be
             /// \todo beyond the end of the expected number of ticks
             // Add potential decay/capture/etc delay effect, simTime.
-            unsigned int tdc = fClock.Ticks(ts->G4ToElecTime(TDiff + simTime));
+            unsigned int const tdc = fClock.Ticks(ts->G4ToElecTime(TDiff + simTime));
 
             // Add electrons produced by each cluster to the map
             DepositsToStore[channel][tdc].add(nEnDiff[k], nElDiff[k]);
           }
           catch(cet::exception &e){
-            mf::LogWarning("LArVoxelReadout") << "unable to drift electrons from point ("
-                                              << xyz[0] << "," << xyz[1] << "," << xyz[2]
-                                              << ") with exception " << e;
+            mf::LogWarning("LArVoxelReadout") << "unable to drift electrons from point "
+                                              << ionizationCenter << " with exception " << e;
           }
         } // end loop over clusters
       } // end loop over planes
@@ -542,7 +534,7 @@ namespace larg4 {
       // browse deposited data on each channel: (channel; deposit data in time)
       for(auto const& deposit_per_channel: DepositsToStore){
 
-        raw::ChannelID_t channel = deposit_per_channel.first;
+        raw::ChannelID_t const channel = deposit_per_channel.first;
 
         // find whether we already have this channel
         auto iChannelData = ChannelDataMap.find(channel);
@@ -558,10 +550,12 @@ namespace larg4 {
 
         // go through all deposits, one for each TDC: (TDC, deposit data)
         for(auto const& deposit_per_tdc: deposit_per_channel.second) {
+          std::array<double, 3U> xyz;
+          geo::vect::fillCoords(xyz, ionizationCenter);
           channelData.AddIonizationElectrons(trackID,
                                              deposit_per_tdc.first,
                                              deposit_per_tdc.second.electrons,
-                                             xyz,
+                                             xyz.data(),
                                              deposit_per_tdc.second.energy);
 
         } // for deposit on TDCs
