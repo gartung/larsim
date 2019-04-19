@@ -49,6 +49,7 @@ namespace larg4 {
     : G4VSensitiveDetector(name)
     , fGeom(*lar::providerFrom<geo::Geometry>())
     , fLgp(*art::ServiceHandle<sim::LArG4Parameters>())
+    , fChannelMaps(fGeom.makeTPCData<ChannelMap_t>())
   {
     // Initialize values for the electron-cluster calculation.
     ClearSimChannels();
@@ -60,7 +61,7 @@ namespace larg4 {
     // if we don't find it, we will detect the TPC at each Geant hit
     unsigned int cryostat, tpc;
     if (std::sscanf(name.c_str(),"%*19s%1u%*4s%u",&cryostat, &tpc) == 2)
-      SetSingleTPC(cryostat, tpc);
+      SetSingleTPC({ cryostat, tpc });
     else
       SetDiscoverTPC();
 
@@ -69,10 +70,9 @@ namespace larg4 {
   //---------------------------------------------------------------------------------------
   // Constructor.  Note that we force the name of this sensitive
   // detector to be the value expected by LArVoxelListAction.
-  LArVoxelReadout::LArVoxelReadout
-    (std::string const& name, unsigned int cryostat, unsigned int tpc)
+  LArVoxelReadout::LArVoxelReadout(std::string const& name, geo::TPCID const& tpcid)
     : LArVoxelReadout(name)
-    { SetSingleTPC(cryostat, tpc); }
+    { SetSingleTPC(tpcid); }
 
 
   //---------------------------------------------------------------------------------------
@@ -85,18 +85,13 @@ namespace larg4 {
 
 
   //---------------------------------------------------------------------------------------
-  void LArVoxelReadout::SetSingleTPC(unsigned int cryostat, unsigned int tpc) {
-    bSingleTPC = true;
-    fCstat = cryostat;
-    fTPC = tpc;
-    MF_LOG_DEBUG("LArVoxelReadout")
-      << GetName() << "covers C=" << fCstat << " T=" << fTPC;
+  void LArVoxelReadout::SetSingleTPC(geo::TPCID const& tpcid) {
+    fTPCID = tpcid;
+    MF_LOG_DEBUG("LArVoxelReadout") << GetName() << "covers " << fTPCID;
   } // LArVoxelReadout::SetSingleTPC()
 
   void LArVoxelReadout::SetDiscoverTPC() {
-    bSingleTPC = false;
-    fCstat = 0;
-    fTPC = 0;
+    fTPCID = geo::TPCID{};
     MF_LOG_DEBUG("LArVoxelReadout") << GetName() << " autodetects TPC";
   } // LArVoxelReadout::SetDiscoverTPC()
 
@@ -148,45 +143,41 @@ namespace larg4 {
 
   //--------------------------------------------------------------------------------------
   void LArVoxelReadout::ClearSimChannels() {
-    fChannelMaps.resize(fGeom.Ncryostats());
-    for (auto&& [ cryo, cryoMaps ]: util::zip(fGeom.IterateCryostats(), fChannelMaps)) {
-      cryoMaps.resize(cryo.NTPC());
-      std::for_each(cryoMaps.begin(), cryoMaps.end(), std::mem_fn(&ChannelMap_t::clear));
-    }
+    fChannelMaps.clear();
   } // LArVoxelReadout::ClearSimChannels()
 
 
   const LArVoxelReadout::ChannelMap_t& LArVoxelReadout::GetSimChannelMap() const
   {
-    if (bSingleTPC) return GetSimChannelMap(fCstat, fTPC);
+    if (isSingleTPC()) return GetSimChannelMap(fTPCID);
     throw cet::exception("LArVoxelReadout") << "TPC not specified";
   } // LArVoxelReadout::GetSimChannelMap() const
 
   LArVoxelReadout::ChannelMap_t& LArVoxelReadout::GetSimChannelMap() {
-    if (bSingleTPC) return GetSimChannelMap(fCstat, fTPC);
+    if (isSingleTPC()) return GetSimChannelMap(fTPCID);
     throw cet::exception("LArVoxelReadout") << "TPC not specified";
   } // LArVoxelReadout::GetSimChannelMap()
 
 
-  const LArVoxelReadout::ChannelMap_t& LArVoxelReadout::GetSimChannelMap
-    (unsigned short cryo, unsigned short tpc) const
-    { return fChannelMaps.at(cryo).at(tpc); }
+  LArVoxelReadout::ChannelMap_t const& LArVoxelReadout::GetSimChannelMap
+    (geo::TPCID const& tpcid) const
+    { return fChannelMaps.at(tpcid); }
 
   LArVoxelReadout::ChannelMap_t& LArVoxelReadout::GetSimChannelMap
-    (unsigned short cryo, unsigned short tpc)
-    { return fChannelMaps.at(cryo).at(tpc); }
+    (geo::TPCID const& tpcid)
+    { return fChannelMaps.at(tpcid); }
 
 
   std::vector<sim::SimChannel> LArVoxelReadout::GetSimChannels() const {
-    if (bSingleTPC) return GetSimChannels(fCstat, fTPC);
+    if (isSingleTPC()) return GetSimChannels(fTPCID);
     throw cet::exception("LArVoxelReadout") << "TPC not specified";
   } // LArVoxelReadout::GetSimChannels()
 
   std::vector<sim::SimChannel> LArVoxelReadout::GetSimChannels
-    (unsigned short cryo, unsigned short tpc) const
+    (geo::TPCID const& tpcid) const
   {
     std::vector<sim::SimChannel> channels;
-    const ChannelMap_t& chmap = fChannelMaps.at(cryo).at(tpc);
+    const ChannelMap_t& chmap = fChannelMaps.at(tpcid);
     channels.reserve(chmap.size());
     for(const auto& chpair: chmap) channels.push_back(chpair.second);
     return channels;
@@ -231,10 +222,9 @@ namespace larg4 {
         // Find out which TPC we are in.
         // If this readout object covers just one, we already know it.
         // Otherwise, we have to ask Geant where we are.
-        unsigned short int cryostat = 0, tpc = 0;
-        if (bSingleTPC) {
-          cryostat = fCstat;
-          tpc = fTPC;
+        geo::TPCID tpcid;
+        if (isSingleTPC()) {
+          tpcid = fTPCID;
         }
         else {
           // detect the TPC we are in
@@ -254,12 +244,11 @@ namespace larg4 {
               dynamic_cast<const G4PVPlacementInTPC*>
               (pTouchable->GetVolume(depth++));
             if (!pPVinTPC) continue;
-            cryostat = pPVinTPC->ID.Cryostat;
-            tpc = pPVinTPC->ID.TPC;
-	    if (Has(fSkipWireSignalInTPCs, tpc))
-	    {
-	    	return true;
-	    }
+            tpcid = pPVinTPC->ID;
+            if (Has(fSkipWireSignalInTPCs, tpcid.TPC))
+            {
+              return true;
+            }
             break;
           } // while
           if (depth < pTouchable->GetHistoryDepth()) {
@@ -268,13 +257,13 @@ namespace larg4 {
             throw cet::exception
               ("LArG4") << "No TPC ID found in LArVoxelReadout::ProcessHits()";
           } // if
-          MF_LOG_DEBUG("LArVoxelReadoutHit") << " hit in C=" << cryostat << " T=" << tpc;
+          MF_LOG_DEBUG("LArVoxelReadoutHit") << " hit in " << tpcid;
         } // if more than one TPC
 
         // Note that if there is no particle ID for this energy deposit, the
         // trackID will be sim::NoParticleId.
 
-        DriftIonizationElectrons(midPoint, g4time, trackID, cryostat, tpc);
+        DriftIonizationElectrons(midPoint, g4time, trackID, tpcid);
       } // end we are drifting
     } // end there is non-zero energy deposition
 
@@ -333,7 +322,7 @@ namespace larg4 {
   void LArVoxelReadout::DriftIonizationElectrons(G4ThreeVector stepMidPoint,
                                                  const double simTime,
                                                  int trackID,
-                                                 unsigned short int cryostat, unsigned short int tpc)
+                                                 geo::TPCID const& tpcid)
   {
     auto const * ts = lar::providerFrom<detinfo::DetectorClocksService>();
     auto const& SCE = *(lar::providerFrom<spacecharge::SpaceChargeService>());
@@ -342,8 +331,6 @@ namespace larg4 {
 
     CLHEP::RandGauss PropRand(*fPropGen);
 
-    geo::TPCID const tpcid { cryostat, tpc };
-    
     // This routine gets called frequently, once per every particle
     // traveling through every voxel. Use whatever tricks we can to
     // increase its execution speed.
@@ -514,7 +501,7 @@ namespace larg4 {
             raw::ChannelID_t const channel = fGeom.NearestChannel(clusterCenter, planeid);
 
             /// \todo check on what happens if we allow the tdc value to be
-            /// \todo beyond the end of the expected number of ticks
+            ///       beyond the end of the expected number of ticks
             // Add potential decay/capture/etc delay effect, simTime.
             unsigned int const tdc = fClock.Ticks(ts->G4ToElecTime(TDiff + simTime));
 
@@ -529,7 +516,7 @@ namespace larg4 {
       } // end loop over planes
 
       // Now store them in SimChannels
-      ChannelMap_t& ChannelDataMap = fChannelMaps[cryostat][tpc];
+      ChannelMap_t& ChannelDataMap = fChannelMaps[tpcid];
 
       // browse deposited data on each channel: (channel; deposit data in time)
       for(auto const& deposit_per_channel: DepositsToStore){

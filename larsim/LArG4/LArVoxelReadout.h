@@ -67,16 +67,6 @@ namespace CLHEP { class HEPRandomEngine; }
 
 namespace larg4 {
 
-  /// Simple structure holding a TPC and cryostat number
-  struct TPCID_t {
-    unsigned short int Cryostat, TPC;
-    bool operator< (const TPCID_t& than) const
-      {
-        return (Cryostat < than.Cryostat)
-          || ((Cryostat == than.Cryostat) && (TPC < than.TPC));
-      } // operator< ()
-  }; // TPCID_t
-
   /**
    * @brief A G4PVPlacement with an additional identificator
    * @param IDTYPE type of ID class
@@ -113,7 +103,7 @@ namespace larg4 {
   }; // G4PVPlacementWithID<>
 
   /// A physical volume with a TPC ID
-  typedef G4PVPlacementWithID<TPCID_t> G4PVPlacementInTPC;
+  typedef G4PVPlacementWithID<geo::TPCID> G4PVPlacementInTPC;
 
 
   /**
@@ -158,7 +148,7 @@ namespace larg4 {
   {
   public:
     /// Type of map channel -> sim::SimChannel
-    typedef std::map<unsigned int, sim::SimChannel> ChannelMap_t;
+    typedef std::map<raw::ChannelID_t, sim::SimChannel> ChannelMap_t;
 
     /// Collection of what it takes to set a `LArVoxelReadout` up.
     struct Setup_t {
@@ -175,8 +165,7 @@ namespace larg4 {
     LArVoxelReadout(std::string const& name);
 
     /// Constructor. Sets which TPC to work on
-    LArVoxelReadout
-      (std::string const& name, unsigned int cryostat, unsigned int tpc);
+    LArVoxelReadout(std::string const& name, geo::TPCID const& tpcid);
 
     // Destructor
     virtual ~LArVoxelReadout();
@@ -185,7 +174,7 @@ namespace larg4 {
     void Setup(Setup_t const& setupData);
 
     /// Associates this readout to one specific TPC
-    void SetSingleTPC(unsigned int cryostat, unsigned int tpc);
+    void SetSingleTPC(geo::TPCID const& tpcid);
 
     /// Sets this readout to discover the TPC of each processed hit
     void SetDiscoverTPC();
@@ -220,8 +209,7 @@ namespace larg4 {
     std::vector<sim::SimChannel> GetSimChannels() const;
 
     /// Creates a list with the accumulated information for specified TPC
-    std::vector<sim::SimChannel> GetSimChannels
-      (unsigned short cryo, unsigned short tpc) const;
+    std::vector<sim::SimChannel> GetSimChannels(geo::TPCID const& tpcid) const;
 
     //@{
     /// Returns the accumulated channel -> SimChannel map for the single TPC
@@ -231,14 +219,16 @@ namespace larg4 {
 
     //@{
     /// Returns the accumulated channel -> SimChannel map for the specified TPC
-    const ChannelMap_t& GetSimChannelMap
-      (unsigned short cryo, unsigned short tpc) const;
-    ChannelMap_t& GetSimChannelMap(unsigned short cryo, unsigned short tpc);
+    const ChannelMap_t& GetSimChannelMap(geo::TPCID const& tpcid) const;
+    ChannelMap_t& GetSimChannelMap(geo::TPCID const& tpcid);
     //@}
 
 
   private:
-
+    
+    /// Returns whether we are in single TPC or in auto-detect TPC mode.
+    bool isSingleTPC() const { return fTPCID.isValid; }
+    
     /**
      * @brief Sets the margin for recovery of charge drifted off-plane.
      * @param margin the extent of the margin on each frame coordinate [cm]
@@ -299,7 +289,7 @@ namespace larg4 {
     void DriftIonizationElectrons(G4ThreeVector stepMidPoint,
                                   const double simTime,
                                   int trackID,
-                                  unsigned short int cryostat, unsigned short int tpc);
+                                  geo::TPCID const& tpcid);
 
     bool Has(std::vector<unsigned short int> v, unsigned short int tpc) const
     {
@@ -323,13 +313,12 @@ namespace larg4 {
     std::vector<unsigned short int>           fSkipWireSignalInTPCs;
     /// Charge deposited within this many [cm] from the plane is lead onto it.
     double                                    fOffPlaneMargin = 0.0;
-
-    std::vector<std::vector<ChannelMap_t>>    fChannelMaps; ///< Maps of cryostat, tpc to channel data
+    
     geo::GeometryCore const&                  fGeom;  ///< Handle to the Geometry service
     sim::LArG4Parameters const&               fLgp;  ///< Handle to the LArG4 parameters service
-    unsigned int                              fTPC;        ///< which TPC this LArVoxelReadout corresponds to
-    unsigned int                              fCstat;      ///< and in which cryostat (if bSingleTPC is true)
-    bool                                      bSingleTPC;  ///< true if this readout is associated with a single TPC
+    geo::TPCID                                fTPCID; ///< ID of TPC this LArVoxelReadout corresponds to.
+    
+    geo::TPCDataContainer<ChannelMap_t>       fChannelMaps; ///< Map of TPC to channel data.
 
     CLHEP::HepRandomEngine*                   fPropGen = nullptr;  ///< random engine for charge propagation
 

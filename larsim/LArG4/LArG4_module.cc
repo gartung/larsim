@@ -761,19 +761,23 @@ namespace larg4 {
 
         std::set<LArVoxelReadout*> ReadoutList; // to be cleared later on
 
-        for(unsigned int c = 0; c < geom->Ncryostats(); ++c){
+        for(geo::CryostatGeo const& cryo: geom->IterateCryostats()){
 
           // map to keep track of which channels we already have SimChannels for in scCol
           // remake this map on each cryostat as channels ought not to be shared between
-          // cryostats, just between TPC's
+          // cryostats, just between TPC's;
+          // the mapped value is the current index of that channel in the SimChannel collection
 
-          std::map<unsigned int, unsigned int>  channelToscCol;
+          std::map<raw::ChannelID_t, std::size_t>  channelToscCol;
 
-          unsigned int ntpcs =  geom->Cryostat(c).NTPC();
-          for(unsigned int t = 0; t < ntpcs; ++t){
+          unsigned int const ntpcs = cryo.NTPC();
+          
+          for (geo::TPCGeo const& tpc: cryo.IterateTPCs()) {
+            geo::TPCID const& tpcid = tpc.ID();
+            
             std::string name("LArVoxelSD");
             std::ostringstream sstr;
-            sstr << name << "_Cryostat" << c << "_TPC" << t;
+            sstr << name << "_Cryostat" << tpcid.Cryostat << "_TPC" << tpcid.TPC;
 
             // try first to find the sensitive detector specific for this TPC;
             // do not bother writing on screen if there is none (yet)
@@ -784,8 +788,8 @@ namespace larg4 {
             // If this didn't work, then a sensitive detector with
             // the name "LArVoxelSD" does not exist.
             if ( !sd ){
-              throw cet::exception("LArG4") << "Sensitive detector for cryostat "
-                                            << c << " TPC " << t << " not found (neither '"
+              throw cet::exception("LArG4") << "Sensitive detector for " << tpcid
+                                            << " not found (neither '"
                                             << sstr.str() << "' nor '" << name  << "' exist)\n";
             }
 
@@ -800,10 +804,10 @@ namespace larg4 {
                                             << "' is not a LArVoxelReadout object\n";
             }
 
-            LArVoxelReadout::ChannelMap_t& channels = larVoxelReadout->GetSimChannelMap(c, t);
+            LArVoxelReadout::ChannelMap_t& channels = larVoxelReadout->GetSimChannelMap(tpcid);
             if (!channels.empty()) {
               MF_LOG_DEBUG("LArG4") << "now put " << channels.size() << " SimChannels"
-                " from C=" << c << " T=" << t << " into the event";
+                " from " << tpcid << " into the event";
             }
 
             for(auto ch_pair: channels){
@@ -813,30 +817,30 @@ namespace larg4 {
               // if we have, then merge the ionization deposits.  Skip the check if we only have one TPC
 
               if (ntpcs > 1) {
-                unsigned int ichan = sc.Channel();
-                std::map<unsigned int, unsigned int>::iterator itertest = channelToscCol.find(ichan);
+                raw::ChannelID_t const channel = sc.Channel();
+                auto itertest = channelToscCol.find(channel);
                 if (itertest == channelToscCol.end()) {
-                  channelToscCol[ichan] = scCol->size();
+                  channelToscCol[channel] = scCol->size();
                   scCol->emplace_back(std::move(sc));
                 }
                 else {
-              unsigned int idtest = itertest->second;
-              auto const& tdcideMap = sc.TDCIDEMap();
-              for(auto const& tdcide : tdcideMap){
-                for(auto const& ide : tdcide.second){
-                  double xyz[3] = {ide.x, ide.y, ide.z};
-                  scCol->at(idtest).AddIonizationElectrons(ide.trackID,
-                                                           tdcide.first,
-                                                           ide.numElectrons,
-                                                           xyz,
-                                                           ide.energy);
-                } // end loop to add ionization electrons to  scCol->at(idtest)
-              }// end loop over tdc to vector<sim::IDE> map
-                } // end if check to see if we've put SimChannels in for ichan yet or not
+                  std::size_t const idtest = itertest->second;
+                  auto const& tdcideMap = sc.TDCIDEMap();
+                  for(auto const& tdcide : tdcideMap){
+                    for(auto const& ide : tdcide.second){
+                      double xyz[3] = {ide.x, ide.y, ide.z};
+                      scCol->at(idtest).AddIonizationElectrons(ide.trackID,
+                                                               tdcide.first,
+                                                               ide.numElectrons,
+                                                               xyz,
+                                                               ide.energy);
+                    } // end loop to add ionization electrons to  scCol->at(idtest)
+                  }// end loop over tdc to vector<sim::IDE> map
+                } // end if check to see if we've put SimChannels in for channel yet or not
               }
               else {
                 scCol->emplace_back(std::move(sc));
-          } // end of check if we only have one TPC (skips check for multiple simchannels if we have just one TPC)
+              } // end of check if we only have one TPC (skips check for multiple simchannels if we have just one TPC)
             } // end loop over simchannels for this TPC
 
 

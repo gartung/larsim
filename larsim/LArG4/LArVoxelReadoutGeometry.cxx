@@ -200,8 +200,8 @@ namespace larg4 {
     // a voxel that overlaps the LAr TPC.
     LArVoxelReadout* larVoxelReadout = new LArVoxelReadout("LArVoxelSD");
     larVoxelReadout->Setup(fReadoutSetupData);
-    if ((fGeo->Ncryostats() == 1) && (fGeo->Cryostat(0).NTPC() == 1))
-      larVoxelReadout->SetSingleTPC(0, 0); // just one TPC in the detector...
+    if (fGeo->TotalNTPC() == 1)
+      larVoxelReadout->SetSingleTPC({ 0, 0 }); // just one TPC in the detector...
 
     // Tell Geant4's sensitive-detector manager that the voxel SD
     // class exists.
