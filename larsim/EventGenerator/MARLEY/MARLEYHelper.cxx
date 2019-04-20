@@ -111,11 +111,32 @@ void evgen::MARLEYHelper::add_marley_particles(simb::MCTruth& truth,
 simb::MCTruth evgen::MARLEYHelper::create_MCTruth(
   const TLorentzVector& vtx_pos, marley::Event* marley_event)
 {
+  marley::Event event = fMarleyGenerator->create_event();
+
+  simb::MCTruth truth = this->create_MCTruth(vtx_pos, event);
+
+  if (marley_event) *marley_event = event;
+
+  // Process the MARLEY logging messages (if any) captured by our
+  // stringstream and forward them to the messagefacility logger
+  std::string line;
+  while(std::getline(fMarleyLogStream, line)) {
+    MF_LOG_INFO(fHelperName) << line;
+  }
+
+  // Reset the MARLEY log stream
+  fMarleyLogStream = std::stringstream();
+
+  return truth;
+}
+
+//------------------------------------------------------------------------------
+simb::MCTruth evgen::MARLEYHelper::create_MCTruth(
+  const TLorentzVector& vtx_pos, const marley::Event& event)
+{
   simb::MCTruth truth;
 
   truth.SetOrigin(simb::kSuperNovaNeutrino);
-
-  marley::Event event = fMarleyGenerator->create_event();
 
   // Add the initial and final state particles to the MCTruth object.
   add_marley_particles(truth, event.get_initial_particles(), vtx_pos, false);
@@ -156,18 +177,6 @@ simb::MCTruth evgen::MARLEYHelper::create_MCTruth(
     inelasticity_y, // dimensionless
     Q2 * std::pow(MeV_to_GeV, 2)
   );
-
-  if (marley_event) *marley_event = event;
-
-  // Process the MARLEY logging messages (if any) captured by our
-  // stringstream and forward them to the messagefacility logger
-  std::string line;
-  while(std::getline(fMarleyLogStream, line)) {
-    MF_LOG_INFO(fHelperName) << line;
-  }
-
-  // Reset the MARLEY log stream
-  fMarleyLogStream = std::stringstream();
 
   return truth;
 }
@@ -261,12 +270,12 @@ void evgen::MARLEYHelper::load_marley_dictionaries()
   // for the executable (src/marley.cc). If you change how this
   // code works, please sync changes with the executable as well.
   if (gROOT->GetVersionInt() >= 60000) {
-    MF_LOG_INFO("MARLEYHelper " + fHelperName) << "ROOT 6 or greater"
+    MF_LOG_INFO("MARLEYHelper") << "ROOT 6 or greater"
       << " detected. Loading class information\nfrom headers"
       << " \"marley/Particle.hh\" and \"marley/Event.hh\"";
     TInterpreter::EErrorCode* ec = new TInterpreter::EErrorCode();
     gInterpreter->ProcessLine("#include \"marley/Particle.hh\"", ec);
-    if (*ec != 0) throw cet::exception("MARLEYHelper " + fHelperName)
+    if (*ec != 0) throw cet::exception("MARLEYHelper")
       << "Error loading MARLEY header Particle.hh. For MARLEY headers stored"
       << " in /path/to/include/marley/, please add /path/to/include"
       << " to your ROOT_INCLUDE_PATH environment variable and"

@@ -263,12 +263,19 @@ namespace evgen {
       simb::MCTruth create_MCTruth(const TLorentzVector& vtx_pos,
         marley::Event* marley_event = nullptr);
 
+      static simb::MCTruth create_MCTruth(const TLorentzVector& vtx_pos,
+        const marley::Event& marley_event);
+
       marley::Generator& get_generator() { return *fMarleyGenerator; }
       const marley::Generator& get_generator() const
         { return *fMarleyGenerator; }
 
       std::string find_file(const std::string& fileName,
         const std::string& fileType);
+
+      // Loads ROOT dictionaries for the MARLEY Event and Particle classes.
+      // This allows a module to write the generated events to a TTree.
+      static void load_marley_dictionaries();
 
     protected:
 
@@ -302,7 +309,7 @@ namespace evgen {
       marley::JSON fhicl_parameter_to_json(
         const fhicl::detail::ParameterBase* par);
 
-      void add_marley_particles(simb::MCTruth& truth,
+      static void add_marley_particles(simb::MCTruth& truth,
         const std::vector<marley::Particle*>& particles,
         const TLorentzVector& vtx_pos, bool track);
 
@@ -317,10 +324,6 @@ namespace evgen {
       // string stream used to capture logger output from MARLEY
       // and redirect it to the LArSoft logger
       std::stringstream fMarleyLogStream;
-
-      // Loads ROOT dictionaries for the MARLEY Event and Particle classes.
-      // This allows a module to write the generated events to a TTree.
-      void load_marley_dictionaries();
 
   }; // class evgen::MARLEYHelper
 
