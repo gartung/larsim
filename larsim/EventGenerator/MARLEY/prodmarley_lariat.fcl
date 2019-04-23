@@ -68,13 +68,14 @@ outputs:
 services.LArG4Parameters.ParticleKineticEnergyCut: 1.0e-5 # GeV
 services.LArG4Parameters.StoreTrajectories: true
 services.LArG4Parameters.KeepEMShowerDaughters: true
-# Use NeutronHP data (very important for neutrino-induced neutron emission!)
-# which is not enabled by default in LArSoft.
+# Use cross section tables for tracking low-energy neutrons and ions
+# (important for neutrino-induced nuclear fragment emission).
+# This is not enabled by default in LArSoft.
 services.LArG4Parameters.UseCustomPhysics: true
 services.LArG4Parameters.EnabledPhysics: [ "LowEnergyEm",
                                            "SynchrotronAndGN",
-                                           "Ion",
-                                           "NeutronHP",
+                                           "IonHP",
+                                           "HadronHP",
                                            "Decay",
                                            "HadronElastic",
                                            "Stopping" ]

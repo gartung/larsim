@@ -23,6 +23,7 @@
 #include "Geant4/G4DecayPhysics.hh"
 #include "Geant4/G4EmExtraPhysics.hh"
 #include "Geant4/G4IonPhysics.hh"
+#include "Geant4/G4IonPhysicsPHP.hh"
 #include "Geant4/G4StoppingPhysics.hh"
 #include "Geant4/G4HadronElasticPhysics.hh"
 #include "Geant4/G4NeutronTrackingCut.hh"
@@ -110,6 +111,14 @@ namespace larg4 {
     virtual ~IonPhysicsFactory() {};
   };
 
+  class IonHPPhysicsFactory : public CustomPhysicsFactory<G4IonPhysicsPHP>
+  {
+  public:
+    G4VPhysicsConstructor * Build()  {return new G4IonPhysicsPHP("ionhp");}
+    IonHPPhysicsFactory() : CustomPhysicsFactory<G4IonPhysicsPHP>("IonHP") {}
+    virtual ~IonHPPhysicsFactory() {};
+  };
+
   class NeutronTrackingCutFactory : public CustomPhysicsFactory<G4NeutronTrackingCut>
   {
   public:
@@ -118,13 +127,13 @@ namespace larg4 {
     virtual ~NeutronTrackingCutFactory() {};
   };
 
-    class LowEnergyEmFactory : public CustomPhysicsFactory<G4EmLivermorePhysics>
-    {
-    public:
-      G4VPhysicsConstructor * Build() {return new G4EmLivermorePhysics();}
-      LowEnergyEmFactory() : CustomPhysicsFactory<G4EmLivermorePhysics>("LowEnergyEm"){}
-      virtual ~LowEnergyEmFactory() {}
-    };
+  class LowEnergyEmFactory : public CustomPhysicsFactory<G4EmLivermorePhysics>
+  {
+  public:
+    G4VPhysicsConstructor * Build() {return new G4EmLivermorePhysics();}
+    LowEnergyEmFactory() : CustomPhysicsFactory<G4EmLivermorePhysics>("LowEnergyEm"){}
+    virtual ~LowEnergyEmFactory() {}
+  };
 
 
 }
