@@ -57,27 +57,28 @@ namespace cheat{
       void SetEveIdCalculator(sim::EveIdCalculator *ec) { ParticleInventory::SetEveIdCalculator(ec); }
 
       //Does this make sense? A track Id to a single particle? This is not a one to one relationship.
-      const simb::MCParticle* TrackIdToParticle_P(int id) const;
-      simb::MCParticle        TrackIdToParticle(int const id) const
+      art::Ptr<simb::MCParticle> TrackIdToParticle_P(int const& id);
+      simb::MCParticle        TrackIdToParticle(int const& id)
       { return *(this->TrackIdToParticle_P(id)); }//Users are encouraged to use TrackIdToParticleP
 
-      const simb::MCParticle* TrackIdToMotherParticle_P(int id) const;
-      simb::MCParticle        TrackIdToMotherParticle(int const id) const //Users are encouraged to use TrackIdToMotherParticleP
+      art::Ptr<simb::MCParticle> TrackIdToMotherParticle_P(int const& id);
+      simb::MCParticle        TrackIdToMotherParticle(int const& id)//Users are encouraged to use TrackIdToMotherParticleP
       { return *(this->TrackIdToMotherParticle_P(id)); }
 
       const art::Ptr<simb::MCTruth>& TrackIdToMCTruth_P(int id) const;
       simb::MCTruth                  TrackIdToMCTruth (int const id) const //Users are encouraged to use TrackIdToMCTruthP
       { return *(this->TrackIdToMCTruth_P(id)); }
 
-      int TrackIdToEveTrackId(int tid) const;
+      int TrackIdToEveTrackId(const int& tid) const;
+      bool TrackIdIsEve(const int& tid) const;
 
-      const art::Ptr<simb::MCTruth>& ParticleToMCTruth_P(const simb::MCParticle* p) const; //Users are encouraged to use ParticleToMCTruthP
-      simb::MCTruth                  ParticleToMCTruth (const simb::MCParticle* p) const
+      const art::Ptr<simb::MCTruth>& ParticleToMCTruth_P(art::Ptr<simb::MCParticle> p); //Users are encouraged to use ParticleToMCTruthP
+      simb::MCTruth                  ParticleToMCTruth (art::Ptr<simb::MCParticle> p)
       { return *(this->ParticleToMCTruth_P(p)); }
 
       const std::vector< art::Ptr<simb::MCTruth> >& MCTruthVector_Ps() const; //I don't want this to be able to return a vector of copies. Too much chance of significant memory usage.
 
-      std::vector<const simb::MCParticle*> MCTruthToParticles_Ps(art::Ptr<simb::MCTruth> const& mct) const; //I don't want this to be able to return a vector of copies. Too much chance of significant memory usage.
+      const std::vector<art::Ptr<simb::MCParticle>> MCTruthToParticles_Ps(art::Ptr<simb::MCTruth> const& mct) ; //I don't want this to be able to return a vector of copies. Too much chance of significant memory usage.
 
       std::set<int> GetSetOfTrackIds() const;
       std::set<int> GetSetOfEveIds() const;

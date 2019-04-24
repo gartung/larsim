@@ -117,10 +117,11 @@ namespace cheat{
   //deliverables
 
   const sim::ParticleList& ParticleInventoryService::ParticleList() const {
-//    if(!this->priv_ParticleListReady()){this->priv_PrepParticleList();}
+    //if(!this->priv_ParticleListReady()){this->priv_PrepParticleList();}
 //    Not used for non lazy functions
     return ParticleInventory::ParticleList();
   } //This should be replaced with a public struct so we can get away from the nutools dependency.
+
 
   const std::vector< art::Ptr<simb::MCTruth> >& ParticleInventoryService::MCTruthVector_Ps() const {
     //if(!this->priv_MCTruthListReady()){priv_PrepMCTruthList();}
@@ -130,14 +131,14 @@ namespace cheat{
 
   //TrackIdToParticleP
 
-  const simb::MCParticle* ParticleInventoryService::TrackIdToParticle_P(int const id) const {
+  art::Ptr<simb::MCParticle> ParticleInventoryService::TrackIdToParticle_P(int const& id) {
 //    if(!this->priv_ParticleListReady()){this->priv_PrepParticleList();}
 //    Not used for non-lazy mode
     return ParticleInventory::TrackIdToParticle_P(id);
   }//End TrackIdToParticle
 
 
-  const simb::MCParticle* ParticleInventoryService::TrackIdToMotherParticle_P(int const id) const
+  art::Ptr<simb::MCParticle> ParticleInventoryService::TrackIdToMotherParticle_P(int const& id)
   {
 //    if(!this->priv_ParticleListReady()){this->priv_PrepParticleList();}
 //    Not used for non-lazy mode
@@ -151,19 +152,24 @@ namespace cheat{
     return ParticleInventory::TrackIdToMCTruth_P(id);
   }
 
-  int ParticleInventoryService::TrackIdToEveTrackId(const int tid) const
+  int ParticleInventoryService::TrackIdToEveTrackId(const int& tid) const
   {
     return ParticleInventory::TrackIdToEveTrackId(tid);
   }
 
-  const art::Ptr<simb::MCTruth>& ParticleInventoryService::ParticleToMCTruth_P(const simb::MCParticle* p) const
+  bool ParticleInventoryService::TrackIdIsEve(const int& tid) const
+  {
+    return ParticleInventory::TrackIdIsEve(tid);
+  }
+
+  const art::Ptr<simb::MCTruth>& ParticleInventoryService::ParticleToMCTruth_P(art::Ptr<simb::MCParticle> p) const
   {
 //    if(!this->priv_TrackIdToMCTruthReady()){this->priv_PrepTrackIdToMCTruthIndex();}
 //    Not used for non-lazy mode
     return this->TrackIdToMCTruth_P(p->TrackId());
   }
 
-  std::vector<const simb::MCParticle*> ParticleInventoryService::MCTruthToParticles_Ps(art::Ptr<simb::MCTruth> const& mct) const
+  std::vector<art::Ptr<simb::MCParticle>> ParticleInventoryService::MCTruthToParticles_Ps(art::Ptr<simb::MCTruth> const& mct) const
   {
 //    if(!this->priv_ParticleListReady()){this->priv_PrepParticleList();}
 //    if(!this->priv_MCTruthListReady()){this->priv_PrepMCTruthList();}

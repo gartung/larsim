@@ -383,29 +383,43 @@ void cheat::RecoCheckAna::CheckRecoShowers(art::Event                           
 //a true vertex will either consist of primary particles originating from
 //the interaction vertex, or a primary particle decaying to make daughters
 void cheat::RecoCheckAna::CheckRecoVertices(art::Event                                 const& evt,
-					    std::string                                const& label,
-					    art::Handle< std::vector<recob::Vertex> >  const& vtxcol,
-					    std::vector< art::Ptr<recob::Hit> >        const& allhits)
+    std::string                                const& label,
+    art::Handle< std::vector<recob::Vertex> >  const& vtxcol,
+    std::vector< art::Ptr<recob::Hit> >        const& allhits)
 {
-  const sim::ParticleList& plist = fPI->ParticleList();
+  //const sim::ParticleList& plist = fPI->ParticleList();
 
   std::vector< std::set<int> > ids(1);
   // loop over all primary particles and put their ids into the first set of the
   // vector.  add another set for each primary particle that also has daughters
   // and put those daughters into the new set
   // PartPair is a (track ID, particle pointer) pair
-  for (const auto& PartPair: plist) {
+  /*for (const auto& PartPair: plist) {
     auto trackID = PartPair.first;
     if (!plist.IsPrimary(trackID)) continue;
     const simb::MCParticle& part = *(PartPair.second);
     ids[0].insert(trackID);
     if(part.NumberDaughters() > 0){
-      std::set<int> dv;
+    std::set<int> dv;
+    for(int d = 0; d < part.NumberDaughters(); ++d)
+    dv.insert(part.Daughter(d));
+    ids.push_back(std::move(dv));
+    }//end if this primary particle has daughters
+    }// end loop over primaries
+    */
+  for(const auto& id : fPI->GetSetOfTrackIds())
+  {
+    if (!fPI->TrackIdIsEve(id)) continue;
+    const simb::MCParticle part = *(fPI->TrackIdToParticle_P(id));
+    ids[0].insert(id);
+    if(part.NumberDaughters()>0){
+      std::set<int>dv;
       for(int d = 0; d < part.NumberDaughters(); ++d)
         dv.insert(part.Daughter(d));
       ids.push_back(std::move(dv));
-    }//end if this primary particle has daughters
-  }// end loop over primaries
+    }
+
+  }
 
   art::FindManyP<recob::Hit> fmh(vtxcol, evt, label);
 
@@ -441,9 +455,9 @@ void cheat::RecoCheckAna::CheckRecoVertices(art::Event                          
 // MCTruth collection
 /// \todo need to divy it up in the case where there is more than 1 true interaction in a spill
 void cheat::RecoCheckAna::CheckRecoEvents(art::Event                                 const& evt,
-					  std::string                                const& label,
-					  art::Handle< std::vector<recob::Event> >   const& evtcol,
-					  std::vector< art::Ptr<recob::Hit> >        const& allhits)
+    std::string                                const& label,
+    art::Handle< std::vector<recob::Event> >   const& evtcol,
+    std::vector< art::Ptr<recob::Hit> >        const& allhits)
 {
   const sim::ParticleList& plist = fPI->ParticleList();
 
@@ -483,11 +497,11 @@ void cheat::RecoCheckAna::CheckRecoEvents(art::Event                            
 
 //-------------------------------------------------------------------
 void cheat::RecoCheckAna::FlattenMap(std::map<std::pair<int, int>, std::pair<double, double> > const& g4RecoBaseIDToPurityEfficiency,
-				     std::map<int, std::vector<std::pair<int, std::pair<double, double> > > >& g4IDToRecoBasePurityEfficiency,
-				     TH1D*                                                            purity,
-				     TH1D*                                                            efficiency,
-				     TH1D*                                                            purityEfficiency,
-				     TH2D*                                                            purityEfficiency2D)
+    std::map<int, std::vector<std::pair<int, std::pair<double, double> > > >& g4IDToRecoBasePurityEfficiency,
+    TH1D*                                                            purity,
+    TH1D*                                                            efficiency,
+    TH1D*                                                            purityEfficiency,
+    TH2D*                                                            purityEfficiency2D)
 {
 
   std::map<std::pair<int, int>, std::pair<double, double> >::const_iterator rbItr = g4RecoBaseIDToPurityEfficiency.begin();
@@ -569,7 +583,7 @@ void cheat::RecoCheckAna::FillResults(std::vector< art::Ptr<recob::Hit> > const&
   // loop over them
   while( trackItr != trackIDs.end() ){
 
-    const simb::MCParticle* part = fPI->TrackIdToParticle_P(*trackItr);
+    art::Ptr<simb::MCParticle> part = fPI->TrackIdToParticle_P(*trackItr);
 
     ftrackid = std::abs(*trackItr);
     fpdg     = part->PdgCode();

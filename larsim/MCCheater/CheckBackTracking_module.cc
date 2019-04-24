@@ -90,7 +90,8 @@ namespace cheat{
       for(size_t t = 0; t < trackides.size(); ++t){
 
 	// find the Eve particle for the current trackID
-	int eveID = pi_serv->ParticleList().EveId( trackides[t].trackID );
+	int eveID = pi_serv->TrackIdToEveTrackId(trackides[t].trackID);
+	//int eveID = pi_serv->ParticleList().EveId( trackides[t].trackID );
 
 	mf::LogInfo("CheckBackTracking") << "track id: " << trackides[t].trackID
 					 << " contributed " << trackides[t].energy << "/"
