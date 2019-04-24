@@ -283,7 +283,8 @@ namespace cheat{
       };
       class Inventory{
         public:
-          void Add(std::vector<art::Ptr<simb::MCParticle>>::iterator);
+          //void Add(std::vector<art::Ptr<simb::MCParticle>>::iterator);
+          void Add(art::Ptr<simb::MCParticle>);
           int EveId(int tid) const;
           bool IsEve(int tid) const;
           bool HasParticle(int tid);
@@ -307,6 +308,7 @@ namespace cheat{
           std::vector<InvParticle>::const_reverse_iterator crend() { return particleList.crend(); };
 
         private:
+          //std::vector<InvParticle>::const_iterator nfind(int tid) const;
           mutable std::vector<InvParticle> particleList;
           mutable bool isSorted;
 
@@ -339,3 +341,4 @@ namespace cheat{
 #include "ParticleInventory.tcc"
 
 #endif //CHEAT_PARTICLEINVENTORY_H
+

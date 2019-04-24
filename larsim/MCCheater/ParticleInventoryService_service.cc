@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 //STL includes
+#include <map>
 //ROOT includes
 //Framework includes
 #include "messagefacility/MessageLogger/MessageLogger.h"
@@ -87,7 +88,11 @@ namespace cheat{
     if(this->priv_ParticleListReady()){ return; }
     //try{ParticleInventory::PrepParticleList(*fEvt);}
     try{ParticleInventory::PrepParticleList(evt);}
-    catch(...){ mf::LogWarning("ParticleInventory") << "Rebuild failed to get the MCParticles. This is expected when running on a gernation or simulation step.";}
+    catch(cet::exception &e)
+    {
+      mf::LogWarning("ParticleInventory") << "Rebuild failed to get the MCParticles. This is expected when running on a gernation or simulation step.";
+
+    }
   }
 
 
@@ -97,7 +102,11 @@ namespace cheat{
     if( this->priv_TrackIdToMCTruthReady()){ return; }
     //try{ParticleInventory::PrepTrackIdToMCTruthIndex(*fEvt);}
     try{ParticleInventory::PrepTrackIdToMCTruthIndex(evt);}
-    catch(...){ mf::LogWarning("ParticleInventory") << "Rebuild failed to get the MCParticles. This is expected when running on a gernation or simulation step.";}
+    //catch(...)
+    catch(cet::exception &e)
+    {
+      mf::LogWarning("ParticleInventory") << "Rebuild failed to get the MCParticles. This is expected when running on a gernation or simulation step.";
+    }
   }//End priv_PrepTrackIdToMCTruthIndexList
 
   void ParticleInventoryService::priv_PrepMCTruthList(const art::Event& evt ){
@@ -106,7 +115,11 @@ namespace cheat{
     if(this->priv_MCTruthListReady( ) ){ return;} //If the event is data or if the truth list is already built there is nothing for us to do.
     try{    ParticleInventory::PrepMCTruthList(evt); }
     //try{    ParticleInventory::PrepMCTruthList(*fEvt); }
-    catch(...){ mf::LogWarning("ParticleInventory") << "Rebuild failed to get the MCParticles. This is expected when running on a gernation or simulation step.";}
+    //catch(...)
+    catch(cet::exception &e)
+    {
+      mf::LogWarning("ParticleInventory") << "Rebuild failed to get the MCParticles. This is expected when running on a gernation or simulation step.";
+    }
     //ToDo. Find out exactly which exception is thrown and catch only that.
 
   }//End PrepMCTruthList
@@ -116,14 +129,17 @@ namespace cheat{
 
   //deliverables
 
-  const sim::ParticleList& ParticleInventoryService::ParticleList() const {
+  const sim::ParticleList& ParticleInventoryService::ParticleList() {
     //if(!this->priv_ParticleListReady()){this->priv_PrepParticleList();}
 //    Not used for non lazy functions
     return ParticleInventory::ParticleList();
+//    mf::LogError("ParticleInventoryService::ParticleList")<<"This function has been "
+//      <<"deprecated as we are moving the backtracker suite away from NuTools "
+//     <<"dependency.\n";
   } //This should be replaced with a public struct so we can get away from the nutools dependency.
 
 
-  const std::vector< art::Ptr<simb::MCTruth> >& ParticleInventoryService::MCTruthVector_Ps() const {
+  const std::vector< art::Ptr<simb::MCTruth> >& ParticleInventoryService::MCTruthVector_Ps() {
     //if(!this->priv_MCTruthListReady()){priv_PrepMCTruthList();}
     // Not used for non-lazy mode
     return ParticleInventory::MCTruthVector_Ps();
@@ -145,7 +161,7 @@ namespace cheat{
     return ParticleInventory::TrackIdToMotherParticle_P(id);
   }
 
-  const art::Ptr<simb::MCTruth>& ParticleInventoryService::TrackIdToMCTruth_P(int const id) const
+  const art::Ptr<simb::MCTruth>& ParticleInventoryService::TrackIdToMCTruth_P(int const& id) const
   {
 //    if(!this->priv_TrackIdToMCTruthReady()){this->priv_PrepTrackIdToMCTruthIndex();}
 //    Not used for non-lazy mode
@@ -169,7 +185,7 @@ namespace cheat{
     return this->TrackIdToMCTruth_P(p->TrackId());
   }
 
-  std::vector<art::Ptr<simb::MCParticle>> ParticleInventoryService::MCTruthToParticles_Ps(art::Ptr<simb::MCTruth> const& mct) const
+  const std::vector<art::Ptr<simb::MCParticle>> ParticleInventoryService::MCTruthToParticles_Ps(art::Ptr<simb::MCTruth> const& mct) const
   {
 //    if(!this->priv_ParticleListReady()){this->priv_PrepParticleList();}
 //    if(!this->priv_MCTruthListReady()){this->priv_PrepMCTruthList();}
