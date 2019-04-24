@@ -30,11 +30,14 @@
 ////////////////////////////////////////////////////////////////////////
 
 // C++ includes.
+#include <iostream>
+#include <sstream>
 #include <string>
 #include <regex>
 #include <cmath>
 #include <memory>
 #include <iterator>
+#include <vector>
 #include <sys/stat.h>
 #include <TGeoManager.h>
 #include <TGeoMaterial.h>
@@ -67,6 +70,7 @@
 // root includes
 
 #include "TLorentzVector.h"
+#include "TVector3.h"
 #include "TGenPhaseSpace.h"
 #include "TMath.h"
 #include "TFile.h"
@@ -156,6 +160,8 @@ namespace evgen {
 
 namespace {
   constexpr double m_e = 0.000510998928;  // mass of electron in GeV
+  constexpr double m_p = 0.938272; //Mass of the proton
+  constexpr double m_n = 0.939565; //Mass of the proton
   constexpr double m_alpha = 3.727379240; // mass of an alpha particle in GeV
   constexpr double m_neutron = 0.9395654133; // mass of a neutron in GeV
 }
@@ -205,7 +211,12 @@ namespace evgen{
       else if(nuclideName=="232Th"){readfile("232Th","Thorium_232.root");}
       else if(nuclideName=="238U" ){readfile("238U","Uranium_238.root") ;}
       else if(nuclideName=="222Rn"){continue;} //Rn222 is handled separately later
-      else if(nuclideName=="59Ni"){continue;} //Rn222 is handled separately later
+      else if(nuclideName=="El5MeV"){continue;}
+      else if(nuclideName=="Proton5MeV"){continue;}
+      else if(nuclideName=="FourProton5MeV"){continue;}
+      else if(nuclideName=="Gamma5MeV"){continue;}
+      else if(nuclideName=="Neutron5MeV"){continue;}
+      else if(nuclideName=="59Ni"){continue;}
       else if(nuclideName=="42Ar" ){
         readfile("42Ar_1", "Argon_42_1.root"); //Each possible beta decay mode of Ar42 is given it's own .root file for now.
         readfile("42Ar_2", "Argon_42_2.root"); //This allows us to know which decay chain to follow for the dexcitation gammas.
@@ -225,7 +236,8 @@ namespace evgen{
   //____________________________________________________________________________
   void RadioGen::beginRun(art::Run& run)
   {
-    art::ServiceHandle<geo::Geometry const> geo;
+    // grab the geometry object to see what geometry we are using
+    art::ServiceHandle<geo::Geometry> geo;
     run.put(std::make_unique<sumdata::RunData>(geo->DetectorName()));
   }
 
@@ -297,6 +309,51 @@ namespace evgen{
         else        p = 0;
             v_prods.emplace_back(pdgid, m, dirCalc(p, m));
       }//End special case RN222
+      else if(fNuclide[i]=="El5MeV")
+      {
+        double p=0; double t=0.00548952; td_Mass m=m_e; ti_PDGID pdgid=11; //td_Mass = double. ti_PDGID = int;
+        double energy = t + m;
+        double p2     = energy*energy - m*m;
+        if (p2 > 0) p = TMath::Sqrt(p2);
+        else        p = 0;
+            v_prods.emplace_back(pdgid, m, dirCalc(p, m));
+      }
+      else if(fNuclide[i]=="Proton5MeV")
+      {
+        double p=0; double t=0.00548952; td_Mass m=m_p; ti_PDGID pdgid=2212; //td_Mass = double. ti_PDGID = int;
+        double energy = t + m;
+        double p2     = energy*energy - m*m;
+        if (p2 > 0) p = TMath::Sqrt(p2);
+        else        p = 0;
+            v_prods.emplace_back(pdgid, m, dirCalc(p, m));
+      }
+      else if(fNuclide[i]=="FourProton5MeV")
+      {
+        double p=0; double t=0.00548952; td_Mass m=(4.0*m_p); ti_PDGID pdgid=2212; //td_Mass = double. ti_PDGID = int;
+        double energy = t + m;
+        double p2     = energy*energy - m*m;
+        if (p2 > 0) p = TMath::Sqrt(p2);
+        else        p = 0;
+            v_prods.emplace_back(pdgid, m, dirCalc(p, m));
+      }
+      else if(fNuclide[i]=="Gamma5MeV")
+      {
+        double p=0; double t=0.00548952; td_Mass m=0; ti_PDGID pdgid=22; //td_Mass = double. ti_PDGID = int;
+        double energy = t + m;
+        double p2     = energy*energy - m*m;
+        if (p2 > 0) p = TMath::Sqrt(p2);
+        else        p = 0;
+            v_prods.emplace_back(pdgid, m, dirCalc(p, m));
+      }
+      else if(fNuclide[i]=="Neutron5MeV")
+      {
+        double p=0; double t=0.00548952; td_Mass m=m_n; ti_PDGID pdgid=2112; //td_Mass = double. ti_PDGID = int;
+        double energy = t + m;
+        double p2     = energy*energy - m*m;
+        if (p2 > 0) p = TMath::Sqrt(p2);
+        else        p = 0;
+            v_prods.emplace_back(pdgid, m, dirCalc(p, m));
+      }
       else if(fNuclide[i] == "59Ni"){ //Treat 59Ni Calibration Source separately (as I haven't made a spectrum for it, and ultimately it should be handeled with multiple particle outputs.
         double p=0.008997; td_Mass m=0; ti_PDGID pdgid=22; // td_Mas=double. ti_PDFID=int. Assigning p directly, as t=p for gammas.
           v_prods.emplace_back(pdgid, m, dirCalc(p,m));
