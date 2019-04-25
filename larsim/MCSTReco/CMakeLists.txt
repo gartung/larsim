@@ -1,3 +1,4 @@
+
 add_subdirectory(job)
 
 art_make(LIB_LIBRARIES larcorealg_Geometry
@@ -12,9 +13,9 @@ art_make(LIB_LIBRARIES larcorealg_Geometry
                        canvas
                        ${MF_MESSAGELOGGER}
                        ${FHICLCPP}
-                       ${ROOT_GEOM}
-                       ${ROOT_XMLIO}
-                       ${ROOT_GDML}
+                       ${ROOT_Geom_LIBRARY}
+                       ${ROOT_XMLIO_LIBRARY}
+                       ${ROOT_Gdml_LIBRARY}
           MODULE_LIBRARIES larsim_MCSTReco
                            larcorealg_Geometry
                            larcore_Geometry_Geometry_service
@@ -28,12 +29,12 @@ art_make(LIB_LIBRARIES larcorealg_Geometry
                            nutools_RandomUtils_NuRandomService_service
                            art_Persistency_Provenance
                            ${MF_MESSAGELOGGER}
-                           ${ROOT_GEOM}
-                           ${ROOT_XMLIO}
-                           ${ROOT_GDML}
-                           ${ROOT_EG}
-                           ${ROOT_HIST}
-                           ${CLHEP}
+                           ${ROOT_Geom_LIBRARY}
+                           ${ROOT_XMLIO_LIBRARY}
+                           ${ROOT_Gdml_LIBRARY}
+                           ${ROOT_EG_LIBRARY}
+                           ${ROOT_Hist_LIBRARY}
+                           ${CLHEP_LIBRARIES}
                         )
 
 install_headers()

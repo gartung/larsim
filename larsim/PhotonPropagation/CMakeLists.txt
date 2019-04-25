@@ -4,19 +4,18 @@ art_make(LIB_LIBRARIES larevt_Filters
                        larcore_Geometry_Geometry_service
                        larsim_Simulation
                        ${ART_FRAMEWORK_SERVICES_REGISTRY}
-                       ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
+                       ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_Core_LIBRARY}
                        ${ART_ROOT_IO_TFILESERVICE_SERVICE}
                        canvas
                        ${MF_MESSAGELOGGER}
                        ${FHICLCPP}
-                       ${CLHEP}
+                       ${CLHEP_LIBRARIES}
                        cetlib_except
-                       ${ROOT_EG}
-                       ${ROOT_RIO}
-                       ${ROOT_HIST}
-                       ${ROOT_MATRIX}
-                       ${ROOT_TREE}
-                       ${ROOT_GENVECTOR}
+                       ${ROOT_EG_LIBRARY}
+                       ${ROOT_RIO_LIBRARY}
+                       ${ROOT_Hist_LIBRARY}
+                       ${ROOT_Matrix_LIBRARY}
+                       ${ROOT_Tree_LIBRARY}
           SERVICE_LIBRARIES larsim_PhotonPropagation
                        larsim_Simulation
                        nutools_ParticleNavigation
@@ -25,10 +24,9 @@ art_make(LIB_LIBRARIES larevt_Filters
                        lardataobj_RawData
                        larcorealg_Geometry
                        larcore_Geometry_Geometry_service
-                       ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
+                       ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_Core_LIBRARY}
                        ${ART_ROOT_IO_TFILESERVICE_SERVICE}
                        ${MF_MESSAGELOGGER}
-                       ${ROOT_GENVECTOR}
           MODULE_LIBRARIES larsim_PhotonPropagation
                         larsim_PhotonPropagation_PhotonVisibilityService_service
                         larsim_IonizationScintillation
@@ -39,14 +37,13 @@ art_make(LIB_LIBRARIES larevt_Filters
                         larcorealg_Geometry
                         larcore_Geometry_Geometry_service
                         ${ART_FRAMEWORK_SERVICES_REGISTRY}
-                        ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
+                        ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_Core_LIBRARY}
                         ${ART_ROOT_IO_TFILESERVICE_SERVICE}
                         nutools_RandomUtils_NuRandomService_service
                         art_Persistency_Provenance
                         ${MF_MESSAGELOGGER}
-                        ${CLHEP}
-                        ${ROOT_GENVECTOR}
-                        ${ROOT_GPAD}
+                        ${CLHEP_LIBRARIES}
+                        ${ROOT_Gpad_LIBRARY}
          )
 
 install_headers()

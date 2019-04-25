@@ -11,9 +11,9 @@ art_make(LIB_LIBRARIES
            larsim_Simulation
            lardataobj_Simulation
            ${ART_FRAMEWORK_SERVICES_REGISTRY}
-           ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
+           ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_Core_LIBRARY}
            ${ART_ROOT_IO_TFILESERVICE_SERVICE}
-           ${ROOT_TREE}
+           ${ROOT_Tree_LIBRARY}
            ${MF_MESSAGELOGGER})
 
 install_headers()

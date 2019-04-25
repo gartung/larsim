@@ -1,3 +1,4 @@
+
 art_make(MODULE_LIBRARIES
          larcorealg_Geometry
          larcore_Geometry_Geometry_service
@@ -17,12 +18,13 @@ art_make(MODULE_LIBRARIES
          ${ART_FRAMEWORK_SERVICES_REGISTRY}
          art_Persistency_Provenance
          ${MF_MESSAGELOGGER}
-         ${ROOT_GEOM}
-         ${ROOT_XMLIO}
-         ${ROOT_GDML}
-         ${ROOT_BASIC_LIB_LIST}
+         ${ROOT_Geom_LIBRARY}
+         ${ROOT_XMLIO_LIBRARY}
+         ${ROOT_Gdml_LIBRARY}
+         ${ROOT_LIBRARIES}
         )
 
 # install_headers()
 install_fhicl()
 install_source()
+

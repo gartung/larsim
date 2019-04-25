@@ -1,3 +1,4 @@
+
 # for classes_def.xml!!
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
 
@@ -11,8 +12,8 @@ art_make(NO_PLUGINS
            ${ART_FRAMEWORK_SERVICES_REGISTRY}
            ${ART_FRAMEWORK_PRINCIPAL}
            ${ART_PERSISTENCY_PROVENANCE}
-           ${ROOT_CORE}
-           ${ROOT_PHYSICS})
+           ${ROOT_Core_LIBRARY}
+           ${ROOT_Physics_LIBRARY})
 
 simple_plugin(LArVoxelCalculator "service")
 simple_plugin(LArG4Parameters "service")

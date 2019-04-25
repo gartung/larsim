@@ -2,13 +2,13 @@ art_make(LIB_LIBRARIES nusimdata_SimulationBase
                        cetlib
                        cetlib_except
                        ${FHICLCPP}
-                       ${CLHEP}
+                       ${CLHEP_LIBRARIES}
                        ${Boost_FILESYSTEM_LIBRARY}
                        ${Boost_SYSTEM_LIBRARY}
-                       ${ROOT_CORE}
-                       ${ROOT_RIO}
-                       ${ROOT_HIST}
-                       ${ROOT_PHYSICS}
+                       ${ROOT_Core_LIBRARY}
+                       ${ROOT_RIO_LIBRARY}
+                       ${ROOT_Hist_LIBRARY}
+                       ${ROOT_Physics_LIBRARY}
           MODULE_LIBRARIES larsim_PhotonPropagation
                            larsim_PhotonPropagation_PhotonVisibilityService_service
                            larsim_Simulation
@@ -20,14 +20,15 @@ art_make(LIB_LIBRARIES nusimdata_SimulationBase
                            larsim_EventGenerator
                            nusimdata_SimulationBase
                            ${ART_FRAMEWORK_SERVICES_REGISTRY}
-                           ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
+                           ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_Core_LIBRARY}
                            ${ART_ROOT_IO_TFILESERVICE_SERVICE}
                            art_Persistency_Provenance
                            ${MF_MESSAGELOGGER}
-                           ${CLHEP}
-                           ${ROOT_EG}
-                           ${ROOT_GEOM}
+                           ${CLHEP_LIBRARIES}
+                           ${ROOT_EG_LIBRARY}
+                           ${ROOT_Geom_LIBRARY}
         )
+
 
 install_headers()
 install_fhicl()

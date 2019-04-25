@@ -1,5 +1,8 @@
+
 # for c2: the problem is in fhiclcpp/types/detail/Sequence.icc
-cet_add_compiler_flags( CXX -Wno-missing-braces )
+#cet_add_compiler_flags( CXX -Wno-missing-braces )
+
+include_directories ( ${MARLEY_INC} )
 
 art_make(
       LIB_LIBRARIES
@@ -15,7 +18,7 @@ art_make(
                         ${FHICLCPP}
                         ${MF_MESSAGELOGGER}
                         cetlib_except
-                        ${ROOT_GEOM}
+                        ${ROOT_Geom_LIBRARY}
       MODULE_LIBRARIES
                         larsim_EventGenerator_MARLEY
                         larsim_Simulation
@@ -30,15 +33,15 @@ art_make(
                         ${MARLEY}
                         ${MARLEY_ROOT}
                         ${ART_FRAMEWORK_SERVICES_REGISTRY}
-                        ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
+                        ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_Core_LIBRARY}
                         ${ART_ROOT_IO_TFILESERVICE_SERVICE}
                         art_Persistency_Provenance
-                        ${CLHEP}
-                        ${ROOT_GEOM}
-                        ${ROOT_HIST}
-                        ${ROOT_TREE}
-                        ${ROOT_RIO}
-                        ${G4_LIB_LIST}
+                        ${CLHEP_LIBRARIES}
+                        ${ROOT_Geom_LIBRARY}
+                        ${ROOT_Hist_LIBRARY}
+                        ${ROOT_Tree_LIBRARY}
+                        ${ROOT_RIO_LIBRARY}
+                        ${Geant4_LIBRARIES}
         )
 
 install_headers()

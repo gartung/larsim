@@ -103,11 +103,11 @@ simple_plugin(RecoCheckAna "module"
   nusimdata_SimulationBase
   ${MF_MESSAGELOGGER}
   ${ART_FRAMEWORK_SERVICES_REGISTRY}
-  ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
+  ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_Core_LIBRARY}
   ${ART_ROOT_IO_TFILESERVICE_SERVICE}
   art_Persistency_Provenance
-  ${ROOT_TREE}
-  ${ROOT_HIST}
+  ${ROOT_Tree_LIBRARY}
+  ${ROOT_Hist_LIBRARY}
   )
 
 simple_plugin(BackTrackerLoader "module"

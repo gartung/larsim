@@ -1,3 +1,4 @@
+
 include_directories ( $ENV{MuonPropagationHOME}/src )
 
 art_make(MODULE_LIBRARIES
@@ -13,12 +14,12 @@ art_make(MODULE_LIBRARIES
                         ${MUSUN}
                         nusimdata_SimulationBase
                         ${ART_FRAMEWORK_SERVICES_REGISTRY}
-                        ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
+                        ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_Core_LIBRARY}
                         ${ART_ROOT_IO_TFILESERVICE_SERVICE}
                         art_Persistency_Provenance
                         ${MF_MESSAGELOGGER}
-                        ${CLHEP}
-                        ${ROOT_EG}
+                        ${CLHEP_LIBRARIES}
+                        ${ROOT_EG_LIBRARY}
         )
 
 install_headers()
