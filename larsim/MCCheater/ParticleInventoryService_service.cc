@@ -129,7 +129,7 @@ namespace cheat{
 
   //deliverables
 
-  const sim::ParticleList& ParticleInventoryService::ParticleList() {
+  const sim::ParticleList& ParticleInventoryService::ParticleList() const {
     //if(!this->priv_ParticleListReady()){this->priv_PrepParticleList();}
 //    Not used for non lazy functions
     return ParticleInventory::ParticleList();
@@ -139,7 +139,7 @@ namespace cheat{
   } //This should be replaced with a public struct so we can get away from the nutools dependency.
 
 
-  const std::vector< art::Ptr<simb::MCTruth> >& ParticleInventoryService::MCTruthVector_Ps() {
+  const std::vector< art::Ptr<simb::MCTruth> >& ParticleInventoryService::MCTruthVector_Ps() const {
     //if(!this->priv_MCTruthListReady()){priv_PrepMCTruthList();}
     // Not used for non-lazy mode
     return ParticleInventory::MCTruthVector_Ps();
@@ -147,7 +147,7 @@ namespace cheat{
 
   //TrackIdToParticleP
 
-  art::Ptr<simb::MCParticle> ParticleInventoryService::TrackIdToParticle_P(int const& id) {
+  art::Ptr<simb::MCParticle> ParticleInventoryService::TrackIdToParticle_P(int const& id) const {
 //    if(!this->priv_ParticleListReady()){this->priv_PrepParticleList();}
 //    Not used for non-lazy mode
     return ParticleInventory::TrackIdToParticle_P(id);
