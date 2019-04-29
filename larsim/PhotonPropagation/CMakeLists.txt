@@ -16,6 +16,7 @@ art_make(LIB_LIBRARIES larevt_Filters
                        ${ROOT_Hist_LIBRARY}
                        ${ROOT_Matrix_LIBRARY}
                        ${ROOT_Tree_LIBRARY}
+                       ${ROOT_LIBRARIES}
           SERVICE_LIBRARIES larsim_PhotonPropagation
                        larsim_Simulation
                        nutools_ParticleNavigation
@@ -24,7 +25,7 @@ art_make(LIB_LIBRARIES larevt_Filters
                        lardataobj_RawData
                        larcorealg_Geometry
                        larcore_Geometry_Geometry_service
-                       ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_Core_LIBRARY}
+                       ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_LIBRARIES}
                        ${ART_ROOT_IO_TFILESERVICE_SERVICE}
                        ${MF_MESSAGELOGGER}
           MODULE_LIBRARIES larsim_PhotonPropagation
@@ -44,6 +45,8 @@ art_make(LIB_LIBRARIES larevt_Filters
                         ${MF_MESSAGELOGGER}
                         ${CLHEP_LIBRARIES}
                         ${ROOT_Gpad_LIBRARY}
+                        ${ROOT_GenVector_LIBRARY}
+                        ${ROOT_LIBRARIES}
          )
 
 install_headers()

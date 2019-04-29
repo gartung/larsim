@@ -27,6 +27,7 @@ art_make(LIB_LIBRARIES nusimdata_SimulationBase
                            ${CLHEP_LIBRARIES}
                            ${ROOT_EG_LIBRARY}
                            ${ROOT_Geom_LIBRARY}
+                           ${ROOT_LIBRARIES}
         )
 
 

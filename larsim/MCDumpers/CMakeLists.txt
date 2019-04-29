@@ -3,6 +3,7 @@ art_make(MODULE_LIBRARIES
          nusimdata_SimulationBase
          art_Persistency_Provenance
          ${MF_MESSAGELOGGER}
+         ${ROOT_LIBRARIES}
          ${ROOT_EG_LIBRARY}
          ${ROOT_Core_LIBRARY}
          ${ROOT_Physics_LIBRARY})
