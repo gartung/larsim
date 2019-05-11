@@ -90,7 +90,7 @@ namespace cheat{
     try{ParticleInventory::PrepParticleList(evt);}
     catch(cet::exception &e)
     {
-      mf::LogWarning("ParticleInventory") << "Rebuild failed to get the MCParticles. This is expected when running on a gernation or simulation step.";
+      mf::LogWarning("ParticleInventory") << "Rebuild failed to get the MCParticles. This is expected when running on a generation or simulation step.";
 
     }
   }
@@ -105,7 +105,7 @@ namespace cheat{
     //catch(...)
     catch(cet::exception &e)
     {
-      mf::LogWarning("ParticleInventory") << "Rebuild failed to get the MCParticles. This is expected when running on a gernation or simulation step.";
+      mf::LogWarning("ParticleInventory") << "Rebuild failed to get the MCParticles. This is expected when running on a generation or simulation step.";
     }
   }//End priv_PrepTrackIdToMCTruthIndexList
 
@@ -118,7 +118,7 @@ namespace cheat{
     //catch(...)
     catch(cet::exception &e)
     {
-      mf::LogWarning("ParticleInventory") << "Rebuild failed to get the MCParticles. This is expected when running on a gernation or simulation step.";
+      mf::LogWarning("ParticleInventory") << "Rebuild failed to get the MCParticles. This is expected when running on a generation or simulation step.";
     }
     //ToDo. Find out exactly which exception is thrown and catch only that.
 
