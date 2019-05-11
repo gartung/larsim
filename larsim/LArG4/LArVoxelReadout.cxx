@@ -529,9 +529,9 @@ namespace larg4 {
             DepositsToStore[channel][tdc].add(nEnDiff[k], nElDiff[k]);
           }
           catch(cet::exception &e){
-            mf::LogWarning("LArVoxelReadout") << "unable to drift electrons from point ("
-                                              << xyz[0] << "," << xyz[1] << "," << xyz[2]
-                                              << ") with exception " << e;
+            MF_LOG_DEBUG("LArVoxelReadout") << "unable to drift electrons from point ("
+              << xyz[0] << "," << xyz[1] << "," << xyz[2]
+              << ") with exception " << e;
           }
         } // end loop over clusters
       } // end loop over planes
@@ -559,10 +559,10 @@ namespace larg4 {
         // go through all deposits, one for each TDC: (TDC, deposit data)
         for(auto const& deposit_per_tdc: deposit_per_channel.second) {
           channelData.AddIonizationElectrons(trackID,
-                                             deposit_per_tdc.first,
-                                             deposit_per_tdc.second.electrons,
-                                             xyz,
-                                             deposit_per_tdc.second.energy);
+              deposit_per_tdc.first,
+              deposit_per_tdc.second.electrons,
+              xyz,
+              deposit_per_tdc.second.energy);
 
         } // for deposit on TDCs
       } // for deposit on channels
@@ -570,7 +570,7 @@ namespace larg4 {
     } // end try intended to catch points where TPC can't be found
     catch(cet::exception &e){
       mf::LogWarning("LArVoxelReadout") << "step cannot be found in a TPC\n"
-                                        << e;
+        << e;
     }
 
     return;
