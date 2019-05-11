@@ -219,11 +219,14 @@ namespace larg4{
       fNumScintPhotons = fScintYieldFactor * scintYield * fEnergyDeposit;
     }
 
-    MF_LOG_DEBUG("ISCalculationSeparate") << "number photons: " << fNumScintPhotons
-				       << " energy: "        << fEnergyDeposit/CLHEP::MeV
-				       << " saturation: "
-				       << fEMSaturation->VisibleEnergyDepositionAtAStep(step)
-				       << " step length: "   << step->GetStepLength()/CLHEP::cm;
+    //MF_LOG_INFO("ISCalculationSeparate") << "number photons: " << fNumScintPhotons
+		//		       << " energy: "        << fEnergyDeposit/CLHEP::MeV
+		//		       << " saturation: "
+		//		       << fEMSaturation->VisibleEnergyDepositionAtAStep(step)
+		//		       << " step length: "   << step->GetStepLength()/CLHEP::cm;
+    //MF_LOG_INFO("ISCalculationSeparate") << " Electrons produced for " << fEnergyDeposit
+		//		       << " MeV deposited with "     << recomb
+		//		       << " recombination: "         << fNumIonElectrons;
 
 
     return;

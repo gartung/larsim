@@ -132,10 +132,14 @@ namespace larg4 {
 
       fISCalc->CalculateIonizationAndScintillation(fStep);
 
-      MF_LOG_DEBUG("IonizationAndScintillation") << "Step Size: "   << fStep->GetStepLength()/CLHEP::cm
-					      << "\nEnergy: "    << fISCalc->EnergyDeposit()
-					      << "\nElectrons: " << fISCalc->NumberIonizationElectrons()
-					      << "\nPhotons: "   << fISCalc->NumberScintillationPhotons();
+      //MF_LOG_DEBUG("IonizationAndScintillation") << "Step Size: "   << fStep->GetStepLength()/CLHEP::cm
+      //MF_LOG_INFO("IonizationAndScintillation") << "Step Size: "   << fStep->GetStepLength()/CLHEP::cm
+        //<<"\nPhysics: "<<fStep->GetTrack()->GetCreatorProcess()->GetProcessName()
+      //<<"\nPostStepPhys: "<<fStep->GetPostStepPoint()->GetProcessDefinedStep()->GetProcessName()
+      //<<"\nPreStepPhys: "<<fStep->GetPreStepPoint()->GetProcessDefinedStep()->GetProcessName()
+			//		      << "\nEnergy: "    << fISCalc->EnergyDeposit()
+			//		      << "\nElectrons: " << fISCalc->NumberIonizationElectrons()
+			//		      << "\nPhotons: "   << fISCalc->NumberScintillationPhotons();
 
       G4ThreeVector totstep = fStep->GetPostStepPoint()->GetPosition();
       totstep -= fStep->GetPreStepPoint()->GetPosition();
