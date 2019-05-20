@@ -217,7 +217,8 @@ namespace fluxr {
     double tiltwgt = p3beam.Unit().Dot( fWindowNormal );
     wgt*=tiltwgt;
     //weight for the window area and divide by pi (since wgt returned by calcEnuWgt function is flux/(pi*m^2)
-    wgt*=fWindowArea/3.14159;
+    //wgt*=fWindowArea/3.14159; // Remove multiplying by window area
+    wgt*=1.0/3.14159;
 
     bsim::NuRay anuray(p3beam.x(), p3beam.y(), p3beam.z(), enu, wgt);    
     fDk2Nu->nuray.push_back(rndnuray);
