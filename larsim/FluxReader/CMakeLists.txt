@@ -1,7 +1,9 @@
 cet_enable_asserts()
-include_directories ( $ENV{GENIE_INC}/GENIE/ )
+
+include_directories ( $ENV{DK2NUGENIE_INC}/GENIE )
 include_directories ( $ENV{DK2NUDATA_INC} )
-include_directories ( $ENV{DK2NUGENIE_INC} )
+link_directories( $ENV{DK2NUDATA_LIB})
+
 file(GLOB INTERFACEFILES *Interface* )
 
 simple_plugin( FluxReader "source"
@@ -23,6 +25,7 @@ art_make_library(LIBRARY_NAME FluxInterface
                  GFwGHEP
                  GTlFlx
                  dk2nuTree
+                 #${DK2NUDATA}
                  ${DK2NUGENIE}
 ####################################################
                  cetlib cetlib_except
@@ -48,7 +51,7 @@ art_make( EXCLUDE FluxReader_source.cc ${INTERFACEFILES}
                         art_Persistency_Common canvas
                         art_Persistency_Provenance canvas
                         art_Utilities canvas
-			${MF_MESSAGELOGGER}
+                        ${MF_MESSAGELOGGER}
                         ${MF_UTILITIES}
                         ${FHICLCPP}
                         ${Boost_SYSTEM_LIBRARY}
@@ -70,7 +73,6 @@ art_make( EXCLUDE FluxReader_source.cc ${INTERFACEFILES}
                         ${LOG4CPP}
                         GTlFlx
                         dk2nuTree
-                        # ${GENIE}
                         # ${DK2NUDATA}
                         ${DK2NUGENIE}
 ####################################################
