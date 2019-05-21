@@ -84,6 +84,74 @@ namespace simb { class MCTruth; }
 
 namespace evgen {
 
+  enum RadioType {
+    kUnknown = 0,
+    k39Ar,
+    k60Co,
+    k85Kr,
+    k40K,
+    k232Th,
+    k238U,
+    k222Rn,
+    k220Rn,
+    kBiPo_Rn222,
+    kBiPo_Rn220,
+    k59Ni,
+    k42Ar,
+    k42Ar_1,
+    k42Ar_2,
+    k42Ar_3,
+    k42Ar_4, 
+    k42Ar_5,
+    kNeutronConcrete
+  };
+
+  RadioType ConvertStringToRadioType(std::string st) {
+    if      (st == "39Ar"          ) return k39Ar;
+    else if (st == "60Co"          ) return k60Co;
+    else if (st == "85Kr"          ) return k85Kr;
+    else if (st == "40K"           ) return k40K;
+    else if (st == "232Th"         ) return k232Th;
+    else if (st == "238U"          ) return k238U;
+    else if (st == "222Rn"         ) return k222Rn;
+    else if (st == "220Rn"         ) return k220Rn;
+    else if (st == "BiPo(Rn222)"   ) return kBiPo_Rn222;
+    else if (st == "BiPo(Rn220)"   ) return kBiPo_Rn220;
+    else if (st == "59Ni"          ) return k59Ni;
+    else if (st == "42Ar"          ) return k42Ar;
+    else if (st == "42Ar_1"        ) return k42Ar_1;
+    else if (st == "42Ar_2"        ) return k42Ar_2;
+    else if (st == "42Ar_3"        ) return k42Ar_3;
+    else if (st == "42Ar_4"        ) return k42Ar_4;
+    else if (st == "42Ar_5"        ) return k42Ar_5;
+    else if (st == "Concrete_DUNE1") return kNeutronConcrete;
+    else
+      return kUnknown;   
+  }
+
+  std::string ConvertRadioTypeToString(RadioType type) {
+    if      (type == k39Ar           ) return  "39Ar";
+    else if (type == k60Co           ) return  "60Co";
+    else if (type == k85Kr           ) return  "85Kr";
+    else if (type == k40K            ) return  "40K";
+    else if (type == k232Th          ) return  "232Th";
+    else if (type == k238U           ) return  "238U";
+    else if (type == k222Rn          ) return  "222Rn";
+    else if (type == k220Rn          ) return  "220Rn";
+    else if (type == kBiPo_Rn222     ) return  "BiPo(Rn222)";
+    else if (type == kBiPo_Rn220     ) return  "BiPo(Rn220)";
+    else if (type == k59Ni           ) return  "59Ni";
+    else if (type == k42Ar           ) return  "42Ar";
+    else if (type == k42Ar_1         ) return  "42Ar_1";
+    else if (type == k42Ar_2         ) return  "42Ar_2";
+    else if (type == k42Ar_3         ) return  "42Ar_3";
+    else if (type == k42Ar_4         ) return  "42Ar_4";
+    else if (type == k42Ar_5         ) return  "42Ar_5";
+    else if (type == kNeutronConcrete) return  "Concrete_DUNE1";
+    else
+      return "Unknown";   
+  }
+  
   /// Module to generate particles created by radiological decay, patterend off of SingleGen
   /// Currently it generates only in rectangular prisms oriented along the x,y,z axes
 
@@ -106,12 +174,12 @@ namespace evgen {
       TLorentzVector mom;
     };
     
-    void SampleOne(unsigned int i, simb::MCTruth &mct);
+    void SampleOne(int i, simb::MCTruth &mct);
 
     TLorentzVector dirCalc(double p, double m);
 
-    void readfile(std::string nuclide, std::string const& filename);
-    void samplespectrum(std::string nuclide, ParticleInfo& part);
+    void readfile(RadioType type, std::string const& filename);
+    void samplespectrum(RadioType type, ParticleInfo& part);
     void sample_beta_decay_spectrum(double Q, ParticleInfo& part);// PLasorak: A simple rejection method with beta spectrum
 
     TVector3 GetGoodPosition(double minX, double minY, double minZ, double maxX, double maxY, double maxZ, std::string material);
@@ -135,6 +203,8 @@ namespace evgen {
     // volumes with materials that match the regexes in fMaterial.  One can use wildcards * and ? for broader matches.
 
     std::vector<std::string> fNuclide;   ///< List of nuclides to simulate.  Example:  "39Ar".
+    std::vector<RadioType>   fNuclideType; /// Actual list that it's using
+
     std::vector<std::string> fMaterial;  ///< List of regexes of materials in which to generate the decays.  Example: "LAr"
     std::vector<double> fBq;             ///< Radioactivity in Becquerels (decay per sec) per cubic cm.
     std::vector<double> fT0;             ///< Beginning of time window to simulate in ns
@@ -145,6 +215,7 @@ namespace evgen {
     std::vector<double> fX1;             ///< Top corner x position (cm) in world coordinates
     std::vector<double> fY1;             ///< Top corner y position (cm) in world coordinates
     std::vector<double> fZ1;             ///< Top corner z position (cm) in world coordinates
+
     bool                fIsFirstSignalSpecial;
     int trackidcounter;                  ///< Serial number for the MC track ID
 
@@ -153,15 +224,22 @@ namespace evgen {
     // const double gevperamu = 0.931494061;
     // TGenPhaseSpace rg;  // put this here so we don't constantly construct and destruct it
 
+
+    
     std::vector<std::string> spectrumname;
-    std::vector<std::unique_ptr<TH1D>> alphaspectrum;
-    std::vector<double> alphaintegral;
-    std::vector<std::unique_ptr<TH1D>> betaspectrum;
-    std::vector<double> betaintegral;
-    std::vector<std::unique_ptr<TH1D>> gammaspectrum;
-    std::vector<double> gammaintegral;
-    std::vector<std::unique_ptr<TH1D>> neutronspectrum;
-    std::vector<double> neutronintegral;
+    
+    std::map<RadioType,std::unique_ptr<TH1D>> alphaspectrum;
+    std::map<RadioType,double> alphaintegral;
+    
+    std::map<RadioType,std::unique_ptr<TH1D>> betaspectrum;
+    std::map<RadioType,double> betaintegral;
+    
+    std::map<RadioType,std::unique_ptr<TH1D>> gammaspectrum;
+    std::map<RadioType,double> gammaintegral;
+    
+    std::map<RadioType,std::unique_ptr<TH1D>> neutronspectrum;
+    std::map<RadioType,double> neutronintegral;
+    
     CLHEP::HepRandomEngine& fEngine;
     CLHEP::RandFlat        fRandomFlat;
     CLHEP::RandExponential fRandomExponential;
@@ -190,6 +268,7 @@ namespace evgen{
   RadioGen::RadioGen(fhicl::ParameterSet const& pset)
     : EDProducer{pset}
     , fNuclide {pset.get< std::vector<std::string>>("Nuclide")}
+    , fNuclideType()
     , fMaterial{pset.get< std::vector<std::string>>("Material")}
     , fBq{pset.get< std::vector<double> >("BqPercc")}
     , fT0{pset.get< std::vector<double> >("T0")}
@@ -210,46 +289,54 @@ namespace evgen{
     , fGeo()
     , fGeoManager(fGeo->ROOTGeoManager())
   {
+    for (auto const& it: fNuclide) {
+      fNuclideType.push_back(ConvertStringToRadioType(it));
+      if (it == "Unknown") {
+        throw cet::exception("RadioGen") << "I don't know anything about the nucleus \"" << it <<"\"";
+      }
+    }
+    
     produces< std::vector<simb::MCTruth> >();
     produces< sumdata::RunData, art::InRun >();
  
     // check for consistency of vector sizes
     unsigned int nsize = fNuclide.size();
-    if (  fMaterial.size() != nsize ) throw cet::exception("RadioGen") << "Different size Material vector and Nuclide vector\n";
-    if (  fBq.size() != nsize ) throw cet::exception("RadioGen") << "Different size Bq vector and Nuclide vector\n";
-    if (  fT0.size() != nsize ) throw cet::exception("RadioGen") << "Different size T0 vector and Nuclide vector\n";
-    if (  fT1.size() != nsize ) throw cet::exception("RadioGen") << "Different size T1 vector and Nuclide vector\n";
-    if (  fX0.size() != nsize ) throw cet::exception("RadioGen") << "Different size X0 vector and Nuclide vector\n";
-    if (  fY0.size() != nsize ) throw cet::exception("RadioGen") << "Different size Y0 vector and Nuclide vector\n";
-    if (  fZ0.size() != nsize ) throw cet::exception("RadioGen") << "Different size Z0 vector and Nuclide vector\n";
-    if (  fX1.size() != nsize ) throw cet::exception("RadioGen") << "Different size X1 vector and Nuclide vector\n";
-    if (  fY1.size() != nsize ) throw cet::exception("RadioGen") << "Different size Y1 vector and Nuclide vector\n";
-    if (  fZ1.size() != nsize ) throw cet::exception("RadioGen") << "Different size Z1 vector and Nuclide vector\n";
+    if (  fMaterial.size() != nsize ) throw cet::exception("RadioGen") << "Different size Material vector and Nuclide vector";
+    if (  fBq.size() != nsize ) throw cet::exception("RadioGen") << "Different size Bq vector and Nuclide vector";
+    if (  fT0.size() != nsize ) throw cet::exception("RadioGen") << "Different size T0 vector and Nuclide vector";
+    if (  fT1.size() != nsize ) throw cet::exception("RadioGen") << "Different size T1 vector and Nuclide vector";
+    if (  fX0.size() != nsize ) throw cet::exception("RadioGen") << "Different size X0 vector and Nuclide vector";
+    if (  fY0.size() != nsize ) throw cet::exception("RadioGen") << "Different size Y0 vector and Nuclide vector";
+    if (  fZ0.size() != nsize ) throw cet::exception("RadioGen") << "Different size Z0 vector and Nuclide vector";
+    if (  fX1.size() != nsize ) throw cet::exception("RadioGen") << "Different size X1 vector and Nuclide vector";
+    if (  fY1.size() != nsize ) throw cet::exception("RadioGen") << "Different size Y1 vector and Nuclide vector";
+    if (  fZ1.size() != nsize ) throw cet::exception("RadioGen") << "Different size Z1 vector and Nuclide vector";
 
     for(std::string & nuclideName : fNuclide){
-      if(nuclideName=="39Ar"      ){readfile("39Ar", "Argon_39.root")     ;}
-      else if(nuclideName=="60Co" ){readfile("60Co", "Cobalt_60.root")    ;}
-      else if(nuclideName=="85Kr" ){readfile("85Kr", "Krypton_85.root")   ;}
-      else if(nuclideName=="40K"  ){readfile("40K",  "Potassium_40.root") ;}
-      else if(nuclideName=="232Th"){readfile("232Th","Thorium_232.root")  ;}
-      else if(nuclideName=="238U" ){readfile("238U", "Uranium_238.root")  ;}
-      else if(nuclideName=="222Rn"){continue;} //Rn222 is handled separately later
-      else if(nuclideName=="220Rn"){continue;} //Rn220 is handled separately later
-      else if(nuclideName=="BiPo(Rn222)"){continue;} //BiPo is handled separately later
-      else if(nuclideName=="BiPo(Rn220)"){continue;} //BiPo is handled separately later
-      else if(nuclideName=="59Ni" ){continue;} //Rn222 is handled separately later
-      else if(nuclideName=="42Ar" ){
-        readfile("42Ar_1", "Argon_42_1.root"); //Each possible beta decay mode of Ar42 is given it's own .root file for now.
-        readfile("42Ar_2", "Argon_42_2.root"); //This allows us to know which decay chain to follow for the dexcitation gammas.
-        readfile("42Ar_3", "Argon_42_3.root"); //The dexcitation gammas are not included in the root files as we want to
-        readfile("42Ar_4", "Argon_42_4.root"); //probabilistically simulate the correct coincident gammas, which we cannot guarantee
-        readfile("42Ar_5", "Argon_42_5.root"); //by sampling a histogram.
+      if     (nuclideName=="39Ar"          ){readfile(k39Ar           , "Argon_39.root");}
+      else if(nuclideName=="60Co"          ){readfile(k60Co           , "Cobalt_60.root");}
+      else if(nuclideName=="85Kr"          ){readfile(k85Kr           , "Krypton_85.root");}
+      else if(nuclideName=="40K"           ){readfile(k40K            , "Potassium_40.root");}
+      else if(nuclideName=="232Th"         ){readfile(k232Th          , "Thorium_232.root");}
+      else if(nuclideName=="238U"          ){readfile(k238U           , "Uranium_238.root");}
+      else if(nuclideName=="222Rn"         ){continue;} //Rn222 is handled separately later
+      else if(nuclideName=="220Rn"         ){continue;} //Rn220 is handled separately later
+      else if(nuclideName=="BiPo(Rn222)"   ){continue;} //BiPo is handled separately later
+      else if(nuclideName=="BiPo(Rn220)"   ){continue;} //BiPo is handled separately later
+      else if(nuclideName=="59Ni"          ){continue;} //Rn222 is handled separately later
+      else if(nuclideName=="42Ar"          ){
+        readfile(k42Ar_1, "Argon_42_1.root"); //Each possible beta decay mode of Ar42 is given it's own .root file for now.
+        readfile(k42Ar_2, "Argon_42_2.root"); //This allows us to know which decay chain to follow for the dexcitation gammas.
+        readfile(k42Ar_3, "Argon_42_3.root"); //The dexcitation gammas are not included in the root files as we want to
+        readfile(k42Ar_4, "Argon_42_4.root"); //probabilistically simulate the correct coincident gammas, which we cannot guarantee
+        readfile(k42Ar_5, "Argon_42_5.root"); //by sampling a histogram.
         continue;
-      } //Ar42  is handeled separately later
-      else{
+      }else{
         std::string searchName = nuclideName;
         searchName+=".root";
-        readfile(nuclideName,searchName);
+        RadioType type = ConvertStringToRadioType(nuclideName);
+        if (type == kUnknown) throw cet::exception("RadioGen") << "The nuclide name \"" << nuclideName << "\" isn't supported yet.";
+        readfile(type, searchName);
       }
     }
   }
@@ -271,13 +358,10 @@ namespace evgen{
     truth.SetOrigin(simb::kSingleParticle);
 
     trackidcounter = -1;
-    for (unsigned int i=0; i<fNuclide.size(); ++i) {
-      std::cout << "here before\n";
+    for (size_t i=0; i<fNuclideType.size(); ++i) {
       SampleOne(i,truth);
-      std::cout << "here after\n";
-    }//end loop over nuclides
+    } 
 
-    MF_LOG_DEBUG("RadioGen") << truth;
     truthcol->push_back(truth);
     evt.put(std::move(truthcol));
   }
@@ -301,10 +385,10 @@ namespace evgen{
       
       trial++;
       if (trial > 500) {
-        MF_LOG_ERROR("RadioGen") << "Cannot find the material \""<< material << "\" in the box:\n" << minX << " < x < " << maxX
-                                 << "\n" << minY << " < y < " << maxY
-                                 << "\n" << minZ << " < z < " << maxZ
-                                 << "\nBailing out after 500 attempts.";
+        throw cet::exception("RadioGen") << "Cannot find the material \""<< material << "\" in the box:\n" << minX << " < x < " << maxX
+                                         << "\n" << minY << " < y < " << maxY
+                                         << "\n" << minZ << " < z < " << maxZ
+                                         << "\nBailing out after 500 attempts.";
       }
     }
     return pos;
@@ -314,7 +398,7 @@ namespace evgen{
   //____________________________________________________________________________
   // Generate radioactive decays per nuclide per volume according to the FCL parameters
 
-  void RadioGen::SampleOne(unsigned int i, simb::MCTruth &mct)
+  void RadioGen::SampleOne(int i, simb::MCTruth &mct)
   {
     // figure out how many decays to generate, assuming that the entire prism consists of the radioactive material.
     // we will skip over decays in other materials later.
@@ -339,9 +423,7 @@ namespace evgen{
       double time = (idecay==0 && fIsFirstSignalSpecial) ? 0 : ( fT0[i] + fRandomFlat.fire()*(fT1[i] - fT0[i]));
       TVector3 pos = GetGoodPosition(fX0[i],fY0[i],fZ0[i],fX1[i],fY1[i],fZ1[i],fMaterial[i]);
 
-
-      
-      if (fNuclide[i] == "222Rn")          // Treat 222Rn separately
+      if (fNuclideType[i] == k222Rn)          // Treat 222Rn separately
       {
         double p=0; double t=0.0055904; td_Mass m=m_alpha; ti_PDGID pdgid=kAlphaPDG;
         double energy = t + m; 
@@ -356,7 +438,7 @@ namespace evgen{
         v_prods.emplace_back(part);
       }
       
-      else if (fNuclide[i] == "220Rn")          // Treat 220Rn separately
+      else if (fNuclideType[i] == k220Rn)          // Treat 220Rn separately
       {
         double p=0; double t=0.00640474; td_Mass m=m_alpha; ti_PDGID pdgid=kAlphaPDG;
         double energy = t + m; 
@@ -371,7 +453,7 @@ namespace evgen{
         v_prods.emplace_back(part);
       }
       
-      else if (fNuclide[i] == "BiPo(Rn222)")          // Treat 222Rn separately
+      else if (fNuclideType[i] == kBiPo_Rn222)          // Treat 222Rn separately
       {
         ParticleInfo part1;
         sample_beta_decay_spectrum(0.003269, part1);
@@ -392,7 +474,7 @@ namespace evgen{
         v_prods.emplace_back(part2);
       }
       
-      else if (fNuclide[i] == "BiPo(Rn220)")          // Treat 222Rn separately
+      else if (fNuclideType[i] == kBiPo_Rn220)          // Treat 222Rn separately
       {
         ParticleInfo part1;
         sample_beta_decay_spectrum(0.0022515, part1);
@@ -413,7 +495,7 @@ namespace evgen{
         v_prods.emplace_back(part2);
       }
       
-      else if(fNuclide[i] == "59Ni"){ //Treat 59Ni Calibration Source separately (as I haven't made a spectrum for it, and ultimately it should be handeled with multiple particle outputs.
+      else if(fNuclideType[i] == k59Ni){ //Treat 59Ni Calibration Source separately (as I haven't made a spectrum for it, and ultimately it should be handeled with multiple particle outputs.
         double p=0.008997; // td_Mas=double. ti_PDFID=int. Assigning p directly, as t=p for gammas.
         ParticleInfo part;
         part.mass = 0;
@@ -423,29 +505,29 @@ namespace evgen{
         v_prods.emplace_back(part);
       }//end special case Ni59 calibration source
       
-      else if(fNuclide[i] == "42Ar")
+      else if(fNuclideType[i] == k42Ar)
       {   // Spot for special treatment of Ar42.
         ParticleInfo part;
 
         double bSelect = fRandomFlat.fire();   //Make this a random number from 0 to 1.
         if(bSelect<0.819){              //beta channel 1. No Gamma. beta Q value 3525.22 keV
-          samplespectrum("42Ar_1", part);
+          samplespectrum(k42Ar_1, part);
           v_prods.emplace_back(part);
           //No gamma here.
         }else if(bSelect<0.9954){       //beta channel 2. 1 Gamma (1524.6 keV). beta Q value 2000.62
-          samplespectrum("42Ar_2", part);
+          samplespectrum(k42Ar_2, part);
           v_prods.emplace_back(part);
           Ar42Gamma2(v_prods);
         }else if(bSelect<0.9988){       //beta channel 3. 1 Gamma Channel. 312.6 keV + gamma 2. beta Q value 1688.02 keV
-          samplespectrum("42Ar_3", part);
+          samplespectrum(k42Ar_3, part);
           v_prods.emplace_back(part);
           Ar42Gamma3(v_prods);
         }else if(bSelect<0.9993){       //beta channel 4. 2 Gamma Channels. Either 899.7 keV (i 0.052) + gamma 2 or 2424.3 keV (i 0.020). beta Q value 1100.92 keV
-          samplespectrum("42Ar_4", part);
+          samplespectrum(k42Ar_4, part);
           v_prods.emplace_back(part);
           Ar42Gamma4(v_prods);
         }else{                          //beta channel 5. 3 gamma channels. 692.0 keV + 1228.0 keV + Gamma 2 (i 0.0033) ||OR|| 1021.2 keV + gamma 4 (i 0.0201) ||OR|| 1920.8 keV + gamma 2 (i 0.041). beta Q value 79.82 keV
-          samplespectrum("42Ar_5", part);
+          samplespectrum(k42Ar_5, part);
           v_prods.emplace_back(part);
           Ar42Gamma5(v_prods);
         }
@@ -458,7 +540,7 @@ namespace evgen{
       else
       { //General Case.
         ParticleInfo part;
-        samplespectrum(fNuclide[i],part);
+        samplespectrum(fNuclideType[i],part);
         part.pos = TLorentzVector(pos, time);
         v_prods.push_back(part);
       }//end else (not RN or other special case
@@ -490,8 +572,17 @@ namespace evgen{
       }//End Loop over all particles produces in this single decay.
     }
     auto end = std::chrono::steady_clock::now();
-    if (ndecays) std::cout << fNuclide[i] << " duration : " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()/ndecays << " mus/decays with "
-                           << ndecays << " decays (total time:" << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << "mus)\n";
+    if (ndecays) {
+      MF_LOG_INFO("RadioGen") << ConvertRadioTypeToString(fNuclideType[i]) << " duration : "
+                              << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()/ndecays
+                              << " mus/decays with " << ndecays << " decays (rate is " << rate << " interactions / time window) - total time:"
+                              << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << "mus";
+    } else {
+      MF_LOG_INFO("RadioGen") << ConvertRadioTypeToString(fNuclideType[i]) << " duration : "
+                              << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()
+                              << " mus with no decays (rate is " << rate << " interactions / time window)";
+    }
+
   }
 
   //Calculate an arbitrary direction with a given magnitude p
@@ -509,30 +600,52 @@ namespace evgen{
         std::sqrt(p*p+m*m)};
   }
 
-  // only reads those files that are on the fNuclide list.  Copy information from the TGraphs to TH1D's
-
-  void RadioGen::readfile(std::string nuclide, std::string const& filename)
-  {
-    bool found{false};
-    std::regex const re_argon{"42Ar.*"};
-    for (size_t i=0; i<fNuclide.size(); i++)
-    {
-      if (fNuclide[i] == nuclide){ //This check makes sure that the nuclide we are searching for is in fact in our fNuclide list. Ar42 handeled separately.
-          found = true;
-        break;
-      } //End If nuclide is in our list. Next is the special case of Ar42
-        else if (std::regex_match(nuclide, re_argon) && fNuclide[i]=="42Ar") {
-          found = true;
-        break;
+  
+  std::unique_ptr<TH1D> ParseTGraph(TGraph* graph, RadioType type, double& integral) {
+    
+    if (graph) {
+      int np = graph->GetN();
+      double *x = graph->GetX();
+      double *y = graph->GetY();
+      std::string name = "RadioGen_" + ConvertRadioTypeToString(type);
+      auto hist = std::make_unique<TH1D>(name.c_str(),(name+" Spectrum").c_str(),np,x[0],x[np-1]);
+      for (int i=0; i<np; i++) {
+        hist->SetBinContent(i+1,y[i]);
+        hist->SetBinError  (i+1,0);
       }
+      integral = hist->Integral();
+      return std::move(hist);
     }
-    if (!found) return;
+    integral = 0;
+    return nullptr;
+    
+  }
 
+  // only reads those files that are on the fNuclide list.  Copy information from the TGraphs to TH1D's
+  void RadioGen::readfile(RadioType type, std::string const& filename)
+  {
+    // bool found{false};
+
+    // for (size_t i=0; i<fNuclide.size(); i++)
+    // {
+    //   if (fNuclide[i] == nuclide){ //This check makes sure that the nuclide we are searching for is in fact in our fNuclide list. Ar42 handeled separately.
+    //       found = true;
+    //     break;
+    //   } //End If nuclide is in our list. Next is the special case of Ar42
+    //     else if (std::regex_match(nuclide, re_argon) && fNuclide[i]=="42Ar") {
+    //       found = true;
+    //     break;
+    //   }
+    // }
+    
+    // if (!found) return;
+    if (type == kUnknown) throw cet::exception("RadioGen") << "The file \"" << filename << "\" will be saved to unknown, so won't be used.";
+      
     Bool_t addStatus = TH1::AddDirectoryStatus();
     TH1::AddDirectory(kFALSE); // cloned histograms go in memory, and aren't deleted when files are closed.
     // be sure to restore this state when we're out of the routine.
 
-    spectrumname.push_back(nuclide);
+    //spectrumname.push_back(nuclide);
     cet::search_path sp("FW_SEARCH_PATH");
     std::string fn2 = "Radionuclides/";
     fn2 += filename;
@@ -545,112 +658,28 @@ namespace evgen{
         << " not found in FW_SEARCH_PATH!\n";
 
     TFile f(fullname.c_str(),"READ");
-    TGraph *alphagraph = (TGraph*) f.Get("Alphas");
-    TGraph *betagraph = (TGraph*) f.Get("Betas");
-    TGraph *gammagraph = (TGraph*) f.Get("Gammas");
+    TGraph *alphagraph   = (TGraph*) f.Get("Alphas");
+    TGraph *betagraph    = (TGraph*) f.Get("Betas");
+    TGraph *gammagraph   = (TGraph*) f.Get("Gammas");
     TGraph *neutrongraph = (TGraph*) f.Get("Neutrons");
 
-    if (alphagraph)
-    {
-      int np = alphagraph->GetN();
-      double *y = alphagraph->GetY();
-      std::string name;
-      name = "RadioGen_";
-      name += nuclide;
-      name += "_Alpha";
-      auto alphahist = std::make_unique<TH1D>(name.c_str(),"Alpha Spectrum",np,0,np);
-      for (int i=0; i<np; i++) {
-        alphahist->SetBinContent(i+1,y[i]);
-        alphahist->SetBinError(i+1,0);
-      }
-      alphaintegral.push_back(alphahist->Integral());
-      alphaspectrum.push_back(move(alphahist));
-    }
-    else
-    {
-      alphaintegral.push_back(0);
-      alphaspectrum.push_back(nullptr);
-    }
 
-
-    if (betagraph)
-    {
-      int np = betagraph->GetN();
-
-      double *y = betagraph->GetY();
-      std::string name;
-      name = "RadioGen_";
-      name += nuclide;
-      name += "_Beta";
-      auto betahist = std::make_unique<TH1D>(name.c_str(),"Beta Spectrum",np,0,np);
-      for (int i=0; i<np; i++) {
-        betahist->SetBinContent(i+1,y[i]);
-        betahist->SetBinError(i+1,0);
-      }
-      betaintegral.push_back(betahist->Integral());
-      betaspectrum.push_back(move(betahist));
-    }
-    else
-    {
-      betaintegral.push_back(0);
-      betaspectrum.push_back(nullptr);
-    }
-
-    if (gammagraph)
-    {
-      int np = gammagraph->GetN();
-      double *y = gammagraph->GetY();
-      std::string name;
-      name = "RadioGen_";
-      name += nuclide;
-      name += "_Gamma";
-      auto gammahist = std::make_unique<TH1D>(name.c_str(),"Gamma Spectrum",np,0,np);
-      for (int i=0; i<np; i++) {
-        gammahist->SetBinContent(i+1,y[i]);
-        gammahist->SetBinError(i+1,0);
-      }
-      gammaintegral.push_back(gammahist->Integral());
-      gammaspectrum.push_back(move(gammahist));
-    }
-    else
-    {
-      gammaintegral.push_back(0);
-      gammaspectrum.push_back(nullptr);
-    }
-
-    if (neutrongraph)
-    {
-      int np = neutrongraph->GetN();
-      double *y = neutrongraph->GetY();
-      std::string name;
-      name = "RadioGen_";
-      name += nuclide;
-      name += "_Neutron";
-      auto neutronhist = std::make_unique<TH1D>(name.c_str(),"Neutron Spectrum",np,0,np);
-      for (int i=0; i<np; i++)
-      {
-        neutronhist->SetBinContent(i+1,y[i]);
-        neutronhist->SetBinError(i+1,0);
-      }
-      neutronintegral.push_back(neutronhist->Integral());
-      neutronspectrum.push_back(move(neutronhist));
-    }
-    else
-    {
-      neutronintegral.push_back(0);
-      neutronspectrum.push_back(nullptr);
-    }
+    double integral = 0;
+    alphaspectrum  [type] = ParseTGraph(alphagraph,   type, integral); alphaintegral[type]   = integral;
+    betaspectrum   [type] = ParseTGraph(betagraph,    type, integral); betaintegral[type]    = integral;
+    gammaspectrum  [type] = ParseTGraph(gammagraph,   type, integral); gammaintegral[type]   = integral;
+    neutronspectrum[type] = ParseTGraph(neutrongraph, type, integral); neutronintegral[type] = integral;
 
     f.Close();
     TH1::AddDirectory(addStatus);
 
-    double total = alphaintegral.back() + betaintegral.back() + gammaintegral.back() + neutronintegral.back();
+    double total = alphaintegral[type] + betaintegral[type] + gammaintegral[type] + neutronintegral[type];
     if (total>0)
     {
-      alphaintegral.back() /= total;
-      betaintegral.back() /= total;
-      gammaintegral.back() /= total;
-      neutronintegral.back() /= total;
+      alphaintegral  [type] /= total;
+      betaintegral   [type] /= total;
+      gammaintegral  [type] /= total;
+      neutronintegral[type] /= total;
     }
   }
 
@@ -659,23 +688,12 @@ namespace evgen{
     
   }
 
-  void RadioGen::samplespectrum(std::string nuclide, ParticleInfo& part)
+  void RadioGen::samplespectrum(RadioType type, ParticleInfo& part)
   {
     double t = 0;
-    int inuc = -1;
-    for (size_t i=0; i<spectrumname.size(); i++)
-    {
-      if (nuclide == spectrumname[i])
-      {
-        inuc = i;
-        break;
-      }
-    }
-    if (inuc == -1)
-    {
-      // throw an exception in the future
+    if (type == kUnknown) {
       part.pdg = 0;
-      throw cet::exception("RadioGen") << "Ununderstood nuclide: " << nuclide;
+      throw cet::exception("RadioGen") << "Ununderstood nuclide";
     }
 
     double rtype = fRandomFlat.fire();
@@ -686,29 +704,29 @@ namespace evgen{
     
     for (int itry=0;itry<10;itry++) // maybe a tiny normalization issue with a sum of 0.99999999999 or something, so try a few times.
     {
-      if (rtype <= alphaintegral[inuc] && alphaspectrum[inuc] != nullptr)
+      if (rtype <= alphaintegral[type] && alphaspectrum[type] != nullptr)
       {
         part.pdg = 1000020040; // alpha
         part.mass = m_alpha;
-        t = samplefromth1d(*alphaspectrum[inuc])/1000000.0;
+        t = samplefromth1d(*alphaspectrum[type])/1000000.0;
       }
-      else if (rtype <= alphaintegral[inuc]+betaintegral[inuc] && betaspectrum[inuc] != nullptr)
+      else if (rtype <= alphaintegral[type]+betaintegral[type] && betaspectrum[type] != nullptr)
       {
         part.pdg = 11; // beta
         part.mass = m_e;
-        t = samplefromth1d(*betaspectrum[inuc])/1000000.0;
+        t = samplefromth1d(*betaspectrum[type])/1000000.0;
       }
-      else if ( rtype <= alphaintegral[inuc] + betaintegral[inuc] + gammaintegral[inuc] && gammaspectrum[inuc] != nullptr)
+      else if ( rtype <= alphaintegral[type] + betaintegral[type] + gammaintegral[type] && gammaspectrum[type] != nullptr)
       {
         part.pdg = 22; // gamma
         part.mass = 0;
-        t = samplefromth1d(*gammaspectrum[inuc])/1000000.0;
+        t = samplefromth1d(*gammaspectrum[type])/1000000.0;
       }
-      else if( neutronspectrum[inuc] != nullptr)
+      else if( neutronspectrum[type] != nullptr)
       {
         part.pdg = 2112;
         part.mass = m_neutron;
-        t = samplefromth1d(*neutronspectrum[inuc])/1000000.0;
+        t = samplefromth1d(*neutronspectrum[type])/1000000.0;
       }
       
       if (part.pdg >= 0) break;
@@ -716,7 +734,7 @@ namespace evgen{
     
     if (part.pdg == -1)
     {
-      throw cet::exception("RadioGen") << "Normalization problem with nuclide:  " << nuclide << "\n";
+      throw cet::exception("RadioGen") << "Normalization problem with nuclide: " << ConvertRadioTypeToString(type);
     }
     
     double e = t + part.mass;
@@ -742,7 +760,7 @@ namespace evgen{
     for (int i=1;i<=nbinsx;i++)
     {
       double hc = hist.GetBinContent(i);
-      if ( hc < 0) throw cet::exception("RadioGen") << "Negative bin:  " << i << " " << hist.GetName() << "\n";
+      if (hc < 0) throw cet::exception("RadioGen") << "Negative bin:  " << i << " " << hist.GetName() << "\n";
       partialsum[i] = partialsum[i-1] + hc;
     }
     double integral = partialsum[nbinsx];
