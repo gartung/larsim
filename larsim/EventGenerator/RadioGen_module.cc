@@ -159,6 +159,14 @@ namespace evgen {
   public:
     explicit RadioGen(fhicl::ParameterSet const& pset);
 
+    ~RadioGen() {
+      double mean=0;
+      for (auto const& it: timesamplespectrum) {
+        mean += it;
+      }
+      std::cout << "mean time " << mean / timesamplespectrum.size() << "\n";
+    }
+
   private:
     // This is called for each event.
     void produce(art::Event& evt);
@@ -246,6 +254,7 @@ namespace evgen {
     CLHEP::RandPoisson     fRandomPoisson;
     art::ServiceHandle<geo::Geometry const> fGeo;
     TGeoManager* fGeoManager;
+    std::vector<double> timesamplespectrum;
     
   };
 }
@@ -288,6 +297,7 @@ namespace evgen{
     , fRandomPoisson(fEngine)
     , fGeo()
     , fGeoManager(fGeo->ROOTGeoManager())
+    , timesamplespectrum()
   {
     for (auto const& it: fNuclide) {
       fNuclideType.push_back(ConvertStringToRadioType(it));
@@ -690,6 +700,8 @@ namespace evgen{
 
   void RadioGen::samplespectrum(RadioType type, ParticleInfo& part)
   {
+    auto start = std::chrono::steady_clock::now();
+
     double t = 0;
     if (type == kUnknown) {
       part.pdg = 0;
@@ -744,6 +756,8 @@ namespace evgen{
     else
     { p=0; }
     part.mom = dirCalc(p, part.mass);
+    auto end = std::chrono::steady_clock::now();
+    timesamplespectrum.push_back(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count());
   }
 
   // this is just a copy of TH1::GetRandom that uses the art-managed CLHEP random number generator instead of gRandom
