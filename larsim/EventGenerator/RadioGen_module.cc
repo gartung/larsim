@@ -159,14 +159,6 @@ namespace evgen {
   public:
     explicit RadioGen(fhicl::ParameterSet const& pset);
 
-    ~RadioGen() {
-      double mean=0;
-      for (auto const& it: timesamplespectrum) {
-        mean += it;
-      }
-      std::cout << "mean time " << mean / timesamplespectrum.size() << "\n";
-    }
-
   private:
     // This is called for each event.
     void produce(art::Event& evt);
@@ -190,7 +182,7 @@ namespace evgen {
     void samplespectrum(RadioType type, ParticleInfo& part);
     void sample_beta_decay_spectrum(double Q, ParticleInfo& part);// PLasorak: A simple rejection method with beta spectrum
 
-    TVector3 GetGoodPosition(double minX, double minY, double minZ, double maxX, double maxY, double maxZ, std::string material);
+    TVector3 GetGoodPosition(double minX, double minY, double minZ, double maxX, double maxY, double maxZ, std::string material, bool& flag);
     
     void Ar42Gamma2(std::vector<ParticleInfo>& v_prods);
     void Ar42Gamma3(std::vector<ParticleInfo>& v_prods);
@@ -254,8 +246,7 @@ namespace evgen {
     CLHEP::RandPoisson     fRandomPoisson;
     art::ServiceHandle<geo::Geometry const> fGeo;
     TGeoManager* fGeoManager;
-    std::vector<double> timesamplespectrum;
-    
+
   };
 }
 
@@ -297,7 +288,6 @@ namespace evgen{
     , fRandomPoisson(fEngine)
     , fGeo()
     , fGeoManager(fGeo->ROOTGeoManager())
-    , timesamplespectrum()
   {
     for (auto const& it: fNuclide) {
       fNuclideType.push_back(ConvertStringToRadioType(it));
@@ -361,6 +351,7 @@ namespace evgen{
   //____________________________________________________________________________
   void RadioGen::produce(art::Event& evt)
   {
+
     ///unique_ptr allows ownership to be transferred to the art::Event after the put statement
     std::unique_ptr< std::vector<simb::MCTruth> > truthcol(new std::vector<simb::MCTruth>);
 
@@ -377,30 +368,23 @@ namespace evgen{
   }
 
 
-  TVector3 RadioGen::GetGoodPosition(double minX, double minY, double minZ, double maxX, double maxY, double maxZ, std::string material)
+
+  TVector3 RadioGen::GetGoodPosition(double minX, double minY, double minZ, double maxX, double maxY, double maxZ, std::string material, bool& flag)
   {
-    
     int trial = 0;
     TVector3 pos;
+    flag = true;
     std::regex regex_material = (std::regex)material;
     
-    while (true) {
-      pos = TVector3(minX + fRandomFlat.fire()*(maxX - minX),
+    pos = TVector3(minX + fRandomFlat.fire()*(maxX - minX),
                      minY + fRandomFlat.fire()*(maxY - minY),
                      minZ + fRandomFlat.fire()*(maxZ - minZ));
 
-      std::string volmaterial = fGeoManager->FindNode(pos.X(),pos.Y(),pos.Z())->GetMedium()->GetMaterial()->GetName();
-      if (std::regex_match(volmaterial, regex_material))
-        break;
+    std::string volmaterial = fGeoManager->FindNode(pos.X(),pos.Y(),pos.Z())->GetMedium()->GetMaterial()->GetName();
+    
+    if (std::regex_match(volmaterial, regex_material))
+      flag = false;
       
-      trial++;
-      if (trial > 500) {
-        throw cet::exception("RadioGen") << "Cannot find the material \""<< material << "\" in the box:\n" << minX << " < x < " << maxX
-                                         << "\n" << minY << " < y < " << maxY
-                                         << "\n" << minZ << " < z < " << maxZ
-                                         << "\nBailing out after 500 attempts.";
-      }
-    }
     return pos;
   }
     
@@ -410,14 +394,14 @@ namespace evgen{
 
   void RadioGen::SampleOne(int i, simb::MCTruth &mct)
   {
+
     // figure out how many decays to generate, assuming that the entire prism consists of the radioactive material.
     // we will skip over decays in other materials later.
+    auto start = std::chrono::steady_clock::now();
 
     double rate = fabs( fBq[i] * (fT1[i] - fT0[i]) * (fX1[i] - fX0[i]) * (fY1[i] - fY0[i]) * (fZ1[i] - fZ0[i]) ) / 1.0E9;
     long ndecays = fRandomPoisson.shoot(rate);
 
-    auto start = std::chrono::steady_clock::now();
-   
     for (unsigned int idecay=0; idecay<ndecays; idecay++) {
       // generate just one particle at a time.  Need a little recoding if a radioactive
       // decay generates multiple daughters that need simulation
@@ -429,10 +413,15 @@ namespace evgen{
       // electron=11, photon=22, alpha = 1000020040, neutron = 2112
 
       //JStock: Allow us to have different particles from the same decay. This requires multiple momenta.
-      std::vector<ParticleInfo> v_prods; //(First is for PDGID, second is mass, third is Momentum)
+      bool flag = true;
+      TVector3 pos = GetGoodPosition(fX0[i],fY0[i],fZ0[i],fX1[i],fY1[i],fZ1[i],fMaterial[i], flag);
+      if (!flag)
+        continue;
+      
       double time = (idecay==0 && fIsFirstSignalSpecial) ? 0 : ( fT0[i] + fRandomFlat.fire()*(fT1[i] - fT0[i]));
-      TVector3 pos = GetGoodPosition(fX0[i],fY0[i],fZ0[i],fX1[i],fY1[i],fZ1[i],fMaterial[i]);
 
+      std::vector<ParticleInfo> v_prods; //(First is for PDGID, second is mass, third is Momentum)
+      
       if (fNuclideType[i] == k222Rn)          // Treat 222Rn separately
       {
         double p=0; double t=0.0055904; td_Mass m=m_alpha; ti_PDGID pdgid=kAlphaPDG;
@@ -553,6 +542,8 @@ namespace evgen{
         samplespectrum(fNuclideType[i],part);
         part.pos = TLorentzVector(pos, time);
         v_prods.push_back(part);
+
+
       }//end else (not RN or other special case
 
 
@@ -580,6 +571,7 @@ namespace evgen{
           mct.Add(part);
         }// end All standard cases.
       }//End Loop over all particles produces in this single decay.
+    
     }
     auto end = std::chrono::steady_clock::now();
     if (ndecays) {
@@ -592,26 +584,26 @@ namespace evgen{
                               << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()
                               << " mus with no decays (rate is " << rate << " interactions / time window)";
     }
-
+ 
   }
 
-  //Calculate an arbitrary direction with a given magnitude p
+//Calculate an arbitrary direction with a given magnitude p
   TLorentzVector RadioGen::dirCalc(double p, double m)
   {
-    // isotropic production angle for the decay product
-    double costheta = (2.0*fRandomFlat.fire() - 1.0);
-    if (costheta < -1.0) costheta = -1.0;
-    if (costheta > 1.0) costheta = 1.0;
-    double const sintheta = sqrt(1.0-costheta*costheta);
-    double const phi = 2.0*M_PI*fRandomFlat.fire();
-    return TLorentzVector{p*sintheta*std::cos(phi),
-        p*sintheta*std::sin(phi),
-        p*costheta,
-        std::sqrt(p*p+m*m)};
-  }
+  // isotropic production angle for the decay product
+  double costheta = (2.0*fRandomFlat.fire() - 1.0);
+  if (costheta < -1.0) costheta = -1.0;
+  if (costheta > 1.0) costheta = 1.0;
+  double const sintheta = sqrt(1.0-costheta*costheta);
+  double const phi = 2.0*M_PI*fRandomFlat.fire();
+  return TLorentzVector{p*sintheta*std::cos(phi),
+      p*sintheta*std::sin(phi),
+      p*costheta,
+      std::sqrt(p*p+m*m)};
+}
 
   
-  std::unique_ptr<TH1D> ParseTGraph(TGraph* graph, RadioType type, double& integral) {
+std::unique_ptr<TH1D> ParseTGraph(TGraph* graph, RadioType type, double& integral) {
     
     if (graph) {
       int np = graph->GetN();
@@ -700,7 +692,6 @@ namespace evgen{
 
   void RadioGen::samplespectrum(RadioType type, ParticleInfo& part)
   {
-    auto start = std::chrono::steady_clock::now();
 
     double t = 0;
     if (type == kUnknown) {
@@ -756,8 +747,6 @@ namespace evgen{
     else
     { p=0; }
     part.mom = dirCalc(p, part.mass);
-    auto end = std::chrono::steady_clock::now();
-    timesamplespectrum.push_back(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count());
   }
 
   // this is just a copy of TH1::GetRandom that uses the art-managed CLHEP random number generator instead of gRandom

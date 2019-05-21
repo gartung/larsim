@@ -1,0 +1,8 @@
+BEGIN_PROLOG
+
+radiogenana:
+{
+   module_type: RadioGenAna
+   MCTruthLabel: "whatever"
+
+}
