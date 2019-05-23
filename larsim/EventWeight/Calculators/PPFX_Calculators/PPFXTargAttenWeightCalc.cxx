@@ -15,10 +15,10 @@
 #include "TSystem.h"
 
 namespace evwgh {
-  class PPFXCVWeightCalc : public WeightCalc
+  class PPFXTargAttenWeightCalc : public WeightCalc
   {
      public:
-       PPFXCVWeightCalc();
+       PPFXTargAttenWeightCalc();
        void Configure(fhicl::ParameterSet const& p, CLHEP::HepRandomEngine&);
        std::vector<std::vector<double> > GetWeight(art::Event & e);
      private:
@@ -30,44 +30,42 @@ namespace evwgh {
        int fVerbose;
        NeutrinoFluxReweight::MakeReweight* fPPFXrw;
 
-     DECLARE_WEIGHTCALC(PPFXCVWeightCalc)
+     DECLARE_WEIGHTCALC(PPFXTargAttenWeightCalc)
   };
   
-  PPFXCVWeightCalc::PPFXCVWeightCalc()
+  PPFXTargAttenWeightCalc::PPFXTargAttenWeightCalc()
   {
   }
 
-  void PPFXCVWeightCalc::Configure(fhicl::ParameterSet const& p, CLHEP::HepRandomEngine&)
+  void PPFXTargAttenWeightCalc::Configure(fhicl::ParameterSet const& p, CLHEP::HepRandomEngine&)
   {
-
-
     //get configuration for this function
     fhicl::ParameterSet const &pset=p.get<fhicl::ParameterSet> (GetName());
+
+    //Prepare random generator
+    art::ServiceHandle<art::RandomNumberGenerator> rng;
+    fGaussRandom = new CLHEP::RandGaussQ(rng->getEngine(art::ScheduleID::first(), std::string("eventweight"), std::string("ppfx_targatt")));    
 
     //ppfx setup
     fInputLabels = pset.get<std::vector<std::string>>("input_labels");
     fPPFXMode    = pset.get<std::string>("ppfx_mode");
     fVerbose     = pset.get<int>("verbose");
     fMode        = pset.get<std::string>("mode");  
-    std::string module_type = "PPFXCV";
 
-    //Prepare random generator
-    art::ServiceHandle<art::RandomNumberGenerator> rng;
-    fGaussRandom = new CLHEP::RandGaussQ(rng->getEngine(art::ScheduleID::first(), module_type));
     gSystem->Setenv("MODE", fPPFXMode.c_str());
 
     fPPFXrw = NeutrinoFluxReweight::MakeReweight::getInstance();
     std::cout<<"PPFX instance "<<fPPFXrw<<std::endl;
     std::string inputOptions  =std::string(getenv("PPFX_DIR"))+"/xml/inputs_"+fPPFXMode+".xml";
     std::cout << "is PPFX setup : " << fPPFXrw->AlreadyInitialized() << std::endl;  
-    std::cout << "Setting PPFX, inputs: " << inputOptions << std::endl;    
+    std::cout << "Setting PPFX, inputs: " << inputOptions << std::endl;
     if(!(fPPFXrw->AlreadyInitialized())){
       fPPFXrw->SetOptions(inputOptions);	
     }
     std::cout << "PPFX just set with mode: " << fPPFXMode << std::endl;
   }
 
-  std::vector<std::vector<double> > PPFXCVWeightCalc::GetWeight(art::Event & e)
+  std::vector<std::vector<double> > PPFXTargAttenWeightCalc::GetWeight(art::Event & e)
   {
     std::vector<std::vector<double> > weight;
     evgb::MCTruthAndFriendsItr mcitr(e,fInputLabels);
@@ -132,29 +130,17 @@ namespace evwgh {
 	std::vector<double> wvec = {ppfx_cv_wgt};
 	weight.push_back(wvec);
       } else {
-	std::vector<double> vmipppion    = fPPFXrw->GetWeights("MIPPNumiPionYields");
-	std::vector<double> vmippkaon    = fPPFXrw->GetWeights("MIPPNumiKaonYields");
+
 	std::vector<double> vtgtatt      = fPPFXrw->GetWeights("TargetAttenuation");        
-	std::vector<double> vabsorp      = fPPFXrw->GetWeights("TotalAbsorption");
-	std::vector<double> vttpcpion    = fPPFXrw->GetWeights("ThinTargetpCPion");
-	std::vector<double> vttpckaon    = fPPFXrw->GetWeights("ThinTargetpCKaon");
-	std::vector<double> vttpcnucleon = fPPFXrw->GetWeights("ThinTargetpCNucleon");
-	std::vector<double> vttncpion    = fPPFXrw->GetWeights("ThinTargetnCPion");
-	std::vector<double> vttnucleona  = fPPFXrw->GetWeights("ThinTargetnucleonA");
-	std::vector<double> vttmesoninc  = fPPFXrw->GetWeights("ThinTargetMesonIncident");
-	std::vector<double> vothers      = fPPFXrw->GetWeights("Other");  
 
 	std::vector<double> tmp_vhptot;
 	for(unsigned int iuniv=0;iuniv<vtgtatt.size();iuniv++){
-	  tmp_vhptot.push_back(float(vmipppion[iuniv]*vmippkaon[iuniv]*vtgtatt[iuniv]*vabsorp[iuniv]*vttpcpion[iuniv]*
-				     vttpckaon[iuniv]*vttpcnucleon[iuniv]*vttncpion[iuniv]*vttnucleona[iuniv]*
-				     vttmesoninc[iuniv]*vothers[iuniv]));
+	  tmp_vhptot.push_back(float(vtgtatt[iuniv]));
 	}
 	weight.push_back(tmp_vhptot);
       }
     }
-
     return weight;
   }
-  REGISTER_WEIGHTCALC(PPFXCVWeightCalc)
+  REGISTER_WEIGHTCALC(PPFXTargAttenWeightCalc)
 }

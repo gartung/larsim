@@ -15,11 +15,11 @@
 #include "TSystem.h"
 
 namespace evwgh {
-  class PPFXOtherWeightCalc : public WeightCalc
+  class PPFXMIPPPionWeightCalc : public WeightCalc
   {
      public:
-       PPFXOtherWeightCalc();
-       void Configure(fhicl::ParameterSet const& p);
+       PPFXMIPPPionWeightCalc();
+       void Configure(fhicl::ParameterSet const& p, CLHEP::HepRandomEngine&);
        std::vector<std::vector<double> > GetWeight(art::Event & e);
      private:
        CLHEP::RandGaussQ *fGaussRandom;
@@ -30,21 +30,21 @@ namespace evwgh {
        int fVerbose;
        NeutrinoFluxReweight::MakeReweight* fPPFXrw;
 
-     DECLARE_WEIGHTCALC(PPFXOtherWeightCalc)
+     DECLARE_WEIGHTCALC(PPFXMIPPPionWeightCalc)
   };
   
-  PPFXOtherWeightCalc::PPFXOtherWeightCalc()
+  PPFXMIPPPionWeightCalc::PPFXMIPPPionWeightCalc()
   {
   }
 
-  void PPFXOtherWeightCalc::Configure(fhicl::ParameterSet const& p)
+  void PPFXMIPPPionWeightCalc::Configure(fhicl::ParameterSet const& p, CLHEP::HepRandomEngine&)
   {
     //get configuration for this function
     fhicl::ParameterSet const &pset=p.get<fhicl::ParameterSet> (GetName());
 
     //Prepare random generator
     art::ServiceHandle<art::RandomNumberGenerator> rng;
-    fGaussRandom = new CLHEP::RandGaussQ(rng->getEngine(GetName()));    
+    fGaussRandom = new CLHEP::RandGaussQ(rng->getEngine(art::ScheduleID::first(), std::string("eventweight"), std::string("ppfx_mipppi")));    
 
     //ppfx setup
     fInputLabels = pset.get<std::vector<std::string>>("input_labels");
@@ -65,7 +65,7 @@ namespace evwgh {
     std::cout << "PPFX just set with mode: " << fPPFXMode << std::endl;
   }
 
-  std::vector<std::vector<double> > PPFXOtherWeightCalc::GetWeight(art::Event & e)
+  std::vector<std::vector<double> > PPFXMIPPPionWeightCalc::GetWeight(art::Event & e)
   {
     std::vector<std::vector<double> > weight;
     evgb::MCTruthAndFriendsItr mcitr(e,fInputLabels);
@@ -130,16 +130,16 @@ namespace evwgh {
 	std::vector<double> wvec = {ppfx_cv_wgt};
 	weight.push_back(wvec);
       } else {
-	std::vector<double> vothers      = fPPFXrw->GetWeights("Other");  
+	std::vector<double> vmipppion    = fPPFXrw->GetWeights("MIPPNumiPionYields");
 
 	std::vector<double> tmp_vhptot;
-	for(unsigned int iuniv=0;iuniv<vothers.size();iuniv++){
-	  tmp_vhptot.push_back(float(vothers[iuniv]));
+	for(unsigned int iuniv=0;iuniv<vmipppion.size();iuniv++){
+	  tmp_vhptot.push_back(float(vmipppion[iuniv]));
 	}
 	weight.push_back(tmp_vhptot);
       }
     }
     return weight;
   }
-  REGISTER_WEIGHTCALC(PPFXOtherWeightCalc)
+  REGISTER_WEIGHTCALC(PPFXMIPPPionWeightCalc)
 }

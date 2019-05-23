@@ -15,11 +15,11 @@
 #include "TSystem.h"
 
 namespace evwgh {
-  class PPFXTargAttenWeightCalc : public WeightCalc
+  class PPFXThinKaonWeightCalc : public WeightCalc
   {
      public:
-       PPFXTargAttenWeightCalc();
-       void Configure(fhicl::ParameterSet const& p);
+       PPFXThinKaonWeightCalc();
+       void Configure(fhicl::ParameterSet const& p, CLHEP::HepRandomEngine&);
        std::vector<std::vector<double> > GetWeight(art::Event & e);
      private:
        CLHEP::RandGaussQ *fGaussRandom;
@@ -30,21 +30,21 @@ namespace evwgh {
        int fVerbose;
        NeutrinoFluxReweight::MakeReweight* fPPFXrw;
 
-     DECLARE_WEIGHTCALC(PPFXTargAttenWeightCalc)
+     DECLARE_WEIGHTCALC(PPFXThinKaonWeightCalc)
   };
   
-  PPFXTargAttenWeightCalc::PPFXTargAttenWeightCalc()
+  PPFXThinKaonWeightCalc::PPFXThinKaonWeightCalc()
   {
   }
 
-  void PPFXTargAttenWeightCalc::Configure(fhicl::ParameterSet const& p)
+  void PPFXThinKaonWeightCalc::Configure(fhicl::ParameterSet const& p, CLHEP::HepRandomEngine&)
   {
     //get configuration for this function
     fhicl::ParameterSet const &pset=p.get<fhicl::ParameterSet> (GetName());
 
     //Prepare random generator
     art::ServiceHandle<art::RandomNumberGenerator> rng;
-    fGaussRandom = new CLHEP::RandGaussQ(rng->getEngine(GetName()));    
+    fGaussRandom = new CLHEP::RandGaussQ(rng->getEngine(art::ScheduleID::first(), std::string("eventweight"), std::string("ppfx_think")));    
 
     //ppfx setup
     fInputLabels = pset.get<std::vector<std::string>>("input_labels");
@@ -65,7 +65,7 @@ namespace evwgh {
     std::cout << "PPFX just set with mode: " << fPPFXMode << std::endl;
   }
 
-  std::vector<std::vector<double> > PPFXTargAttenWeightCalc::GetWeight(art::Event & e)
+  std::vector<std::vector<double> > PPFXThinKaonWeightCalc::GetWeight(art::Event & e)
   {
     std::vector<std::vector<double> > weight;
     evgb::MCTruthAndFriendsItr mcitr(e,fInputLabels);
@@ -130,17 +130,16 @@ namespace evwgh {
 	std::vector<double> wvec = {ppfx_cv_wgt};
 	weight.push_back(wvec);
       } else {
-
-	std::vector<double> vtgtatt      = fPPFXrw->GetWeights("TargetAttenuation");        
+	std::vector<double> vttpckaon    = fPPFXrw->GetWeights("ThinTargetpCKaon");
 
 	std::vector<double> tmp_vhptot;
-	for(unsigned int iuniv=0;iuniv<vtgtatt.size();iuniv++){
-	  tmp_vhptot.push_back(float(vtgtatt[iuniv]));
+	for(unsigned int iuniv=0;iuniv<vttpckaon.size();iuniv++){
+	  tmp_vhptot.push_back(float(vttpckaon[iuniv]));
 	}
 	weight.push_back(tmp_vhptot);
       }
     }
     return weight;
   }
-  REGISTER_WEIGHTCALC(PPFXTargAttenWeightCalc)
+  REGISTER_WEIGHTCALC(PPFXThinKaonWeightCalc)
 }

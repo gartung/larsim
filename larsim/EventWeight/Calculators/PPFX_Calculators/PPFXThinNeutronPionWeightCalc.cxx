@@ -15,11 +15,11 @@
 #include "TSystem.h"
 
 namespace evwgh {
-  class PPFXMIPPKaonWeightCalc : public WeightCalc
+  class PPFXThinNeutronPionWeightCalc : public WeightCalc
   {
      public:
-       PPFXMIPPKaonWeightCalc();
-       void Configure(fhicl::ParameterSet const& p);
+       PPFXThinNeutronPionWeightCalc();
+       void Configure(fhicl::ParameterSet const& p, CLHEP::HepRandomEngine&);
        std::vector<std::vector<double> > GetWeight(art::Event & e);
      private:
        CLHEP::RandGaussQ *fGaussRandom;
@@ -30,21 +30,21 @@ namespace evwgh {
        int fVerbose;
        NeutrinoFluxReweight::MakeReweight* fPPFXrw;
 
-     DECLARE_WEIGHTCALC(PPFXMIPPKaonWeightCalc)
+     DECLARE_WEIGHTCALC(PPFXThinNeutronPionWeightCalc)
   };
   
-  PPFXMIPPKaonWeightCalc::PPFXMIPPKaonWeightCalc()
+  PPFXThinNeutronPionWeightCalc::PPFXThinNeutronPionWeightCalc()
   {
   }
 
-  void PPFXMIPPKaonWeightCalc::Configure(fhicl::ParameterSet const& p)
+  void PPFXThinNeutronPionWeightCalc::Configure(fhicl::ParameterSet const& p, CLHEP::HepRandomEngine&)
   {
     //get configuration for this function
     fhicl::ParameterSet const &pset=p.get<fhicl::ParameterSet> (GetName());
 
     //Prepare random generator
     art::ServiceHandle<art::RandomNumberGenerator> rng;
-    fGaussRandom = new CLHEP::RandGaussQ(rng->getEngine(GetName()));    
+    fGaussRandom = new CLHEP::RandGaussQ(rng->getEngine(art::ScheduleID::first(), std::string("eventweight"), std::string("ppfx_thinnpi")));    
 
     //ppfx setup
     fInputLabels = pset.get<std::vector<std::string>>("input_labels");
@@ -65,7 +65,7 @@ namespace evwgh {
     std::cout << "PPFX just set with mode: " << fPPFXMode << std::endl;
   }
 
-  std::vector<std::vector<double> > PPFXMIPPKaonWeightCalc::GetWeight(art::Event & e)
+  std::vector<std::vector<double> > PPFXThinNeutronPionWeightCalc::GetWeight(art::Event & e)
   {
     std::vector<std::vector<double> > weight;
     evgb::MCTruthAndFriendsItr mcitr(e,fInputLabels);
@@ -118,7 +118,6 @@ namespace evwgh {
       //RWH// these _should_ be "const <class>*" because we don't need to change them
       //RWH// and the pointers we get out of the ART record are going to be const.
       bsim::Dk2Nu* tmp_dk2nu = const_cast<bsim::Dk2Nu*>(pdk2nu);  // remove const-ness
-      //std::cerr<<"Calculate PPFX weights "<<tmp_dk2nu<<"\t"<<tmp_dkmeta<<std::endl;
       try {
 	fPPFXrw->calculateWeights(tmp_dk2nu,tmp_dkmeta);
       } catch (...) {
@@ -131,17 +130,16 @@ namespace evwgh {
 	std::vector<double> wvec = {ppfx_cv_wgt};
 	weight.push_back(wvec);
       } else {
-
-	std::vector<double> vmippkaon    = fPPFXrw->GetWeights("MIPPNumiKaonYields");
+	std::vector<double> vttncpion    = fPPFXrw->GetWeights("ThinTargetnCPion");
 
 	std::vector<double> tmp_vhptot;
-	for(unsigned int iuniv=0;iuniv<vmippkaon.size();iuniv++){
-	  tmp_vhptot.push_back(float(vmippkaon[iuniv]));
+	for(unsigned int iuniv=0;iuniv<vttncpion.size();iuniv++){
+	  tmp_vhptot.push_back(float(vttncpion[iuniv]));
 	}
 	weight.push_back(tmp_vhptot);
       }
     }
     return weight;
   }
-  REGISTER_WEIGHTCALC(PPFXMIPPKaonWeightCalc)
+  REGISTER_WEIGHTCALC(PPFXThinNeutronPionWeightCalc)
 }

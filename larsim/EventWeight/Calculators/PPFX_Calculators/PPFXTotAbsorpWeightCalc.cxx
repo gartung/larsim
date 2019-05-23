@@ -15,11 +15,11 @@
 #include "TSystem.h"
 
 namespace evwgh {
-  class PPFXThinNeutronPionWeightCalc : public WeightCalc
+  class PPFXTotAbsorpWeightCalc : public WeightCalc
   {
      public:
-       PPFXThinNeutronPionWeightCalc();
-       void Configure(fhicl::ParameterSet const& p);
+       PPFXTotAbsorpWeightCalc();
+       void Configure(fhicl::ParameterSet const& p, CLHEP::HepRandomEngine&);
        std::vector<std::vector<double> > GetWeight(art::Event & e);
      private:
        CLHEP::RandGaussQ *fGaussRandom;
@@ -30,21 +30,21 @@ namespace evwgh {
        int fVerbose;
        NeutrinoFluxReweight::MakeReweight* fPPFXrw;
 
-     DECLARE_WEIGHTCALC(PPFXThinNeutronPionWeightCalc)
+     DECLARE_WEIGHTCALC(PPFXTotAbsorpWeightCalc)
   };
   
-  PPFXThinNeutronPionWeightCalc::PPFXThinNeutronPionWeightCalc()
+  PPFXTotAbsorpWeightCalc::PPFXTotAbsorpWeightCalc()
   {
   }
 
-  void PPFXThinNeutronPionWeightCalc::Configure(fhicl::ParameterSet const& p)
+  void PPFXTotAbsorpWeightCalc::Configure(fhicl::ParameterSet const& p, CLHEP::HepRandomEngine&)
   {
     //get configuration for this function
     fhicl::ParameterSet const &pset=p.get<fhicl::ParameterSet> (GetName());
 
     //Prepare random generator
     art::ServiceHandle<art::RandomNumberGenerator> rng;
-    fGaussRandom = new CLHEP::RandGaussQ(rng->getEngine(GetName()));    
+    fGaussRandom = new CLHEP::RandGaussQ(rng->getEngine(art::ScheduleID::first(), std::string("eventweight"), std::string("ppfx_totabs")));    
 
     //ppfx setup
     fInputLabels = pset.get<std::vector<std::string>>("input_labels");
@@ -65,7 +65,7 @@ namespace evwgh {
     std::cout << "PPFX just set with mode: " << fPPFXMode << std::endl;
   }
 
-  std::vector<std::vector<double> > PPFXThinNeutronPionWeightCalc::GetWeight(art::Event & e)
+  std::vector<std::vector<double> > PPFXTotAbsorpWeightCalc::GetWeight(art::Event & e)
   {
     std::vector<std::vector<double> > weight;
     evgb::MCTruthAndFriendsItr mcitr(e,fInputLabels);
@@ -130,16 +130,16 @@ namespace evwgh {
 	std::vector<double> wvec = {ppfx_cv_wgt};
 	weight.push_back(wvec);
       } else {
-	std::vector<double> vttncpion    = fPPFXrw->GetWeights("ThinTargetnCPion");
+	std::vector<double> vabsorp      = fPPFXrw->GetWeights("TotalAbsorption");
 
 	std::vector<double> tmp_vhptot;
-	for(unsigned int iuniv=0;iuniv<vttncpion.size();iuniv++){
-	  tmp_vhptot.push_back(float(vttncpion[iuniv]));
+	for(unsigned int iuniv=0;iuniv<vabsorp.size();iuniv++){
+	  tmp_vhptot.push_back(float(vabsorp[iuniv]));
 	}
 	weight.push_back(tmp_vhptot);
       }
     }
     return weight;
   }
-  REGISTER_WEIGHTCALC(PPFXThinNeutronPionWeightCalc)
+  REGISTER_WEIGHTCALC(PPFXTotAbsorpWeightCalc)
 }
