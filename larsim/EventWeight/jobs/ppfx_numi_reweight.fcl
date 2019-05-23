@@ -142,6 +142,16 @@ reweight_numi_ppfx: {
     ppfx_mode:    "default" # "mipp_numi"
     verbose:     1
   }    
+
+  ppfx_master: {
+    type: PPFXMaster
+    random_seed:121
+    mode: reweight
+    number_of_multisims: 1
+    input_labels: [ "generator" ] #  [ "singlemixer", "genpremixer" ]
+    ppfx_mode:    "default" # "mipp_numi"
+    verbose:     1
+  }
 }
 
 END_PROLOG
