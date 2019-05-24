@@ -216,14 +216,7 @@ namespace evgen{
     double zmax = *std::max_element(fZ1.begin(), fZ1.end());
     double tmin = *std::min_element(fT0.begin(), fT0.end());
     double tmax = *std::max_element(fT1.begin(), fT1.end());
-    std::cout << "xmin " << xmin << "\n";
-    std::cout << "xmax " << xmax << "\n";
-    std::cout << "ymin " << ymin << "\n";
-    std::cout << "ymax " << ymax << "\n";
-    std::cout << "zmin " << zmin << "\n";
-    std::cout << "zmax " << zmax << "\n";
 
-    
     pos_xy_TH2D = tfs->make<TH2D>("posXY", ";X [cm];Y [cm]", 100, xmin, xmax, 100, ymin, ymax);
     pos_xz_TH2D = tfs->make<TH2D>("posXZ", ";X [cm];Z [cm]", 100, xmin, xmax, 100, zmin, zmax);
     dir_x_TH1D  = tfs->make<TH1D>("dirX", ";X momentum projection", 100, -1, 1);

@@ -1,8 +1,135 @@
 BEGIN_PROLOG
 
-radiogenana:
+RadioGenAna:
 {
    module_type: RadioGenAna
-   MCTruthLabel: "whatever"
+   MCTruthLabel: ""
+   nbin_x_pos_xy :100
+   nbin_y_pos_xy :100
+   nbin_x_pos_xz :100
+   nbin_y_pos_xz :100
+   min__x_pos_xy :-400
+   min__y_pos_xy :-400
+   min__x_pos_xz :-400
+   min__y_pos_xz :-400
+   max__x_pos_xy :400
+   max__y_pos_xy :400
+   max__x_pos_xz :400
+   max__y_pos_xz :400
+   nbin_x_dir_x  :100
+   nbin_x_dir_y  :100
+   nbin_x_dir_z  :100
+   min__x_dir_x  :-1
+   min__x_dir_y  :-1
+   min__x_dir_z  :-1
+   max__x_dir_x  :1
+   max__x_dir_y  :1
+   max__x_dir_z  :1
+   nbin_x_pdg    :100
+   nbin_x_mom    :50
+   nbin_x_time   :100
+   min__x_pdg    :0
+   min__x_mom    :0
+   min__x_time   :-2246000
+   max__x_pdg    :100
+   max__x_mom    :50
+   max__x_time   :2246000
 
 }
+
+RadioGenAnaAr39Gen:@local::RadioGenAna
+RadioGenAnaAr39Gen.MCTruthLabel: "ar39Gen"
+RadioGenAnaAr39Gen.min__x_pos_xy:-475
+RadioGenAnaAr39Gen.min__y_pos_xy:-750
+RadioGenAnaAr39Gen.min__x_pos_xz:-475
+RadioGenAnaAr39Gen.min__y_pos_xz:-55
+RadioGenAnaAr39Gen.max__x_pos_xy:475
+RadioGenAnaAr39Gen.max__y_pos_xy:800
+RadioGenAnaAr39Gen.max__x_pos_xz:475
+RadioGenAnaAr39Gen.max__y_pos_xz:1500
+
+
+RadioGenAnaAr42Gen:@local::RadioGenAna
+MCTruthLabel: "ar42Gen"
+RadioGenAnaAr42Gen.min__x_pos_xy:-475
+RadioGenAnaAr42Gen.min__y_pos_xy:-750
+RadioGenAnaAr42Gen.min__x_pos_xz:-475
+RadioGenAnaAr42Gen.min__y_pos_xz:-55
+RadioGenAnaAr42Gen.max__x_pos_xy:475
+RadioGenAnaAr42Gen.max__y_pos_xy:800
+RadioGenAnaAr42Gen.max__x_pos_xz:475
+RadioGenAnaAr42Gen.max__y_pos_xz:1500
+
+RadioGenAnaAPAGen:@local::RadioGenAna
+RadioGenAnaAPAGen.MCTruthLabel: "apaGen"
+RadioGenAnaAPAGen.min__x_pos_xy:-0.5
+RadioGenAnaAPAGen.min__y_pos_xy:-600
+RadioGenAnaAPAGen.min__x_pos_xz:-0.5
+RadioGenAnaAPAGen.min__y_pos_xz:0
+RadioGenAnaAPAGen.max__x_pos_xy:0.5
+RadioGenAnaAPAGen.max__y_pos_xy:600
+RadioGenAnaAPAGen.max__x_pos_xz:0.5
+RadioGenAnaAPAGen.max__y_pos_xz:1395
+
+
+RadioGenAnaCNeutronGen:@local::RadioGenAna
+RadioGenAnaCNeutronGen.MCTruthLabel: "cNeutronGen"
+RadioGenAnaCNeutronGen.min__x_pos_xy:-0.5
+RadioGenAnaCNeutronGen.min__y_pos_xy:-601
+RadioGenAnaCNeutronGen.min__x_pos_xz:-0.5
+RadioGenAnaCNeutronGen.min__y_pos_xz:-0.5
+RadioGenAnaCNeutronGen.max__x_pos_xy:350
+RadioGenAnaCNeutronGen.max__y_pos_xy:601
+RadioGenAnaCNeutronGen.max__x_pos_xz:350
+RadioGenAnaCNeutronGen.max__y_pos_xz:1395.5
+
+
+RadioGenAnaCPAGen:@local::RadioGenAna
+RadioGenAnaCPAGen.MCTruthLabel: "cpaGen"
+RadioGenAnaCPAGen.min__x_pos_xy:349.5
+RadioGenAnaCPAGen.min__y_pos_xy:-600
+RadioGenAnaCPAGen.min__x_pos_xz:349.5
+RadioGenAnaCPAGen.min__y_pos_xz:0
+RadioGenAnaCPAGen.max__x_pos_xy:350.5
+RadioGenAnaCPAGen.max__y_pos_xy:600
+RadioGenAnaCPAGen.max__x_pos_xz:350.5
+RadioGenAnaCPAGen.max__y_pos_xz:1395
+
+
+RadioGenAnaKr85Gen:@local::RadioGenAna
+RadioGenAnaKr85Gen.MCTruthLabel: "kr85Gen"
+RadioGenAnaKr85Gen.min__x_pos_xy:-475
+RadioGenAnaKr85Gen.min__y_pos_xy:-750
+RadioGenAnaKr85Gen.min__x_pos_xz:-475
+RadioGenAnaKr85Gen.min__y_pos_xz:-55
+RadioGenAnaKr85Gen.max__x_pos_xy:475
+RadioGenAnaKr85Gen.max__y_pos_xy:800
+RadioGenAnaKr85Gen.max__x_pos_xz:475
+RadioGenAnaKr85Gen.max__y_pos_xz:1500
+
+RadioGenAnaRn222Gen:@local::RadioGenAna
+RadioGenAnaRn222Gen.MCTruthLabel: "rn222Gen"
+RadioGenAnaRn222Gen.min__x_pos_xy:-475
+RadioGenAnaRn222Gen.min__y_pos_xy:-750
+RadioGenAnaRn222Gen.min__x_pos_xz:-475
+RadioGenAnaRn222Gen.min__y_pos_xz:-55
+RadioGenAnaRn222Gen.max__x_pos_xy:475
+RadioGenAnaRn222Gen.max__y_pos_xy:800
+RadioGenAnaRn222Gen.max__x_pos_xz:475
+RadioGenAnaRn222Gen.max__y_pos_xz:1500
+
+
+RadioGenAnaPo210Gen:@local::RadioGenAna
+RadioGenAnaPo210Gen.MCTruthLabel: "po210Gen"
+RadioGenAnaPo210Gen.min__x_pos_xy:0.477
+RadioGenAnaPo210Gen.min__y_pos_xy:-600
+RadioGenAnaPo210Gen.min__x_pos_xz:0.477
+RadioGenAnaPo210Gen.min__y_pos_xz:0
+RadioGenAnaPo210Gen.max__x_pos_xy:1.477
+RadioGenAnaPo210Gen.max__y_pos_xy:600
+RadioGenAnaPo210Gen.max__x_pos_xz:1.477
+RadioGenAnaPo210Gen.max__y_pos_xz:1395
+
+
+END_PROLOG
+
