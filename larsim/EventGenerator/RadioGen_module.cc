@@ -74,9 +74,9 @@
 #include "TFile.h"
 #include "TH1D.h"
 #include "TH2D.h"
+#include "TF1.h"
 #include "TGraph.h"
 #include "TVector3.h"
-
 #include "CLHEP/Random/RandExponential.h"
 #include "CLHEP/Random/RandFlat.h"
 #include "CLHEP/Random/RandPoisson.h"
@@ -98,8 +98,8 @@ namespace evgen {
     void beginJob();
     void endJob();
 
-    typedef int            ti_PDGID;  // These typedefs may look odd, and unecessary. I chose to use them to make the tuples I use later more readable. ti, type integer :JStock
-    typedef double         td_Mass;   // These typedefs may look odd, and unecessary. I chose to use them to make the tuples I use later more readable. td, type double  :JStock
+    typedef int    ti_PDGID;  // These typedefs may look odd, and unecessary. I chose to use them to make the tuples I use later more readable. ti, type integer :JStock
+    typedef double td_Mass;   // These typedefs may look odd, and unecessary. I chose to use them to make the tuples I use later more readable. td, type double  :JStock
 
     struct ParticleInfo{
       ti_PDGID pdg;
@@ -114,7 +114,10 @@ namespace evgen {
 
     void readfile(std::string type, std::string const& filename);
     void samplespectrum(std::string nuclideName, ParticleInfo& part);
-    void sample_beta_decay_spectrum(double Q, ParticleInfo& part);// PLasorak: A simple rejection method with beta spectrum
+    ParticleInfo AlphaDecay(double t, TVector3 pos, double time);
+    ParticleInfo BetaDecay(double t, TVector3 pos, double time, double Z);
+    std::vector<ParticleInfo> BetaThenAlphaDecay(double t_beta, double t_alpha, double t_mean, TVector3 pos, double time, double Z);
+    double sample_beta_decay_spectrum(double Q, double Z);  // PLasorak: A simple rejection method with beta spectrum
 
     TVector3 GetGoodPosition(double minX, double minY, double minZ, double maxX, double maxY, double maxZ, std::string material, bool& flag);
     
@@ -187,13 +190,15 @@ namespace evgen {
     TH1D* pdg_TH1D   ;
     TH1D* mom_TH1D   ;
     TH1D* time_TH1D  ;
+    TH1D* timediff_TH1D;
+    TF1 fBetaSpectrum;
   };
 }
 
 namespace {
   
-  constexpr double m_e = 0.000510998928;  // mass of electron in GeV
-  constexpr double m_alpha = 3.727379240; // mass of an alpha particle in GeV
+  constexpr double m_e       = 0.000510998928; // mass of electron in GeV
+  constexpr double m_alpha   = 3.727379240; // mass of an alpha particle in GeV
   constexpr double m_neutron = 0.9395654133; // mass of a neutron in GeV
   
   constexpr int kAlphaPDG    = 1000020040;
@@ -223,8 +228,9 @@ namespace evgen{
     dir_y_TH1D  = tfs->make<TH1D>("dirY", ";Y momentum projection", 100, -1, 1);
     dir_z_TH1D  = tfs->make<TH1D>("dirZ", ";Z momentum projection", 100, -1, 1);
     pdg_TH1D    = tfs->make<TH1D>("PDG", ";PDG;n particles", 100, 0, 100);
-    mom_TH1D    = tfs->make<TH1D>("Momentum", ";Momentum [MeV];n particles", 50, 0, 50);
+    mom_TH1D    = tfs->make<TH1D>("Momentum", ";Momentum [MeV];n particles", 5000, 0, 500);
     time_TH1D   = tfs->make<TH1D>("Time", ";Time[ns];n particles", 100, tmin, tmax);
+    timediff_TH1D = tfs->make<TH1D>("TimeDiff", ";Time Diff[ns];n particles", (int)(tmax/100), 0, tmax);
   }
   
   void RadioGen::endJob(){
@@ -270,6 +276,8 @@ namespace evgen{
     , pdg_TH1D ()
     , mom_TH1D ()
     , time_TH1D()
+    , timediff_TH1D()
+    , fBetaSpectrum("BetaSpectrum", "TMath::Sqrt(x*x+2*x*0.511)*TMath::Power([0]-x,2)*(x+0.511)/(1+TMath::Exp((x-[0])/[1]))")
   {
     
     produces< std::vector<simb::MCTruth> >();
@@ -289,17 +297,18 @@ namespace evgen{
     if (  fZ1.size() != nsize ) throw cet::exception("RadioGen") << "Different size Z1 vector and Nuclide vector";
 
     for(std::string & nuclideName : fNuclide){
-      if     (nuclideName=="39Ar"          ){readfile(nuclideName, "Argon_39.root");}
-      else if(nuclideName=="60Co"          ){readfile(nuclideName, "Cobalt_60.root");}
-      else if(nuclideName=="85Kr"          ){readfile(nuclideName, "Krypton_85.root");}
+      if     (nuclideName=="39Ar"          ){readfile(nuclideName, "Argon_39.root"    );}
+      else if(nuclideName=="60Co"          ){readfile(nuclideName, "Cobalt_60.root"   );}
+      else if(nuclideName=="85Kr"          ){readfile(nuclideName, "Krypton_85.root"  );}
       else if(nuclideName=="40K"           ){readfile(nuclideName, "Potassium_40.root");}
-      else if(nuclideName=="232Th"         ){readfile(nuclideName, "Thorium_232.root");}
-      else if(nuclideName=="238U"          ){readfile(nuclideName, "Uranium_238.root");}
-      else if(nuclideName=="222Rn"         ){continue;} //Rn222 is handled separately later
-      else if(nuclideName=="220Rn"         ){continue;} //Rn220 is handled separately later
-      else if(nuclideName=="BiPo(Rn222)"   ){continue;} //BiPo is handled separately later
-      else if(nuclideName=="BiPo(Rn220)"   ){continue;} //BiPo is handled separately later
-      else if(nuclideName=="59Ni"          ){continue;} //Rn222 is handled separately later
+      else if(nuclideName=="232Th"         ){readfile(nuclideName, "Thorium_232.root" );}
+      else if(nuclideName=="238U"          ){readfile(nuclideName, "Uranium_238.root" );}
+      else if(nuclideName=="226Ra"         ){continue;} //All these are handled separately later
+      else if(nuclideName=="222Rn"         ){continue;} //...
+      else if(nuclideName=="218Po"         ){continue;} //...
+      else if(nuclideName=="214Pb"         ){continue;} //...
+      else if(nuclideName=="BiPo(Rn222)"   ){continue;} //...
+      else if(nuclideName=="59Ni"          ){continue;} 
       else if(nuclideName=="42Ar"          ){
         readfile("42Ar_1", "Argon_42_1.root"); //Each possible beta decay mode of Ar42 is given it's own .root file for now.
         readfile("42Ar_2", "Argon_42_2.root"); //This allows us to know which decay chain to follow for the dexcitation gammas.
@@ -331,7 +340,6 @@ namespace evgen{
 
     simb::MCTruth truth;
     truth.SetOrigin(simb::kSingleParticle);
-
     trackidcounter = -1;
     for (size_t i=0; i<fNuclide.size(); ++i) {
       SampleOne(i,truth);
@@ -339,6 +347,7 @@ namespace evgen{
 
     truthcol->push_back(truth);
     evt.put(std::move(truthcol));
+
   }
 
 
@@ -360,8 +369,43 @@ namespace evgen{
       
     return pos;
   }
-    
+
   
+  RadioGen::ParticleInfo RadioGen::AlphaDecay(double t, TVector3 pos, double time)
+  {
+    double p=0; td_Mass m=m_alpha; ti_PDGID pdgid=kAlphaPDG;
+    double energy = t + m; 
+    double p2     = energy*energy - m*m;
+    if (p2 > 0) p = TMath::Sqrt(p2);
+    else        p = 0;
+    ParticleInfo part;
+    part.mass = m_alpha;
+    part.pdg  = kAlphaPDG;
+    part.mom  = dirCalc(p, m);
+    part.pos  = TLorentzVector(pos, time);
+    return part;
+  }
+  
+  RadioGen::ParticleInfo RadioGen::BetaDecay(double t, TVector3 pos, double time, double Z)
+  {
+    ParticleInfo part;
+    part.mass = m_e;
+    part.pdg  = kElectronPDG;
+    double ke = sample_beta_decay_spectrum(t, Z);
+    double mom = TMath::Sqrt(TMath::Power(ke+part.mass,2) - TMath::Power(+part.mass,2));
+    part.mom  = dirCalc(mom, part.mass);
+    part.pos  = TLorentzVector(pos, time);
+    return part;
+  }
+  
+  std::vector<RadioGen::ParticleInfo> RadioGen::BetaThenAlphaDecay(double t_beta, double t_alpha, double t_mean, TVector3 pos, double time, double Z)
+  {
+    std::vector<ParticleInfo> vec;
+    vec.emplace_back(BetaDecay(t_beta, pos, time, Z));
+    vec.emplace_back(AlphaDecay(t_alpha, pos, time+fRandomExponential.fire(t_mean)));
+    return vec;
+  }
+
   //____________________________________________________________________________
   // Generate radioactive decays per nuclide per volume according to the FCL parameters
 
@@ -397,74 +441,31 @@ namespace evgen{
       
       if (fNuclide[i] == "222Rn")          // Treat 222Rn separately
       {
-        double p=0; double t=0.0055904; td_Mass m=m_alpha; ti_PDGID pdgid=kAlphaPDG;
-        double energy = t + m; 
-        double p2     = energy*energy - m*m;
-        if (p2 > 0) p = TMath::Sqrt(p2);
-        else        p = 0;
-        ParticleInfo part;
-        part.mass = m_alpha;
-        part.pdg = kAlphaPDG;
-        part.mom = dirCalc(p, m);
-        part.pos = TLorentzVector(pos, time);
-        v_prods.emplace_back(part);
+        v_prods.emplace_back(AlphaDecay(0.0055904, pos, time));
       }
       
-      else if (fNuclide[i] == "220Rn")          // Treat 220Rn separately
+      else if(fNuclide[i] == "226Ra")
       {
-        double p=0; double t=0.00640474; td_Mass m=m_alpha; ti_PDGID pdgid=kAlphaPDG;
-        double energy = t + m; 
-        double p2     = energy*energy - m*m;
-        if (p2 > 0) p = TMath::Sqrt(p2);
-        else        p = 0;
-        ParticleInfo part;
-        part.mass = m_alpha;
-        part.pdg = kAlphaPDG;
-        part.mom = dirCalc(p, m);
-        part.pos = TLorentzVector(pos, time);
-        v_prods.emplace_back(part);
+        v_prods.emplace_back(AlphaDecay(0.0050975, pos, time));
       }
       
-      else if (fNuclide[i] == "BiPo_Rn222")          // Treat 222Rn separately
+      else if(fNuclide[i] == "218Po")
       {
-        ParticleInfo part1;
-        sample_beta_decay_spectrum(0.003269, part1);
-        part1.pos = TLorentzVector(pos, time);
-        v_prods.emplace_back(part1);
-
-        ParticleInfo part2;
-        part2.mass = m_alpha;
-        part2.pdg = kAlphaPDG;
-        double t = 0.00783354;
-        double energy = t + part2.mass; 
-        double p2     = energy*energy - part2.mass*part2.mass;
-        double p = 0;
-        if (p2 > 0) p = TMath::Sqrt(p2);
-        else        p = 0;
-        part2.mom = dirCalc(p, part2.mass);
-        part2.pos = TLorentzVector(pos, time+fRandomExponential.fire(164000));
-        v_prods.emplace_back(part2);
+        v_prods.emplace_back(AlphaDecay(0.00611475, pos, time));
       }
       
-      else if (fNuclide[i] == "BiPo_Rn220")          // Treat 222Rn separately
+      else if(fNuclide[i]=="214Pb")
       {
-        ParticleInfo part1;
-        sample_beta_decay_spectrum(0.0022515, part1);
-        part1.pos = TLorentzVector(pos, time);
-        v_prods.emplace_back(part1);
-
-        ParticleInfo part2;
-        part2.mass = m_alpha;
-        part2.pdg = kAlphaPDG;
-        double t = 0.0089542;
-        double energy = t + part2.mass; 
-        double p2     = energy*energy - part2.mass*part2.mass;
-        double p = 0;
-        if (p2 > 0) p = TMath::Sqrt(p2);
-        else        p = 0;
-        part2.mom = dirCalc(p, part2.mass);
-        part2.pos = TLorentzVector(pos, time+fRandomExponential.fire(299));
-        v_prods.emplace_back(part2);
+        v_prods.emplace_back(BetaDecay(0.002240300, pos, time, 83));
+      }
+      
+      else if (fNuclide[i] == "BiPo(Rn222)")          // Treat 222Rn separately
+      {
+        std::vector<ParticleInfo> bipo_prod = BetaThenAlphaDecay(0.003269, 0.00783354, 164000, pos, time, 84);
+        timediff_TH1D->Fill(bipo_prod[1].pos.T() - bipo_prod[0].pos.T());
+        for (auto const& p: bipo_prod) {
+          v_prods.emplace_back(p);
+        }
       }
       
       else if(fNuclide[i] == "59Ni"){ //Treat 59Ni Calibration Source separately (as I haven't made a spectrum for it, and ultimately it should be handeled with multiple particle outputs.
@@ -515,8 +516,6 @@ namespace evgen{
         samplespectrum(fNuclide[i],part);
         part.pos = TLorentzVector(pos, time);
         v_prods.push_back(part);
-
-
       }//end else (not RN or other special case
 
 
@@ -564,17 +563,17 @@ namespace evgen{
 //Calculate an arbitrary direction with a given magnitude p
   TLorentzVector RadioGen::dirCalc(double p, double m)
   {
-  // isotropic production angle for the decay product
-  double costheta = (2.0*fRandomFlat.fire() - 1.0);
-  if (costheta < -1.0) costheta = -1.0;
-  if (costheta > 1.0) costheta = 1.0;
-  double const sintheta = sqrt(1.0-costheta*costheta);
-  double const phi = 2.0*M_PI*fRandomFlat.fire();
-  return TLorentzVector{p*sintheta*std::cos(phi),
-      p*sintheta*std::sin(phi),
-      p*costheta,
-      std::sqrt(p*p+m*m)};
-}
+    // isotropic production angle for the decay product
+    double costheta = (2.0*fRandomFlat.fire() - 1.0);
+    if (costheta < -1.0) costheta = -1.0;
+    if (costheta > 1.0) costheta = 1.0;
+    double const sintheta = sqrt(1.0-costheta*costheta);
+    double const phi = 2.0*M_PI*fRandomFlat.fire();
+    return TLorentzVector{p*sintheta*std::cos(phi),
+        p*sintheta*std::sin(phi),
+        p*costheta,
+        std::sqrt(p*p+m*m)};
+  }
 
   
   std::unique_ptr<TH1D> ParseTGraph(TGraph* graph, std::string type, double& integral) {
@@ -661,9 +660,13 @@ namespace evgen{
     }
   }
 
-  void RadioGen::sample_beta_decay_spectrum(double Q, ParticleInfo& part) {  // PLasorak: A simple rejection method with beta spectrum
-    
-    
+  double RadioGen::sample_beta_decay_spectrum(double Q, double Z) {  // PLasorak: A simple rejection method with beta spectrum
+    fBetaSpectrum.SetParameter(0, Q*1000.);
+    fBetaSpectrum.SetParameter(1, Z);
+    //  TCanvas c;
+    //fBetaSpectrum.DrawF1(0, Q*1000.);
+    //c.SaveAs("beta.png");
+    return fBetaSpectrum.GetRandom(0, Q*1000.) / 1000.;
   }
 
   void RadioGen::samplespectrum(std::string type, ParticleInfo& part)
@@ -675,6 +678,17 @@ namespace evgen{
     part.pdg = -1;
     part.mass = 0;
     part.mom = TLorentzVector(0,0,0,0);
+
+    try {
+      (void)alphaspectrum.at(type);
+      (void)alphaintegral.at(type);
+      (void)betaintegral .at(type);
+      (void)betaspectrum .at(type);
+      (void)gammaintegral.at(type);
+      (void)gammaspectrum.at(type);
+    } catch (...) {
+      throw cet::exception("RadioGen") << "Missing information for : " << type << "\n";
+    }
     
     for (int itry=0;itry<10;itry++) // maybe a tiny normalization issue with a sum of 0.99999999999 or something, so try a few times.
     {
@@ -748,7 +762,6 @@ namespace evgen{
     if (r1 > partialsum[ibin]) {
       x += hist.GetBinWidth(ibin+1)*(r1-partialsum[ibin])/(partialsum[ibin+1] - partialsum[ibin]);
     }
-    //std::cout << x << std::endl;
     return x;
   }
 
