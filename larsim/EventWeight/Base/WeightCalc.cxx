@@ -15,6 +15,15 @@
 #include "CLHEP/Random/RandGaussQ.h"
 
 namespace evwgh { 
+  void WeightCalc::SetupParameterTree(std::string treeName, std::string title) {
+    art::ServiceHandle<art::TFileService> tfs;
+    fParameterTree = tfs->make<TTree>(treeName.c_str(), title.c_str());
+    fParameterNameBr = new TString();
+    fParameterValBr = new std::vector<float>();
+    fParameterTree->Branch("name", &fParameterNameBr);
+    fParameterTree->Branch("values", &fParameterValBr);
+  }
+
   std::vector<std::vector<double> > WeightCalc::MultiGaussianSmearing(std::vector<double> const& centralValue,std::vector< std::vector<double> > const& inputCovarianceMatrix,int n_multisims,CLHEP::RandGaussQ& GaussRandom)
   {
 

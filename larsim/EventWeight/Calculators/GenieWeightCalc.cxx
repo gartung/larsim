@@ -8,8 +8,12 @@
 
 #include "larsim/EventWeight/Base/WeightCalcCreator.h"
 #include "larsim/EventWeight/Base/WeightCalc.h"
+#include "art/Framework/Services/Registry/ServiceHandle.h"
+#include "art/Framework/Services/Optional/TFileService.h"
 
 #include "CLHEP/Random/RandGaussQ.h"
+#include "TTree.h"
+#include "TString.h"
 
 #include "nutools/NuReweight/art/NuReweight.h" //GENIEReweight.h"
 #include "nutools/NuReweight/GENIEReweight.h"
@@ -33,6 +37,8 @@ namespace evwgh {
     std::vector<rwgt::NuReweight> reweightVector;
 
     std::string fGenieModuleLabel;
+
+    TTree* fParameterTree;
 
     // What follows is the list of sereighting parameters present in LArSoft.
     // Parameters with a (*) contains more that one reweighing parameter at the same time.
@@ -170,6 +176,8 @@ namespace evwgh {
       }
     }
 
+    SetupParameterTree("genie_parameters", "GENIE Parameters");
+
     //Prepare sigmas
     std::vector<std::vector<float>> reweightingSigmas(erwgh.size());
 
@@ -186,6 +194,10 @@ namespace evwgh {
 	else
 	  reweightingSigmas[i][j] = parsigmas[i];
       }
+
+      *fParameterNameBr = pars[i];
+      *fParameterValBr = reweightingSigmas[i];
+      fParameterTree->Fill();
     }
 
     reweightVector.resize(number_of_multisims);

@@ -7,9 +7,12 @@
 #include "CLHEP/Random/RandomEngine.h"
 #include "CLHEP/Random/RandGaussQ.h"
 
+#include "TString.h"
+#include "TTree.h"
 #include "TMatrixD.h"
 #include <string>
 #include <map>
+#include <vector>
 
 //weight calc base
 namespace evwgh {
@@ -23,6 +26,8 @@ namespace evwgh {
     virtual std::vector<std::vector<double> > GetWeight(art::Event & e) = 0; 
     void                        SetName(std::string name) {fName=name;}
     std::string                 GetName() {return fName;}
+
+    void SetupParameterTree(std::string treeName, std::string title="");
     
     /**
      * @brief Applies Gaussian smearing to a set of data
@@ -49,7 +54,11 @@ namespace evwgh {
                                                 TMatrixD* const& LowerTriangleCovarianceMatrix, 
 						bool isDecomposed,
                                                 std::vector<double> rand);
-    
+
+  protected:
+    TTree* fParameterTree;
+    TString* fParameterNameBr;
+    std::vector<float>* fParameterValBr;
 
   private:
     std::string fName;
