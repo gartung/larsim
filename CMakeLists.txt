@@ -21,10 +21,10 @@ project(larsim VERSION 8.03.03 LANGUAGES CXX)
 set(fcl_dir job)
 set(gdml_dir gdml)
 set(fw_dir fw)
-find_package( cetmodules )
+
+find_package(cetmodules REQUIRED)
 include(CetCMakeEnv)
 cet_cmake_env()
-include(ParseVersion)
 
 # -Wno-unused-variable needed because of CLHEP
 cet_set_compiler_flags(DIAGS CAUTIOUS
@@ -32,18 +32,27 @@ cet_set_compiler_flags(DIAGS CAUTIOUS
   NO_UNDEFINED
   EXTRA_FLAGS -pedantic -Wno-unused-local-typedefs -Wno-unused-variable
 )
-add_definitions(-DGENIE_PRE_R3)
 
 cet_report_compiler_flags()
 
-# these are minimum required versions, not the actual product versions
-find_package( larevt REQUIRED )
-find_package( marley )
-find_package( larsoft-data )
+# nutools
+find_package(nutools REQUIRED)
 
-find_library( CRY NAMES CRY )
-find_library( SQLITE3 NAMES sqlite3 )
-# genie
+find_package(larevt REQUIRED)
+cet_find_simple_package(cry HEADERS CRYSetup.h INCPATH_SUFFIXES src)
+cet_find_simple_package(sqlite3)
+cet_find_simple_package(ifdh INCPATH_SUFFIXES inc)
+
+####################################
+# GENIE
+include(ParseVersion)
+parse_underscored_version( ${GENIE_VERSION} )
+
+if (VMAJ GREATER_EQUAL 3)
+  message(FATAL_ERROR "larsim does not yet support GENIE v3")
+endif()
+
+add_definitions(-DGENIE_PRE_R3)
 cet_find_library( GALGORITHM NAMES GAlgorithm )
 cet_find_library( GBARYONRESONANCE NAMES GBaryonResonance )
 cet_find_library( GBASE NAMES GBase )
@@ -78,17 +87,33 @@ cet_find_library( GPDF NAMES GPDF )
 cet_find_library( GQEL NAMES GQEL )
 cet_find_library( GRES NAMES GRES )
 cet_find_library( GREGISTRY NAMES GRegistry )
-cet_find_library( GREINSEGHAL NAMES GReinSeghal )
+#cet_find_library( GREINSEGHAL NAMES GReinSeghal )
 cet_find_library( GUTILS NAMES GUtils )
 cet_find_library( GGEO NAMES GGeo )
 cet_find_library( GFLUXDRIVERS NAMES GFluxDrivers )
 cet_find_library( GMUELOSS NAMES GMuELoss )
-# marley libraries
-cet_find_library( MARLEY NAMES MARLEY )
-cet_find_library( MARLEY_ROOT NAMES MARLEY_ROOT )
+cet_find_library( GREWEIGHT NAMES GReWeight )
+cet_find_library( GNUCLEONDECAY NAMES GNucleonDecay )
+cet_find_library( GNEUTRONOSC NAMES GNeutronOsc )
+# prior to GENIE R-2_9_0 Sehgal's name was spelled incorrectly
+# so if minor version # is 8 or less use GReinSeghal, otherwise GReinSehgal
+# parse_ups_version returns VMAJ, VMIN, and VPRJ
+set ( GRSSPELLING GReinSehgal )
+if ( VMAJ EQUAL 2 AND VMIN LESS 9 )
+  set ( GRSSPELLING GReinSeghal )
+endif ( VMAJ EQUAL 2 AND VMIN LESS 9 )
+message(STATUS "GENIE version ${GENIE_VERSION} major ${VMAJ} minor ${VMIN} ${GRSSPELLING}")
+cet_find_library( GREINSEHGAL NAMES ${GRSSPELLING} )
 
-# temporarily needed since this is an unexpected header path
-include_directories( ${IFDHC_DIR}/inc )
+find_path(genie_inc
+  NAMES Conventions/Units.h Framework/Conventions/Units.h
+  PATH_SUFFIXES GENIE
+  NO_SYSTEM_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
+include_directories(${genie_inc})
+####################################
+
+# Last to avoid clash with Geant4.
+find_package(CLHEP REQUIRED)
 
 # macros for dictionary and simple_plugin
 include(ArtDictionary)
