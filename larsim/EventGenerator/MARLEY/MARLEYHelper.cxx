@@ -18,6 +18,8 @@
 #include "TROOT.h"
 
 // MARLEY includes
+#include "marley/marley_utils.hh"
+#include "marley/MassTable.hh"
 #include "marley/Event.hh"
 #include "marley/RootJSONConfig.hh"
 
@@ -94,14 +96,33 @@ void evgen::MARLEYHelper::add_marley_particles(simb::MCTruth& truth,
     double py = p->py() * MeV_to_GeV;
     double pz = p->pz() * MeV_to_GeV;
     double E = p->total_energy() * MeV_to_GeV;
-    TLorentzVector mom(px, py, pz, E);
 
     int status = 0; // don't track the particles in LArG4 by default
     if (track) status = 1;
 
-    simb::MCParticle part(trackID /* trackID to use in Geant4 */, pdg,
-      "MARLEY", -1 /* primary particle */, mass, status);
+    simb::MCParticle part;
 
+    // Make "fake protons" from alphas in the event (for testing purposes only!)
+    if ( pdg == marley_utils::ALPHA ) {
+
+      // Change the momentum of the fake proton to preserve energy conservation
+      mass = marley::MassTable::Instance().get_particle_mass(marley_utils::PROTON) * MeV_to_GeV;
+      double new_p = marley_utils::real_sqrt( E*E - mass*mass );
+
+      px = new_p * px / marley_utils::real_sqrt(px*px + py*py + pz*pz);
+      py = new_p * py / marley_utils::real_sqrt(px*px + py*py + pz*pz);
+      pz = new_p * pz / marley_utils::real_sqrt(px*px + py*py + pz*pz);
+
+      part = simb::MCParticle(trackID /* trackID to use in Geant4 */, marley_utils::PROTON,
+        "MARLEY", -1 /* primary particle */, mass, status);
+    }
+    else {
+      part = simb::MCParticle(trackID /* trackID to use in Geant4 */, pdg,
+        "MARLEY", -1 /* primary particle */, mass, status);
+
+    }
+
+    TLorentzVector mom(px, py, pz, E);
     part.AddTrajectoryPoint(vtx_pos, mom);
     truth.Add(part);
   }
