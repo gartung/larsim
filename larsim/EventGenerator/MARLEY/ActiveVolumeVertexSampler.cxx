@@ -157,7 +157,7 @@ TLorentzVector evgen::ActiveVolumeVertexSampler::sample_vertex_pos(
   // Update the vertex 4-position with the new time
   fVertexPosition.SetT( t );
   MF_LOG_INFO("ActiveVolumeVertexSampler " + fGeneratorName)
-    << "Primary vertex time is t =" << t;
+    << "Primary vertex time is t = " << t;
 
   return fVertexPosition;
 }
@@ -223,8 +223,8 @@ void evgen::ActiveVolumeVertexSampler::reconfigure(
     << " 'sampled' and 'fixed'";
 
   auto time_type = conf().time_type_();
-  if (type == "uniform") fTimeType = time_type_t::kUniform;
-  else if (type == "gaussian") fTimeType = time_type_t::kGaussian;
+  if (time_type == "uniform") fTimeType = time_type_t::kUniform;
+  else if (time_type == "gaussian") fTimeType = time_type_t::kGaussian;
   else throw cet::exception("ActiveVolumeVertexSampler " + fGeneratorName)
     << "Invalid vertex time type '" << time_type << "' requested. Allowed values are"
     << " 'uniform' and 'gaussian'";

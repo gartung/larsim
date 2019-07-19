@@ -82,7 +82,7 @@ namespace evgen {
         };
 
         fhicl::Atom<double> T0_ {
-          Name("t0"),
+          Name("T0"),
           Comment("Central time (s) to use for the vertex"),
           0. // default value
         };
@@ -120,7 +120,6 @@ namespace evgen {
         const geo::Geometry& geom);
 
       // Function that selects a primary vertex location for each event.
-      // TODO: add time sampling
       TLorentzVector sample_vertex_pos(const geo::Geometry& geom);
 
     protected:
