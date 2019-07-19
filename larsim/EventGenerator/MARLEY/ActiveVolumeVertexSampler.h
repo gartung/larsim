@@ -81,9 +81,29 @@ namespace evgen {
           [this]() -> bool { return type_() == "box"; }
         };
 
+        fhicl::Atom<double> T0_ {
+          Name("t0"),
+          Comment("Central time (s) to use for the vertex"),
+          0. // default value
+        };
+
+        fhicl::Atom<double> SigmaT_ {
+          Name("SigmaT"),
+          Comment("Variation (semi-interval or RMS) in the "
+            "time (s) to use for the vertex"),
+          0. // default value
+        };
+
+        fhicl::Atom<std::string> time_type_ {
+          Name("time_type"),
+          Comment("Technique used to select vertex times"),
+          "uniform" // default value
+        };
+
       }; // struct Config
 
       enum class vertex_type_t { kSampled, kFixed, kBox };
+      enum class time_type_t { kGaussian, kUniform };
 
       // Configuration-checking constructors
       ActiveVolumeVertexSampler(const fhicl::Table<Config>& conf,
@@ -110,6 +130,13 @@ namespace evgen {
       TLorentzVector fVertexPosition;
 
       vertex_type_t fVertexType;
+
+      time_type_t fTimeType;
+
+      // Parameters to use for sampling vertex times (in the style of
+      // SingleGen)
+      double fT0;
+      double fSigmaT;
 
       std::string fGeneratorName;
 
