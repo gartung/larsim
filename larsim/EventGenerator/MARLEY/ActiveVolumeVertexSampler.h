@@ -81,6 +81,25 @@ namespace evgen {
           [this]() -> bool { return type_() == "box"; }
         };
 
+        fhicl::Atom<double> T0_ {
+          Name("T0"),
+          Comment("Central time (s) to use for the vertex"),
+          0. // default value
+        };
+
+        fhicl::Atom<double> SigmaT_ {
+          Name("SigmaT"),
+          Comment("Variation (semi-interval or RMS) in the "
+            "time (s) to use for the vertex"),
+          0. // default value
+        };
+
+        fhicl::Atom<std::string> time_type_ {
+          Name("time_type"),
+          Comment("Technique used to select vertex times"),
+          "uniform" // default value
+        };
+
       }; // struct Config
 
       enum class vertex_type_t { kSampled, kFixed, kBox };
@@ -100,7 +119,6 @@ namespace evgen {
         const geo::Geometry& geom);
 
       // Function that selects a primary vertex location for each event.
-      // TODO: add time sampling
       TLorentzVector sample_vertex_pos(const geo::Geometry& geom);
 
     protected:

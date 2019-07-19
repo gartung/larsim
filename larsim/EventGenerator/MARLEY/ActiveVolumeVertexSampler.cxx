@@ -138,7 +138,27 @@ TLorentzVector evgen::ActiveVolumeVertexSampler::sample_vertex_pos(
     fVertexPosition.SetXYZT(x, y, z, 0.); // TODO: add time sampling
   }
 
-  // if we're using a fixed vertex position, we don't need to do any sampling
+  // If we're using a fixed vertex position, we don't need to do any sampling
+
+  // Sample a new time for the vertex (SingleGen-style)
+  double t = 0.;
+  if ( fTimeType == time_type_t::kGaussian ) {
+    std::normal_distribution<double> normal_dist( fT0, fSigmaT );
+    t = normal_dist( fTPCEngine );
+  }
+  else {
+    // Uniform vertex time distribution
+    double min_t = fT0 - fSigmaT;
+    double max_t = fT0 + fSigmaT;
+    std::uniform_real_distribution<double> uniform_dist( min_t, max_t );
+    t = uniform_dist( fTPCEngine );
+  }
+
+  // Update the vertex 4-position with the new time
+  fVertexPosition.SetT( t );
+  MF_LOG_INFO("ActiveVolumeVertexSampler " + fGeneratorName)
+    << "Primary vertex time is t = " << t;
+
   return fVertexPosition;
 }
 
@@ -201,4 +221,14 @@ void evgen::ActiveVolumeVertexSampler::reconfigure(
   else throw cet::exception("ActiveVolumeVertexSampler " + fGeneratorName)
     << "Invalid vertex type '" << type << "' requested. Allowed values are"
     << " 'sampled' and 'fixed'";
+
+  auto time_type = conf().time_type_();
+  if (time_type == "uniform") fTimeType = time_type_t::kUniform;
+  else if (time_type == "gaussian") fTimeType = time_type_t::kGaussian;
+  else throw cet::exception("ActiveVolumeVertexSampler " + fGeneratorName)
+    << "Invalid vertex time type '" << time_type << "' requested. Allowed values are"
+    << " 'uniform' and 'gaussian'";
+
+  fT0 = conf().T0_();
+  fSigmaT = conf().SigmaT_();
 }
