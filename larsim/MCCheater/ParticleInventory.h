@@ -171,7 +171,7 @@
 #include "nutools/ParticleNavigation/ParticleList.h"
 #include "nutools/ParticleNavigation/EveIdCalculator.h"
 #include "nusimdata/SimulationBase/MCTruth.h"
-
+#include "lardataobj/Simulation/GeneratedParticleInfo.h"
 
 
 namespace cheat{
