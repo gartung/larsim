@@ -17,6 +17,7 @@ art_make(NO_PLUGINS
 
 simple_plugin(LArVoxelCalculator "service")
 simple_plugin(LArG4Parameters "service")
+simple_plugin(LArG4Dualphase "service")
 
 install_headers()
 install_fhicl()
