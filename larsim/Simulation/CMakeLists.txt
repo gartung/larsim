@@ -5,6 +5,7 @@ art_make(NO_PLUGINS
          LIB_LIBRARIES
            larsim_Simulation_LArVoxelCalculator_service
            larsim_Simulation_LArG4Parameters_service
+           larsim_Simulation_LArG4Dualphase_service
            lardataobj_Simulation
            lardata_Utilities
            nusimdata_SimulationBase
