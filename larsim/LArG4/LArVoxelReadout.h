@@ -5,6 +5,12 @@
 /// \author  seligman@nevis.columbia.edu
 ////////////////////////////////////////////////////////////////////////
 ///
+/// Dual-phase implementation:
+/// 1) Slow component: christoph.alt@cern.ch
+/// 2) Gar ampl. and Service interface andrea.scarpelli@cern.ch
+///
+////////////////////////////////////////////////////////////////////////
+///
 /// One way to implement voxels in Geant4 is to create a parallel
 /// "read-out" geometry along with the real, physical geometry.  The
 /// read-out geometry is implemented in LArVoxelReadoutGeometry; this
@@ -54,6 +60,7 @@
 #include "larcore/Geometry/Geometry.h"
 #include "larcorealg/Geometry/TPCGeo.h"
 #include "larsim/Simulation/LArG4Parameters.h"
+#include "larsim/Simulation/LArG4Dualphase.h"
 #include "larsim/LArG4/IonizationAndScintillation.h"
 #include "lardata/DetectorInfoServices/LArPropertiesService.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
@@ -315,7 +322,7 @@ namespace larg4 {
     double                                    fTransverseDiffusion;
     double                                    fElectronLifetime;
     double                                    fElectronClusterSize;
-    int					      fMinNumberOfElCluster;
+    int					                              fMinNumberOfElCluster;
     // for c2: unused private data members
     //double                                    fSampleRate;
     //int                                       fTriggerOffset;
@@ -325,8 +332,9 @@ namespace larg4 {
     double                                    fOffPlaneMargin = 0.0;
 
     std::vector<std::vector<ChannelMap_t>>    fChannelMaps; ///< Maps of cryostat, tpc to channel data
-    art::ServiceHandle<geo::Geometry const>         fGeoHandle;  ///< Handle to the Geometry service
-    art::ServiceHandle<sim::LArG4Parameters const>  fLgpHandle;  ///< Handle to the LArG4 parameters service
+    art::ServiceHandle<geo::Geometry>         fGeoHandle;  ///< Handle to the Geometry service
+    art::ServiceHandle<sim::LArG4Parameters>  fLgpHandle;  ///< Handle to the LArG4 parameters service
+    art::ServiceHandle<sim::LArG4Dualphase>   fDpHandle;   ///< Handle to the dual-phase gas simulation service
     unsigned int                              fTPC;        ///< which TPC this LArVoxelReadout corresponds to
     unsigned int                              fCstat;      ///< and in which cryostat (if bSingleTPC is true)
     bool                                      bSingleTPC;  ///< true if this readout is associated with a single TPC
@@ -341,8 +349,8 @@ namespace larg4 {
     G4ThreeVector                             fStepStart;
     G4ThreeVector                             fStepEnd;
     size_t fNSteps;
-  };
 
+  };
 }
 
 #endif // LArG4_LArVoxelReadout_h

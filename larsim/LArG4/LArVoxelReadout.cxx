@@ -3,6 +3,13 @@
 /// \brief A Geant4 sensitive detector that accumulates voxel information.
 ///
 /// \author  seligman@nevis.columbia.edu
+///
+////////////////////////////////////////////////////////////////////////
+///
+/// Dual-phase implementation:
+/// 1) Slow component: christoph.alt@cern.ch
+/// 2) Gar ampl. and Service interface andrea.scarpelli@cern.ch
+///
 ////////////////////////////////////////////////////////////////////////
 
 // C/C++ standard library
@@ -25,6 +32,7 @@
 // framework libraries
 #include "cetlib_except/exception.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
+#include "art/Framework/Services/Registry/ServiceHandle.h"
 
 // LArSoft code
 #include "larsim/LArG4/LArVoxelReadout.h"
@@ -112,6 +120,8 @@ namespace larg4 {
       fDriftVelocity[i]    = detprop->DriftVelocity(detprop->Efield(i),
 						    detprop->Temperature())/1000.;
 
+    std::cout << "fDriftVelocity[0]: " << fDriftVelocity[0] << std::endl;
+
     fElectronClusterSize   = fLgpHandle->ElectronClusterSize();
     fMinNumberOfElCluster  = fLgpHandle->MinNumberOfElCluster();
     fLongitudinalDiffusion = fLgpHandle->LongitudinalDiffusion();
@@ -127,13 +137,15 @@ namespace larg4 {
     fDontDriftThem = (fDontDriftThem || fLgpHandle->NoElectronPropagation() );
 
     fNSteps=0;
+
+    //Initalize the gas phase paramters
   }
 
   //---------------------------------------------------------------------------------------
   // Called at the end of each event.
   void LArVoxelReadout::EndOfEvent(G4HCofThisEvent*)
   {
-    MF_LOG_DEBUG("LArVoxelReadout") << "Total number of steps was " << fNSteps << std::endl;
+    mf::LogWarning("LArVoxelReadout") << "Total number of steps was " << fNSteps << std::endl;
 
   } // LArVoxelReadout::EndOfEvent()
 
@@ -379,9 +391,9 @@ namespace larg4 {
       double XDrift = std::abs(stepMidPoint.x()/CLHEP::cm - tpcg.PlaneLocation(0)[0]);
       //std::cout<<tpcg.DriftDirection()<<std::endl;
       if (tpcg.DriftDirection() == geo::kNegX)
-	XDrift = stepMidPoint.x()/CLHEP::cm - tpcg.PlaneLocation(0)[0];
+	       XDrift = stepMidPoint.x()/CLHEP::cm - tpcg.PlaneLocation(0)[0];
       else if (tpcg.DriftDirection() == geo::kPosX)
-	XDrift = tpcg.PlaneLocation(0)[0] - stepMidPoint.x()/CLHEP::cm;
+	       XDrift = tpcg.PlaneLocation(0)[0] - stepMidPoint.x()/CLHEP::cm;
 
       if(XDrift < 0.) return;
 
@@ -405,14 +417,22 @@ namespace larg4 {
       if (XDrift < 0.) XDrift = 0.;
 
       TDrift = XDrift * RecipDriftVel[0];
+
+      /*
       if (tpcg.Nplanes() == 2){// special case for ArgoNeuT (plane 0 is the second wire plane)
         TDrift = ((XDrift - tpcg.PlanePitch(0,1)) * RecipDriftVel[0]
                   + tpcg.PlanePitch(0,1) * RecipDriftVel[1]);
       }
+      */
 
       const double lifetimecorrection = TMath::Exp(TDrift / LifetimeCorr_const);
       const int    nIonizedElectrons  = larg4::IonizationAndScintillation::Instance()->NumberIonizationElectrons();
       const double energy             = larg4::IonizationAndScintillation::Instance()->EnergyDeposit();
+
+      // Longitudinal & transverse diffusion sigma (cm)
+      double SqrtT    = std::sqrt(TDrift);
+      double LDiffSig = SqrtT * LDiff_const;
+      double TDiffSig = SqrtT * TDiff_const;
 
       // if we have no electrons (too small energy or too large recombination)
       // we are done already here
@@ -421,39 +441,22 @@ namespace larg4 {
           << "No electrons drifted to readout, " << energy << " MeV lost.";
         return;
       }
-      // includes the effect of lifetime
-      const double nElectrons   = nIonizedElectrons * lifetimecorrection;
 
-      // Longitudinal & transverse diffusion sigma (cm)
-      double SqrtT    = std::sqrt(TDrift);
-      double LDiffSig = SqrtT * LDiff_const;
-      double TDiffSig = SqrtT * TDiff_const;
-      double electronclsize = fElectronClusterSize;
+      int nElectrons=1;
+      std::vector< double > nElDiff;
+      int nClus = 0;
 
-      int nClus = (int) std::ceil(nElectrons / electronclsize);
-      if (nClus < fMinNumberOfElCluster)
-      {
-      	electronclsize = nElectrons / fMinNumberOfElCluster;
-      	if (electronclsize < 1.0)
-      	{
-      		electronclsize = 1.0;
-      	}
-      	nClus = (int) std::ceil(nElectrons / electronclsize);
-      }
+      //Calculate the number of electrons extracted from liquid to gas
+      fDpHandle->simExtraction(nIonizedElectrons, nElectrons, nClus, nElDiff);
 
-      // Compute arrays of values as quickly as possible.
+      std::vector< double > nEnDiff(nClus);
       std::vector< double > XDiff(nClus);
       std::vector< double > YDiff(nClus);
       std::vector< double > ZDiff(nClus);
-      std::vector< double > nElDiff(nClus, electronclsize);
-      std::vector< double > nEnDiff(nClus);
 
-      // fix the number of electrons in the last cluster, that has smaller size
-      nElDiff.back() = nElectrons - (nClus-1)*electronclsize;
-
-      for(size_t xx = 0; xx < nElDiff.size(); ++xx){
-        if(nElectrons > 0) nEnDiff[xx] = energy/nElectrons*nElDiff[xx];
-        else               nEnDiff[xx] = 0.;
+      for(size_t k = 0; k < nElDiff.size(); ++k){
+        if(nElectrons > 0) nEnDiff[k] = energy/nElectrons*nElDiff[k];
+        else               nEnDiff[k] = 0.;
       }
 
       double const avegageYtransversePos
@@ -489,13 +492,10 @@ namespace larg4 {
 
         // Drift nClus electron clusters to the induction plane
         for(int k = 0; k < nClus; ++k){
-          // Correct drift time for longitudinal diffusion and plane
-          double TDiff = TDrift + XDiff[k] * RecipDriftVel[0];
-          // Take into account different Efields between planes
-          // Also take into account special case for ArgoNeuT where Nplanes = 2.
-          for (size_t ip = 0; ip<p; ++ip){
-            TDiff += tpcg.PlanePitch(ip,ip+1) * RecipDriftVel[tpcg.Nplanes()==3?ip+1:ip+2];
-          }
+          // Correct drift time for longitudinal diffusion and plane and extraction
+          double extractionDelay = fDpHandle->getExtractionDelay(k);
+          double TDiff = TDrift + XDiff[k] * RecipDriftVel[0] + extractionDelay;
+
           xyz1[1] = YDiff[k];
           xyz1[2] = ZDiff[k];
 
@@ -525,11 +525,22 @@ namespace larg4 {
             // Add potential decay/capture/etc delay effect, simTime.
             unsigned int tdc = fClock.Ticks(ts->G4ToElecTime(TDiff + simTime));
 
+
             // Add electrons produced by each cluster to the map
-            DepositsToStore[channel][tdc].add(nEnDiff[k], nElDiff[k]);
-          }
+	          if( channel%160 != 0 && (channel+1)%160 != 0) //channel 0, 159, 160, 319, 320, 479, 480 etc. see no charge, all other channels see full charge (dual phase specific)
+	          {
+	             if(xyz1[2] < 50. || xyz1[2] > 250.) //corner LEMs in 3x1x1 geometry (1 LEM = 50x50 cm^2)
+	             {
+                  DepositsToStore[channel][tdc].add(0.5*nEnDiff[k], 0.5*nElDiff[k]); //0.5: charge sharing between the two readout views
+	              }
+	              else
+	              {
+		              DepositsToStore[channel][tdc].add(0.5*nEnDiff[k], 0.5*nElDiff[k]); //0.5: charge sharing between the two readout views
+	               }
+	           }
+          } //end try
           catch(cet::exception &e){
-            MF_LOG_DEBUG("LArVoxelReadout") << "unable to drift electrons from point ("
+            mf::LogWarning("LArVoxelReadout") << "unable to drift electrons from point ("
                                               << xyz[0] << "," << xyz[1] << "," << xyz[2]
                                               << ") with exception " << e;
           }
@@ -569,7 +580,7 @@ namespace larg4 {
 
     } // end try intended to catch points where TPC can't be found
     catch(cet::exception &e){
-      MF_LOG_DEBUG("LArVoxelReadout") << "step cannot be found in a TPC\n"
+      mf::LogWarning("LArVoxelReadout") << "step cannot be found in a TPC\n"
                                         << e;
     }
 
