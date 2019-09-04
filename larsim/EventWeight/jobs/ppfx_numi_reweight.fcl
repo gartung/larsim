@@ -146,8 +146,8 @@ reweight_numi_ppfx: {
   ppfx_master: {
     type: PPFXMaster
     random_seed:121
-    mode: reweight
-    number_of_multisims: 1
+    mode: multisim
+    number_of_multisims: 100
     input_labels: [ "generator" ] #  [ "singlemixer", "genpremixer" ]
     ppfx_mode:    "default" # "mipp_numi"
     verbose:     1

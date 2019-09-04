@@ -200,10 +200,14 @@ namespace fluxr {
     if (!fDk2NuTree->GetEntry(ientry))
       return false;
 
+    // Pick point on window [beam coords]
     TLorentzVector x4beam=fFluxWindowBase+fRnd.Uniform()*fFluxWindowDir1+fRnd.Uniform()*fFluxWindowDir2;
     double enu,wgt;
+    
+    // Get the neutrino weight for window point
     bsim::calcEnuWgt(fDk2Nu, x4beam.Vect(),enu,wgt);
 
+    // Convert window point to det coords
     TLorentzVector x4usr;
     Beam2UserPos(x4beam,x4usr);
 
@@ -216,8 +220,11 @@ namespace fluxr {
     //weight due to window being tilted with respect to beam direction
     double tiltwgt = p3beam.Unit().Dot( fWindowNormal );
     wgt*=tiltwgt;
+    
     //weight for the window area and divide by pi (since wgt returned by calcEnuWgt function is flux/(pi*m^2)
     //wgt*=fWindowArea/3.14159; // Remove multiplying by window area
+    
+    // Divide by area of circle [pi * 1m ^2]
     wgt*=1.0/3.14159;
 
     bsim::NuRay anuray(p3beam.x(), p3beam.y(), p3beam.z(), enu, wgt);    
