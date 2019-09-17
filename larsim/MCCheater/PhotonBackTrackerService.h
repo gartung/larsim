@@ -62,11 +62,11 @@ namespace cheat{
 
 
       //----------------------------------------------------------------------
-      const std::vector< art::Ptr< sim::OpDetBacktrackerRecord >>& OpDetBTRs() ;
+      const std::vector<const sim::OpDetBacktrackerRecord *>& OpDetBTRs();
       const double GetDelay();
       const std::vector< const sim::SDP* > TrackIdToSimSDPs_Ps(int const& id);
       const std::vector< const sim::SDP* > TrackIdToSimSDPs_Ps(int const& id, geo::View_t const& view);
-       art::Ptr< sim::OpDetBacktrackerRecord > FindOpDetBTR(int const& opDetNum);
+       const sim::OpDetBacktrackerRecord *FindOpDetBTR(int const& opDetNum);
       const std::vector < sim::TrackSDP > OpDetToTrackSDPs( int const& OpDetNum,
           double const& opHit_start_time, double const& opHit_end_time);
       std::vector<sim::TrackSDP> OpHitToTrackSDPs(art::Ptr<recob::OpHit> const& opHit_P );

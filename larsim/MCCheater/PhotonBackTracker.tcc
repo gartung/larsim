@@ -1,6 +1,9 @@
 #include "art/Framework/Principal/Handle.h"
 #include "canvas/Persistency/Common/FindManyP.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
+#include "larsim/LArG4/OpDetPhotonTable.h"
+#include "larcorealg/Geometry/GeometryCore.h"
+#include "lardataobj/Simulation/SimPhotons.h"
 
 namespace cheat{
 
@@ -17,21 +20,51 @@ namespace cheat{
     void PhotonBackTracker::PrepOpDetBTRs(Evt const& evt)
     {
       if(this->BTRsReady()){ return;}
-      auto const& btrHandle = evt.template getValidHandle < std::vector < sim::OpDetBacktrackerRecord > > (fG4ModuleLabel);
-      //      if(btrHandle.failedToGet()){
-      /*  mf::LogWarning("PhotonBackTracker") << "failed to get handle to     simb::MCParticle from "
-       *              << fG4ModuleLabel
-       *                          << ", return";*/ //This is now silent as it is expected to    happen every generation run. It is also temporary while we wait for
-      /*if( 0 ){ return;} //Insert check for DivRecs here, or don't use validHandle below.
-        auto const& divrecHandle = evt.template getValidHandle <std::vector<sim::OpDetDivRec>>(fWavLabel);
-        if(divrecHandle.failedToGet()){
-        return;
-        }*/
+      larg4::OpDetPhotonTable::Instance()->ClearTable(fGeom->NOpDets());
+      priv_OpDetBTRs.clear();
+      priv_local_OpDetBTRs.clear();
+      priv_ptrs_OpDetBTRs.clear();
+      typename Evt::template HandleT<std::vector<sim::OpDetBacktrackerRecord>> btrHandle;
+      bool has_backtracker_records = evt.getByLabel(fG4ModuleLabel, btrHandle);
+      if (!has_backtracker_records) {
+        // then there better be sim photons
+        auto const& simphotons_handle = evt.template getValidHandle<std::vector<sim::SimPhotons>>(fG4ModuleLabel);
+        const std::vector<sim::SimPhotons> simphotons = *simphotons_handle;
+        for (const sim::SimPhotons &photons: simphotons) {
+          sim::OpDetBacktrackerRecord record(photons.fOpChannel);
+          for (const sim::OnePhoton &photon: photons) {
+            double xyz[3];
+            photon.InitialPosition.GetXYZ(xyz);
+            // std::cout << "Adding photon at time: " << photon.Time << std::endl;
+            record.AddScintillationPhotons(photon.MotherTrackID, photon.Time, 1, xyz, photon.Energy);
+          }
+          larg4::OpDetPhotonTable::Instance()->AddOpDetBacktrackerRecord(record);
+        }
+        priv_local_OpDetBTRs = larg4::OpDetPhotonTable::Instance()->YieldOpDetBacktrackerRecords();
+        for (unsigned i = 0; i < priv_local_OpDetBTRs.size(); i++) {
+          priv_OpDetBTRs.push_back(&priv_local_OpDetBTRs[i]);
+        }
+      }
+      else {
+      //auto const& btrHandle = evt.template getValidHandle < std::vector < sim::OpDetBacktrackerRecord > > (fG4ModuleLabel);
+        //      if(btrHandle.failedToGet()){
+        /*  mf::LogWarning("PhotonBackTracker") << "failed to get handle to     simb::MCParticle from "
+         *              << fG4ModuleLabel
+         *                          << ", return";*/ //This is now silent as it is expected to    happen every generation run. It is also temporary while we wait for
+        /*if( 0 ){ return;} //Insert check for DivRecs here, or don't use validHandle below.
+          auto const& divrecHandle = evt.template getValidHandle <std::vector<sim::OpDetDivRec>>(fWavLabel);
+          if(divrecHandle.failedToGet()){
+          return;
+          }*/
+  
+        art::fill_ptr_vector(priv_ptrs_OpDetBTRs, btrHandle);
+        for (unsigned i = 0; i < priv_ptrs_OpDetBTRs.size(); i++) {
+          priv_OpDetBTRs.push_back(priv_ptrs_OpDetBTRs[i].get());
+        }
+        //art::fill_ptr_vector(priv_DivRecs, divrecHandle);
+      }
 
-      art::fill_ptr_vector(priv_OpDetBTRs, btrHandle);
-      //art::fill_ptr_vector(priv_DivRecs, divrecHandle);
-
-      auto compareBTRlambda = [](art::Ptr<sim::OpDetBacktrackerRecord> a, art::Ptr<sim::OpDetBacktrackerRecord> b) {return(a->OpDetNum()<b->OpDetNum());};
+      auto compareBTRlambda = [](const sim::OpDetBacktrackerRecord *a, const sim::OpDetBacktrackerRecord *b) {return(a->OpDetNum()<b->OpDetNum());};
       if (!std::is_sorted(priv_OpDetBTRs.begin(),priv_OpDetBTRs.end(),compareBTRlambda)) 
         std::sort(priv_OpDetBTRs.begin(),priv_OpDetBTRs.end(),compareBTRlambda);
       //auto compareDivReclambda = [](art::Ptr<sim::OpDetDivRec> a, art::Ptr<sim::OpDetDivRec> b) {return(a->OpDetNum() < b->OpDetNum());};
@@ -55,6 +88,10 @@ namespace cheat{
          }
          }else{throw cet::exception("PhotonBackTracker")<<"find Waveforms and DivRecs from BTRs failed.";}
          */
+      // std::cout << "OPDETBACKTRACKER RECORDS\n";
+      // for (auto const &record: priv_OpDetBTRs) {
+      //   record->Dump(std::cout, "    ");
+      // }
 
       return;
     }
@@ -65,7 +102,9 @@ namespace cheat{
       void PhotonBackTracker::PrepOpFlashToOpHits( Evt const& evt)
       {
         if(this->OpFlashToOpHitsReady()){ return;}
-        std::vector< art::Handle< std::vector < recob::OpFlash >>> flashHandles;
+        // std::vector< art::Handle< std::vector < recob::OpFlash >>> flashHandles;
+        std::vector<typename Evt::template HandleT<std::vector<recob::OpFlash>>> flashHandles;
+
         evt.getManyByType(flashHandles);
         for( const auto& handle : flashHandles)
         {

@@ -14,10 +14,12 @@ cet_make_library(
   LIBRARY_NAME larsim_MCCheater_PhotonBackTracker
   SOURCE PhotonBackTracker.cc PhotonBackTracker.tcc
   LIBRARIES
+    larsim_LArG4
     cetlib_except
     ${FHICLCPP}
     ${MF_MESSAGELOGGER}
     ${ROOT_CORE}
+    ${ROOT_MATHCORE}
     canvas
     larsim_MCCheater_ParticleInventory
     larcorealg_Geometry

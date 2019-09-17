@@ -104,7 +104,7 @@ namespace cheat{
       const bool OpFlashToOpHitsReady();
 
       //-----------------------------------------------------
-      std::vector<art::Ptr<sim::OpDetBacktrackerRecord>> const& OpDetBTRs() ;
+      const std::vector<const sim::OpDetBacktrackerRecord *>& OpDetBTRs();
 
       //-----------------------------------------------------
       const std::vector< const sim::SDP* > TrackIdToSimSDPs_Ps(int const& id) ;
@@ -113,7 +113,7 @@ namespace cheat{
       const std::vector< const sim::SDP* > TrackIdToSimSDPs_Ps(int const& id,  geo::View_t const& view) ;
 
       //-----------------------------------------------------
-      const art::Ptr< sim::OpDetBacktrackerRecord > FindOpDetBTR(int const& opDetNum) const;
+      const sim::OpDetBacktrackerRecord* FindOpDetBTR(int const& opDetNum) const;
 
       //-----------------------------------------------------
 
@@ -247,7 +247,10 @@ namespace cheat{
       const art::InputTag fOpHitLabel;
       const art::InputTag fOpFlashLabel;
       const double fMinOpHitEnergyFraction;
-      mutable std::vector<art::Ptr<sim::OpDetBacktrackerRecord> > priv_OpDetBTRs;
+      // mutable std::vector<art::Ptr<sim::OpDetBacktrackerRecord> > priv_OpDetBTRs;
+      mutable std::vector<const sim::OpDetBacktrackerRecord *> priv_OpDetBTRs;
+      std::vector<art::Ptr<sim::OpDetBacktrackerRecord>> priv_ptrs_OpDetBTRs;
+      std::vector<sim::OpDetBacktrackerRecord> priv_local_OpDetBTRs;
       std::map< art::Ptr < recob::OpFlash >, std::vector < art::Ptr < recob::OpHit > > > priv_OpFlashToOpHits;
 
 

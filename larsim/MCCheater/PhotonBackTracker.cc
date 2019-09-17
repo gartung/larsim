@@ -86,7 +86,7 @@ namespace cheat{
   }
 
   //----------------------------------------------------------------
-  const std::vector< art::Ptr< sim::OpDetBacktrackerRecord >>& PhotonBackTracker::OpDetBTRs()
+  const std::vector<const  sim::OpDetBacktrackerRecord *>& PhotonBackTracker::OpDetBTRs()
   {
     return priv_OpDetBTRs;
   }
@@ -118,9 +118,9 @@ namespace cheat{
   }
 
   //----------------------------------------------------------------
-  const art::Ptr< sim::OpDetBacktrackerRecord > PhotonBackTracker::FindOpDetBTR(int const& opDetNum) const
+  const sim::OpDetBacktrackerRecord* PhotonBackTracker::FindOpDetBTR(int const& opDetNum) const
   {
-    art::Ptr< sim::OpDetBacktrackerRecord > opDet;
+    const sim::OpDetBacktrackerRecord *opDet = NULL;
     for(size_t sc = 0; sc < priv_OpDetBTRs.size(); ++sc){
       //This could become a bug. What if it occurs twice (shouldn't happen in correct records, but still, no error handeling included for the situation
       if(priv_OpDetBTRs.at(sc)->OpDetNum() == opDetNum) opDet = priv_OpDetBTRs.at(sc);
@@ -140,13 +140,16 @@ namespace cheat{
     std::vector< sim::TrackSDP > tSDPs;
     double totalE=0;
     try{
-      const art::Ptr< sim::OpDetBacktrackerRecord > opDetBTR =
+      const sim::OpDetBacktrackerRecord *opDetBTR = 
         this->FindOpDetBTR(OpDetNum);
       // ( fGeom->OpDetFromOpChannel(channel) );
       std::vector<sim::SDP> simSDPs =
         opDetBTR->TrackIDsAndEnergies(opHit_start_time, opHit_end_time);
-      for(size_t e = 0; e < simSDPs.size(); ++e)
+      //std::cout << "number SDPs: " << simSDPs.size() << std::endl;
+      for(size_t e = 0; e < simSDPs.size(); ++e) {
         totalE += simSDPs[e].energy;
+        //std::cout << "SDP energy: " << simSDPs[e].energy << " trackID: " << simSDPs[e].trackID  << std::endl;
+      }
       if(totalE < 1.e-5) totalE = 1.;
       for(size_t e = 0; e < simSDPs.size(); ++e){
         if(simSDPs[e].trackID == sim::NoParticleId) continue;
@@ -283,12 +286,16 @@ namespace cheat{
     std::vector<std::pair<int, art::Ptr<recob::OpHit>>> opHitList;
     for(auto itr = hitsIn.begin(); itr != hitsIn.end(); ++itr) {
       art::Ptr<recob::OpHit> const& opHit = *itr;
+      if ((unsigned)opHit->OpChannel() > (unsigned)fGeom->NOpDets()) continue;
       auto OpDetNum = fGeom->OpDetFromOpChannel(opHit->OpChannel());
       const double pTime = opHit->PeakTime(), pWidth= opHit->Width();
       const double start = (pTime-pWidth)*1000.0-fDelay, end = (pTime+ pWidth)*1000.0-fDelay;
+      //std::cout << "Looking for Track depositions in time: " << start << " " << end << std::endl;
       std::vector<sim::TrackSDP> tids = this->OpDetToTrackSDPs( OpDetNum, start, end);
       //std::vector<sim::TrackSDP> tids = this->OpDetToTrackSDPs( opHit->OpChannel(), start, end);
       for(auto itid = tids.begin(); itid != tids.end(); ++itid) {
+        //std::cout << "Found SDP with track id: " << itid->trackID <<  std::endl;
+        //std::cout << "Energy frac: " << itid->energyFrac << std::endl;
         for(auto itkid = tkIds.begin(); itkid != tkIds.end(); ++itkid) {
           if(itid->trackID == *itkid) {
             if(itid->energyFrac > fMinOpHitEnergyFraction)

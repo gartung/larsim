@@ -119,7 +119,7 @@ namespace cheat{
 
 
   //----------------------------------------------------------------------
-  const std::vector< art::Ptr< sim::OpDetBacktrackerRecord >>& PhotonBackTrackerService::OpDetBTRs()
+  const std::vector<const sim::OpDetBacktrackerRecord *>& PhotonBackTrackerService::OpDetBTRs()
   {
     return PhotonBackTracker::OpDetBTRs();
   }
@@ -140,7 +140,7 @@ namespace cheat{
   }
 
   //----------------------------------------------------------------------
-  art::Ptr< sim::OpDetBacktrackerRecord > PhotonBackTrackerService::FindOpDetBTR(int const& opDetNum)
+  const sim::OpDetBacktrackerRecord *PhotonBackTrackerService::FindOpDetBTR(int const& opDetNum)
   {
     return PhotonBackTracker::FindOpDetBTR(opDetNum);
   }
