@@ -3,6 +3,9 @@
 
 #include "nug4/ParticleNavigation/EmEveIdCalculator.h"
 #include "nug4/ParticleNavigation/EveIdCalculator.h"
+#include <exception>
+ 
+#include "messagefacility/MessageLogger/MessageLogger.h"
 
 namespace cheat{
 
@@ -61,27 +64,85 @@ namespace cheat{
     void ParticleInventory::PrepMCTruthListAndTrackIdToMCTruthIndex(const Evt& evt ) const{
       if( this->TrackIdToMCTruthReady() && this->MCTruthListReady( ) ){ return;} 
       this->PrepParticleList( evt); //Make sure we have built the particle list for this event
-      //const auto& mcpmctAssnsIn = *( evt.template getValidHandle<art::Assns<simb::MCParticle,simb::MCTruth>>(fG4ModuleLabel));
-      const auto& mcpmctAssnsHandle =  evt.template getValidHandle<art::Assns<simb::MCParticle,simb::MCTruth,sim::GeneratedParticleInfo>>(fG4ModuleLabel);
-      const auto& mcpmctAssnsIn = *mcpmctAssnsHandle;
-      for( const auto& mcpmctAssnIn : mcpmctAssnsIn){    //Assns are themselves a container. Loop over entries.
-        const art::Ptr<simb::MCParticle>& part=mcpmctAssnIn.first;
-        const art::Ptr<simb::MCTruth>&    mct =mcpmctAssnIn.second;
-        unsigned short mctruth_idx = USHRT_MAX;
-        for (size_t i = 0; i<fMCTObj.fMCTruthList.size(); ++i){
-          if (fMCTObj.fMCTruthList[i] == mct){
-            mctruth_idx = i;
-            break;
-          }
-        }
-        if (mctruth_idx == USHRT_MAX){
-          fMCTObj.fMCTruthList.push_back(mct);
-          fMCTObj.fTrackIdToMCTruthIndex.emplace(part->TrackId(), fMCTObj.fMCTruthList.size() - 1);
-        }
-        else{
-          fMCTObj.fTrackIdToMCTruthIndex.emplace(part->TrackId(), mctruth_idx );
+      bool useGeneratedParticleInfo = true;
+      try {
+        const auto& mcpmctAssnsHandle =  evt.template getValidHandle<art::Assns<simb::MCParticle,simb::MCTruth,sim::GeneratedParticleInfo>>(fG4ModuleLabel);
+        const auto& mcpmctAssnsIn = *mcpmctAssnsHandle;
+        mf::LogInfo("PrepMCTruthListAndTrackIdToMCTruthIndex") << "Successfully obtained valid handle with GeneratedParticleInfo.";
+      } catch(...) {
+        mf::LogWarning("PrepMCTruthListAndTrackIdToMCTruthIndex") << "Failed to get valid handle with GeneratedParticleInfo."
+                                                                  << " Attempting without it";
+        useGeneratedParticleInfo = false;
+        // try default method just to be sure
+       try {
+          const auto& mcpmctAssnsIn = *( evt.template getValidHandle<art::Assns<simb::MCParticle,simb::MCTruth>>(fG4ModuleLabel));
+          mf::LogInfo("PrepMCTruthListAndTrackIdToMCTruthIndex") << "Successfully obtained valid handle without GeneratedParticleInfo.";
+        } catch(...) {
+          throw cet::exception("PrepMCTruthListAndTrackIdToMCTruthIndex") << "Failed to get valid handle with default method";
         }
       }
+      
+      if (useGeneratedParticleInfo) {
+        const auto& mcpmctAssnsHandle =  evt.template getValidHandle<art::Assns<simb::MCParticle,simb::MCTruth,sim::GeneratedParticleInfo>>(fG4ModuleLabel);
+        const auto& mcpmctAssnsIn = *mcpmctAssnsHandle;
+        for( const auto& mcpmctAssnIn : mcpmctAssnsIn){    //Assns are themselves a container. Loop over entries.
+          const art::Ptr<simb::MCParticle>& part=mcpmctAssnIn.first;
+          const art::Ptr<simb::MCTruth>&    mct =mcpmctAssnIn.second;
+          unsigned short mctruth_idx = USHRT_MAX;
+          for (size_t i = 0; i<fMCTObj.fMCTruthList.size(); ++i){
+            if (fMCTObj.fMCTruthList[i] == mct){
+              mctruth_idx = i;
+              break;
+            }
+          }
+          if (mctruth_idx == USHRT_MAX){
+            fMCTObj.fMCTruthList.push_back(mct);
+            fMCTObj.fTrackIdToMCTruthIndex.emplace(part->TrackId(), fMCTObj.fMCTruthList.size() - 1);
+          }
+          else{
+            fMCTObj.fTrackIdToMCTruthIndex.emplace(part->TrackId(), mctruth_idx );
+          }
+        }
+      } else {
+        const auto& mcpmctAssnsIn = *( evt.template getValidHandle<art::Assns<simb::MCParticle,simb::MCTruth>>(fG4ModuleLabel));
+        for( const auto& mcpmctAssnIn : mcpmctAssnsIn){    //Assns are themselves a container. Loop over entries.
+          const art::Ptr<simb::MCParticle>& part=mcpmctAssnIn.first;
+          const art::Ptr<simb::MCTruth>&    mct =mcpmctAssnIn.second;
+          unsigned short mctruth_idx = USHRT_MAX;
+          for (size_t i = 0; i<fMCTObj.fMCTruthList.size(); ++i){
+            if (fMCTObj.fMCTruthList[i] == mct){
+              mctruth_idx = i;
+              break;
+            }
+          }
+          if (mctruth_idx == USHRT_MAX){
+            fMCTObj.fMCTruthList.push_back(mct);
+            fMCTObj.fTrackIdToMCTruthIndex.emplace(part->TrackId(), fMCTObj.fMCTruthList.size() - 1);
+          }
+          else{
+            fMCTObj.fTrackIdToMCTruthIndex.emplace(part->TrackId(), mctruth_idx );
+          }
+        }
+      }
+
+      //for( const auto& mcpmctAssnIn : mcpmctAssnsIn){    //Assns are themselves a container. Loop over entries.
+      //  const art::Ptr<simb::MCParticle>& part=mcpmctAssnIn.first;
+      //  const art::Ptr<simb::MCTruth>&    mct =mcpmctAssnIn.second;
+      //  unsigned short mctruth_idx = USHRT_MAX;
+      //  for (size_t i = 0; i<fMCTObj.fMCTruthList.size(); ++i){
+      //    if (fMCTObj.fMCTruthList[i] == mct){
+      //      mctruth_idx = i;
+      //      break;
+      //    }
+      //  }
+      //  if (mctruth_idx == USHRT_MAX){
+      //    fMCTObj.fMCTruthList.push_back(mct);
+      //    fMCTObj.fTrackIdToMCTruthIndex.emplace(part->TrackId(), fMCTObj.fMCTruthList.size() - 1);
+      //  }
+      //  else{
+      //    fMCTObj.fTrackIdToMCTruthIndex.emplace(part->TrackId(), mctruth_idx );
+      //  }
+      //}
     }
 
   //--------------------------------------------------------------------
