@@ -58,7 +58,7 @@ namespace cheat{
     }
 
   //--------------------------------------------------------------------
-  template<typename Evt, typename handle_type> //I may want to make this function private.
+  template<typename Evt> //I may want to make this function private.
     void ParticleInventory::PrepMCTruthListAndTrackIdToMCTruthIndex(const Evt& evt ) const{
       if( this->TrackIdToMCTruthReady() && this->MCTruthListReady( ) ){ return;} 
       this->PrepParticleList( evt); //Make sure we have built the particle list for this event
