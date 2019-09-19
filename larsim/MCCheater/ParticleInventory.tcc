@@ -63,9 +63,9 @@ namespace cheat{
       if( this->TrackIdToMCTruthReady() && this->MCTruthListReady( ) ){ return;} 
       this->PrepParticleList( evt); //Make sure we have built the particle list for this event
 
-      const auto& mcpmctAssnsHandle *(evt.template getValidHandle<art::Assns<simb::MCParticle,simb::MCTruth>>(fG4ModuleLabel));
+      const auto& mcpmctAssnsHandle = *(evt.template getValidHandle<art::Assns<simb::MCParticle,simb::MCTruth>>(fG4ModuleLabel));
       //if (evt.getByLabel(fG4ModuleLabel, mcpmctAssnsHandle)) { // Product fetch successful
-      for( const auto& mcpmctAssnIn : *mcpmctAssnsHandle){    //Assns are themselves a container. Loop over entries.
+      for( const auto& mcpmctAssnIn : mcpmctAssnsHandle){    //Assns are themselves a container. Loop over entries.
         const art::Ptr<simb::MCParticle>& part=mcpmctAssnIn.first;
         const art::Ptr<simb::MCTruth>&    mct =mcpmctAssnIn.second;
         unsigned short mctruth_idx = USHRT_MAX;
