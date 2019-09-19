@@ -58,57 +58,58 @@ namespace cheat{
     }
 
   //--------------------------------------------------------------------
-  template<typename Evt> //I may want to make this function private.
+  template<typename Evt, typename handle_type> //I may want to make this function private.
     void ParticleInventory::PrepMCTruthListAndTrackIdToMCTruthIndex(const Evt& evt ) const{
       if( this->TrackIdToMCTruthReady() && this->MCTruthListReady( ) ){ return;} 
       this->PrepParticleList( evt); //Make sure we have built the particle list for this event
 
-      art::Handle< art::Assns<simb::MCParticle,simb::MCTruth> > mcpmctAssnsHandle;
-      if (evt.getByLabel(fG4ModuleLabel, mcpmctAssnsHandle)) { // Product fetch successful
-        for( const auto& mcpmctAssnIn : *mcpmctAssnsHandle){    //Assns are themselves a container. Loop over entries.
-          const art::Ptr<simb::MCParticle>& part=mcpmctAssnIn.first;
-          const art::Ptr<simb::MCTruth>&    mct =mcpmctAssnIn.second;
-          unsigned short mctruth_idx = USHRT_MAX;
-          for (size_t i = 0; i<fMCTObj.fMCTruthList.size(); ++i){
-            if (fMCTObj.fMCTruthList[i] == mct){
-              mctruth_idx = i;
-              break;
-            }
-          }
-          if (mctruth_idx == USHRT_MAX){
-            fMCTObj.fMCTruthList.push_back(mct);
-            fMCTObj.fTrackIdToMCTruthIndex.emplace(part->TrackId(), fMCTObj.fMCTruthList.size() - 1);
-          }
-          else{
-            fMCTObj.fTrackIdToMCTruthIndex.emplace(part->TrackId(), mctruth_idx );
+      const auto& mcpmctAssnsHandle *(evt.template getValidHandle<art::Assns<simb::MCParticle,simb::MCTruth>>(fG4ModuleLabel));
+      //if (evt.getByLabel(fG4ModuleLabel, mcpmctAssnsHandle)) { // Product fetch successful
+      for( const auto& mcpmctAssnIn : *mcpmctAssnsHandle){    //Assns are themselves a container. Loop over entries.
+        const art::Ptr<simb::MCParticle>& part=mcpmctAssnIn.first;
+        const art::Ptr<simb::MCTruth>&    mct =mcpmctAssnIn.second;
+        unsigned short mctruth_idx = USHRT_MAX;
+        for (size_t i = 0; i<fMCTObj.fMCTruthList.size(); ++i){
+          if (fMCTObj.fMCTruthList[i] == mct){
+            mctruth_idx = i;
+            break;
           }
         }
-        return;
+        if (mctruth_idx == USHRT_MAX){
+          fMCTObj.fMCTruthList.push_back(mct);
+          fMCTObj.fTrackIdToMCTruthIndex.emplace(part->TrackId(), fMCTObj.fMCTruthList.size() - 1);
+        }
+        else{
+          fMCTObj.fTrackIdToMCTruthIndex.emplace(part->TrackId(), mctruth_idx );
+        }
       }
+      //  return;
+      //}
 
-      // for compatibility with gallery
-      art::Handle< art::Assns<simb::MCParticle,simb::MCTruth,sim::GeneratedParticleInfo> > mcpmctAssnsHandle_g;
-      if (evt.getByLabel(fG4ModuleLabel, mcpmctAssnsHandle_g)) { // Product fetch successfull
-        for( const auto& mcpmctAssnIn_g : *mcpmctAssnsHandle_g){    //Assns are themselves a container. Loop over entries.
-          const art::Ptr<simb::MCParticle>& part=mcpmctAssnIn_g.first;
-          const art::Ptr<simb::MCTruth>&    mct =mcpmctAssnIn_g.second;
-          unsigned short mctruth_idx = USHRT_MAX;
-          for (size_t i = 0; i<fMCTObj.fMCTruthList.size(); ++i){
-            if (fMCTObj.fMCTruthList[i] == mct){
-              mctruth_idx = i;
-              break;
-            }
-          }
-          if (mctruth_idx == USHRT_MAX){
-            fMCTObj.fMCTruthList.push_back(mct);
-            fMCTObj.fTrackIdToMCTruthIndex.emplace(part->TrackId(), fMCTObj.fMCTruthList.size() - 1);
-          }
-          else{
-            fMCTObj.fTrackIdToMCTruthIndex.emplace(part->TrackId(), mctruth_idx );
-          }
-        }
-      }
-      return;
+      //      //art::Handle< art::Assns<simb::MCParticle,simb::MCTruth,sim::GeneratedParticleInfo> > mcpmctAssnsHandle_g;
+      //      //art::Handle< art::Assns<simb::MCParticle,simb::MCTruth> > mcpmctAssnsHandle_g;
+      //      handle_type mcpmctAssnsHandle;
+      //      if (evt.getByLabel(fG4ModuleLabel, mcpmctAssnsHandle)) { // Product fetch successfull
+      //        for( const auto& mcpmctAssnIn : *mcpmctAssnsHandle){    //Assns are themselves a container. Loop over entries.
+      //          const art::Ptr<simb::MCParticle>& part=mcpmctAssnIn.first;
+      //          const art::Ptr<simb::MCTruth>&    mct =mcpmctAssnIn.second;
+      //          unsigned short mctruth_idx = USHRT_MAX;
+      //          for (size_t i = 0; i<fMCTObj.fMCTruthList.size(); ++i){
+      //            if (fMCTObj.fMCTruthList[i] == mct){
+      //              mctruth_idx = i;
+      //              break;
+      //            }
+      //          }
+      //          if (mctruth_idx == USHRT_MAX){
+      //            fMCTObj.fMCTruthList.push_back(mct);
+      //            fMCTObj.fTrackIdToMCTruthIndex.emplace(part->TrackId(), fMCTObj.fMCTruthList.size() - 1);
+      //          }
+      //          else{
+      //            fMCTObj.fTrackIdToMCTruthIndex.emplace(part->TrackId(), mctruth_idx );
+      //          }
+      //        }
+      //      }
+      //      return;
     }
 
   //--------------------------------------------------------------------
