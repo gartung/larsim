@@ -1,8 +1,7 @@
-include_directories($ENV{GEANT4_FQ_DIR}/include)
-include_directories($ENV{XERCES_C_INC})
+include_directories ( ${GEANT4_INCLUDE_DIRS} )
 
 art_make_exec(NAME simplifyGDML
               LIBRARIES
-              ${G4PERSISTENCY}
-	      ${G4GEOMETRY}
-              ${XERCESC})
+              ${CLHEP_LIBRARIES}
+	      ${Geant4_LIBRARIES}
+             )

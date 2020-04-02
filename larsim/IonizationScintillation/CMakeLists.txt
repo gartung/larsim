@@ -4,7 +4,7 @@ art_make(LIB_LIBRARIES
            lardataalg_DetectorInfo
            larevt_SpaceCharge
            nusimdata_SimulationBase
-           ${CLHEP}
+           ${CLHEP_LIBRARIES}
            ${FHICLCPP}
            ${MF_MESSAGELOGGER}
          MODULE_LIBRARIES
@@ -15,11 +15,10 @@ art_make(LIB_LIBRARIES
            ${ART_FRAMEWORK_SERVICES_REGISTRY}
            ${ART_ROOT_IO_TFILE_SUPPORT}
            ${ART_ROOT_IO_TFILESERVICE_SERVICE}
-           ${CLHEP}
-           ${ROOT_CORE}
-           ${ROOT_TREE}
+           ${CLHEP_LIBRARIES}
+           ROOT::Core
+           ROOT::Tree
            ${MF_MESSAGELOGGER})
 
 install_headers()
 install_fhicl()
-install_source()

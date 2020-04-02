@@ -9,15 +9,14 @@ art_make(MODULE_LIBRARIES
            ${ART_ROOT_IO_TFILESERVICE_SERVICE}
            ${ART_ROOT_IO_TFILE_SUPPORT}
            ${MF_MESSAGELOGGER}
-           ${CLHEP}
-           ${ROOT_CORE}
-           ${ROOT_EG}
-           ${ROOT_HIST}
-           ${ROOT_PHYSICS}
-           ${ROOT_RIO}
-           ${ROOT_TREE}
+           ${CLHEP_LIBRARIES}
+           ROOT::Core
+           ROOT::EG
+           ROOT::Hist
+           ROOT::Physics
+           ROOT::RIO
+           ROOT::Tree
          )
 
 install_headers()
 install_fhicl()
-install_source()

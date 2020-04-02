@@ -2,14 +2,14 @@ art_make(NO_PLUGINS
   EXCLUDE
     ScintTimeLAr_tool.cc
   LIB_LIBRARIES
-    ${ROOT_CORE}
+    ROOT::Core
     larcorealg_Geometry
     ${ART_FRAMEWORK_SERVICES_REGISTRY}
     ${CANVAS}
     cetlib
     cetlib_except
     fhiclcpp
-    ${CLHEP}
+    ${CLHEP_LIBRARIES}
     ${ART_UTILITIES}
   )
 
@@ -21,4 +21,3 @@ simple_plugin(ScintTimeLAr "tool"
 
 install_headers()
 install_fhicl()
-install_source()

@@ -1,18 +1,19 @@
+include_directories(${IFDHC_INC})
+find_library(IFDH name ifdh PATHS ${IFDHC_LIB})
 art_make(MODULE_LIBRARIES
            larcorealg_Geometry
            larcoreobj_SummaryData
            nurandom_RandomUtils_NuRandomService_service
            nusimdata_SimulationBase
            ${ART_FRAMEWORK_SERVICES_REGISTRY}
-           ${CLHEP}
+           ${CLHEP_LIBRARIES}
            ${IFDH}
            ${MF_MESSAGELOGGER}
-           ${ROOT_CORE}
-           ${ROOT_EG}
-           ${ROOT_PHYSICS}
+           ROOT::Core
+           ROOT::EG
+           ROOT::Physics
            ${SQLITE3}
          )
 
 install_headers()
 install_fhicl()
-install_source()

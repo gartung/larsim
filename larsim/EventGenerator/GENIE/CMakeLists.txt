@@ -1,4 +1,5 @@
-include_directories ( $ENV{GENIE_INC}/GENIE )
+
+include_directories ( ${GENIE_INC}/GENIE )
 
 art_make(MODULE_LIBRARIES
          lardataalg_MCDumpers
@@ -10,18 +11,17 @@ art_make(MODULE_LIBRARIES
          nurandom_RandomUtils_NuRandomService_service
          nugen_EventGeneratorBase_GENIE
          ${ART_FRAMEWORK_SERVICES_REGISTRY}
-         ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
+         ${ART_ROOT_IO_TFILE_SUPPORT} ROOT::Core
          ${ART_ROOT_IO_TFILESERVICE_SERVICE}
          art_Persistency_Provenance
          ${MF_MESSAGELOGGER}
-         ${CLHEP}
+         ${CLHEP_LIBRARIES}
          ${GENIE_LIB_LIST}
-         ${ROOT_EGPYTHIA6}    # FIXME!!! - resolving genie run time reference
-         ${ROOT_EG}
-         ${ROOT_HIST}
-         ${ROOT_MATHCORE}
+         ROOT::EGPythia6    # FIXME!!! - resolving genie run time reference
+         ROOT::EG
+         ROOT::Hist
+         ROOT::MathCore
         )
 
 install_headers()
 install_fhicl()
-install_source()

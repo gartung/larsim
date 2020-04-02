@@ -1,4 +1,4 @@
-include_directories($ENV{GENIE_INC}/GENIE)
+include_directories(${GENIE_INC}/GENIE)
 
 art_make(LIB_LIBRARIES
          larsim_EventWeight_Base
@@ -13,4 +13,3 @@ art_make(LIB_LIBRARIES
 
 install_headers()
 install_fhicl()
-install_source()

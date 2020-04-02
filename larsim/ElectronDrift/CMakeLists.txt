@@ -14,13 +14,12 @@ art_make(LIB_LIBRARIES
            ${ART_FRAMEWORK_SERVICES_REGISTRY}
            ${ART_ROOT_IO_TFILESERVICE_SERVICE}
            ${ART_ROOT_IO_TFILE_SUPPORT}
-           ${CLHEP}
+           ${CLHEP_LIBRARIES}
            ${MF_MESSAGELOGGER}
-           ${ROOT_CORE}
-           ${ROOT_TREE}
+           ROOT::Core
+           ROOT::Tree
          )
 
 
 install_headers()
 install_fhicl()
-install_source()

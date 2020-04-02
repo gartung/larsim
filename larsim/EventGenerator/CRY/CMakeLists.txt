@@ -1,4 +1,4 @@
-include_directories($ENV{CRYHOME}/src)
+include_directories(${CRYHOME}/src)
 
 art_make(MODULE_LIBRARIES
            larcorealg_Geometry
@@ -10,11 +10,10 @@ art_make(MODULE_LIBRARIES
            ${ART_ROOT_IO_TFILESERVICE_SERVICE}
            ${ART_ROOT_IO_TFILE_SUPPORT}
            ${MF_MESSAGELOGGER}
-           ${ROOT_CORE}
-           ${ROOT_HIST}
-           ${ROOT_PHYSICS}
+           ROOT::Core
+           ROOT::Hist
+           ROOT::Physics
          )
 
 install_headers()
 install_fhicl()
-install_source()

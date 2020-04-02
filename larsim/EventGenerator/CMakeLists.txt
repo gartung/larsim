@@ -3,11 +3,11 @@ art_make(LIB_LIBRARIES
            cetlib
            cetlib_except
            ${FHICLCPP}
-           ${CLHEP}
-           ${ROOT_CORE}
-           ${ROOT_HIST}
-           ${ROOT_PHYSICS}
-           ${ROOT_RIO}
+           ${CLHEP_LIBRARIES}
+           ROOT::Core
+           ROOT::Hist
+           ROOT::Physics
+           ROOT::RIO
          MODULE_LIBRARIES
            larcorealg_Geometry
            larcoreobj_SummaryData
@@ -18,19 +18,19 @@ art_make(LIB_LIBRARIES
            ${ART_FRAMEWORK_SERVICES_REGISTRY}
            ${ART_ROOT_IO_TFILESERVICE_SERVICE}
            ${ART_ROOT_IO_TFILE_SUPPORT}
-           ${CLHEP}
+           ${CLHEP_LIBRARIES}
            ${MF_MESSAGELOGGER}
-           ${ROOT_CORE}
-           ${ROOT_EG}
-           ${ROOT_GEOM}
-           ${ROOT_HIST}
-           ${ROOT_PHYSICS}
-           ${ROOT_RIO}
+           ROOT::Core
+           ROOT::EG
+           ROOT::Geom
+           ROOT::Hist
+           ROOT::Physics
+           ROOT::RIO
         )
+
 
 install_headers()
 install_fhicl()
-install_source()
 
 add_subdirectory(CRY)
 add_subdirectory(GENIE)

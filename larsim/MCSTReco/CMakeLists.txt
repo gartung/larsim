@@ -1,3 +1,4 @@
+
 add_subdirectory(job)
 
 art_make(LIB_LIBRARIES
@@ -9,15 +10,14 @@ art_make(LIB_LIBRARIES
            cetlib_except
            ${MF_MESSAGELOGGER}
            ${FHICLCPP}
-           ${ROOT_CORE}
-           ${ROOT_PHYSICS}
+           ROOT::Core
+           ROOT::Physics
          MODULE_LIBRARIES
            larsim_MCSTReco
            ${MF_MESSAGELOGGER}
-           ${ROOT_CORE}
-           ${ROOT_PHYSICS}
+           ROOT::Core
+           ROOT::Physics
          )
 
 install_headers()
 install_fhicl()
-install_source()

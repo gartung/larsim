@@ -7,4 +7,3 @@ art_make(LIBRARY_NAME     larsim_EventWeight
 
 install_headers()
 install_fhicl()
-install_source()
